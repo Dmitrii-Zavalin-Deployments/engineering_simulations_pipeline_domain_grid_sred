@@ -1,8 +1,12 @@
-import json
 import unittest
-from jsonschema import validate, ValidationError
+import os
+import json
+import numpy as np
+from jsonschema import validate
 
-class TestInputValidation(unittest.TestCase):
+
+class TestSimulationPreprocessing(unittest.TestCase):
+    
     def setUp(self):
         """Load input JSON"""
         with open("data/testing-input-output/fluid_simulation.json") as f:
@@ -21,10 +25,23 @@ class TestInputValidation(unittest.TestCase):
         }
         validate(instance=self.input_data, schema=schema)
 
-    def test_numerical_validity(self):
-        """Ensure fluid simulation parameters are physically consistent"""
+    def test_physical_consistency(self):
+        """Ensure extracted fluid properties remain realistic"""
         assert 101000 <= self.input_data["global_parameters"]["pressure"]["value"] <= 102000, "Pressure out of bounds!"
         assert 0.05 <= self.input_data["global_parameters"]["energy_dissipation_rate"]["value"] <= 0.5, "Energy dissipation unrealistic!"
+
+    def test_binary_output_exists(self):
+        """Ensure .npy binary format is correctly generated"""
+        assert os.path.exists("data/testing-input-output/fluid_simulation.npy"), "Binary file missing!"
+
+    def test_binary_data_integrity(self):
+        """Ensure structured .npy file stores correct numerical fields"""
+        np_data = np.load("data/testing-input-output/fluid_simulation.npy")
+        assert np_data.shape[0] > 0, "Invalid Blender data structure!"
+        assert "velocity" in np_data.dtype.names, "Missing velocity field!"
+        assert "pressure" in np_data.dtype.names, "Missing pressure field!"
+        assert "turbulence_intensity" in np_data.dtype.names, "Missing turbulence field!"
+
 
 if __name__ == "__main__":
     unittest.main()
