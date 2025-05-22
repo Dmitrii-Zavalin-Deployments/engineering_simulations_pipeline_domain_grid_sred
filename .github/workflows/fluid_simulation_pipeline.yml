@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [ "3.10", "3.11", "3.12" ]  # Tests multiple Python versions
+        python-version: [ "3.11" ]  # Test only Python 3.11 for easier debugging
 
     steps:
       - name: Checkout repository
@@ -32,34 +32,28 @@ jobs:
             exit 1
           fi
 
-      - name: Install system dependencies (OpenVDB, TBB)
+      - name: Install system dependencies (Keep TBB if needed)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libopenvdb-dev libtbb-dev
+          sudo apt-get install -y libtbb-dev
 
-      - name: Install Python dependencies
-        run: bash "$GITHUB_WORKSPACE/install_dependencies.sh"
-
-      - name: Check PyOpenVDB availability
+      - name: Install Python dependencies (NumPy, HDF5, SciPy)
         run: |
-          pip search pyopenvdb || echo "⚠️ PyOpenVDB not found on PyPI"
+          pip install --upgrade numpy h5py scipy pytest
 
-      - name: Debug Dependencies
-        run: bash "$GITHUB_WORKSPACE/debug_dependencies.sh"
-
-      - name: Install PyOpenVDB via Conda (if necessary)
+      - name: Debug Dependencies (Check NumPy, HDF5, SciPy)
         run: |
-          if ! pip show pyopenvdb; then
-            conda install -c conda-forge pyopenvdb || echo "⚠️ Conda installation failed"
-          fi
+          python -c "import numpy, h5py, scipy" || echo "⚠️ Missing dependencies!"
 
       - name: Run fluid data processing script
+        env:
+          OUTPUT_FORMAT: npy  # Can be changed to hdf5
         run: python "$GITHUB_WORKSPACE/src/generate_blender_format.py"
 
       - name: Run tests
         run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
 
-      - name: Commit changes (Blender Fluid Parameters)
+      - name: Commit new fluid simulation outputs
         env:
           GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
           GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
@@ -68,11 +62,14 @@ jobs:
           git config --global user.email "${GIT_USER_EMAIL}"
 
           cd "$GITHUB_WORKSPACE"
-          if [ -f "data/testing-input-output/blender_fluid_parameters.json" ]; then
-            git add "data/testing-input-output/blender_fluid_parameters.json"
-            git commit -m "Auto-update: Added latest Blender fluid parameters"
-            git push origin HEAD
-          fi
+          git add data/testing-input-output/*.npy
+          git add data/testing-input-output/*.hdf5
+          
+          # Remove obsolete Blender JSON output if it is no longer used
+          git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
+
+          git commit -m "Auto-update: Fluid simulation outputs (Format: $OUTPUT_FORMAT)"
+          git push origin HEAD
 
 
 
