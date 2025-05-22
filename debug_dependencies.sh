@@ -4,11 +4,11 @@ set -e
 echo "🔍 Checking installed Python packages..."
 pip list
 
-echo "📝 Checking dependency tree..."
-pipdeptree > dependencies.txt
+echo "📦 Installing pipdeptree if missing..."
+pip install --quiet pipdeptree || echo "⚠️ Warning: pipdeptree installation failed!"
 
-echo "📦 Checking PyOpenVDB availability..."
-pip search pyopenvdb || echo "⚠️ PyOpenVDB not found"
+echo "📝 Checking dependency tree..."
+pipdeptree > dependencies.txt || echo "⚠️ Warning: pipdeptree command failed!"
 
 echo "✅ Debugging complete!"
 
