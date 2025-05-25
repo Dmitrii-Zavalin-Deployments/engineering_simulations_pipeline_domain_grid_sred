@@ -18,7 +18,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: List Repository Contents
-        run: ls -R
+        run: ls -R # This will now show initial_data.json in data/testing-input-output/
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -52,6 +52,7 @@ jobs:
 
       - name: Run Fluid Data Post-processing Script
         # This script processes the JSON output and generates .npy files
+        # It will now correctly look for initial_data.json in data/testing-input-output/
         run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
 
       # - name: Run tests
@@ -75,5 +76,10 @@ jobs:
           # Remove obsolete Blender JSON output if it is no longer used
           git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
 
-          git commit -m "Auto-update: Fluid simulation outputs and processed data" || echo "No changes to commit."
+          # If the external solver commits navier_stokes_results.json, it should be committed too.
+          # If initial_data.json is part of this repo's input, you might want to add it too.
+          # git add data/testing-input-output/initial_data.json
+          # git add data/testing-input-output/navier_stokes_results.json # If this repo also commits it
+
+          git commit -m "Auto-update: Fluid simulation outputs and processed data (using initial_data.json)" || echo "No changes to commit."
           git push origin HEAD
