@@ -9,9 +9,6 @@ on:
 jobs:
   process_fluid_data:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: [ "3.11" ]  # Test only Python 3.11 for easier debugging
 
     steps:
       - name: Checkout repository
@@ -23,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.python-version }}
+          python-version: "3.11"  # Test only Python 3.11 for easier debugging
 
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
@@ -72,17 +69,26 @@ jobs:
 
           cd "$GITHUB_WORKSPACE"
           
-          # Add the new .npy files and metadata JSON from the processed_data directory
-          git add processed_data/*.npy
-          git add processed_data/*.json
-          
+          # Add the new .npy files and metadata JSON from the correct directory
+          if ls data/testing-input-output/*.npy 1> /dev/null 2>&1; then
+              git add data/testing-input-output/*.npy
+          else
+              echo "ℹ️ No .npy files to add."
+          fi
+
+          if ls data/testing-input-output/*.json 1> /dev/null 2>&1; then
+              git add data/testing-input-output/*.json
+          else
+              echo "ℹ️ No .json files to add."
+          fi
+
           # Remove obsolete Blender JSON output if it is no longer used
           git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
 
           # If the external solver commits navier_stokes_results.json, it should be committed too.
           # If initial_data.json is part of this repo's input, you might want to add it too.
-          # git add data/testing-input-output/initial_data.json
-          # git add data/testing-input-output/navier_stokes_results.json # If this repo also commits it
+          git add data/testing-input-output/initial_data.json || echo "ℹ️ No initial_data.json to add."
+          git add data/testing-input-output/navier_stokes_results.json || echo "ℹ️ No navier_stokes_results.json to add."
 
           git commit -m "Auto-update: Fluid simulation outputs and processed data (using initial_data.json)" || echo "No changes to commit."
           git push origin HEAD
