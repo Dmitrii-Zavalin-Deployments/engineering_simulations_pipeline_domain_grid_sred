@@ -59,6 +59,9 @@ jobs:
       #   # The tests should ideally run after the data generation to ensure they can use the latest data
       #   run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
 
+      - name: Debug Directory Structure Before Commit
+        run: ls -R $GITHUB_WORKSPACE
+
       - name: Commit new fluid simulation outputs
         env:
           GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
