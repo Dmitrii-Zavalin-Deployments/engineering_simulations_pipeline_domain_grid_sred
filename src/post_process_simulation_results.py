@@ -2,13 +2,17 @@ import os
 import json
 import numpy as np
 
-def post_process_simulation_results(input_json_filename="navier_stokes_results.json", output_dir="processed_data"):
+def post_process_simulation_results(input_json_filename="navier_stokes_results.json",
+                                    initial_data_filename="initial_data.json", # Changed to initial_data.json
+                                    output_dir="processed_data"):
     """
     Extracts velocity fields, pressure, and (placeholder for) turbulence from simulation results
     and outputs structured binary (.npy) files.
 
     Args:
-        input_json_filename (str): The name of the input JSON file containing simulation results.
+        input_json_filename (str): The name of the input JSON file containing simulation results (navier_stokes_results.json).
+        initial_data_filename (str): The name of the initial data JSON file (initial_data.json)
+                                       to retrieve fluid properties and simulation parameters.
         output_dir (str): The directory where the processed .npy files will be saved.
     """
     print("Preprocessing engineering_simulations_pipeline_preprocessing_sred")
@@ -16,26 +20,50 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
 
     # Determine input and output paths
     current_dir = os.path.dirname(os.path.abspath(__file__))
-    # Assuming input JSON is in ../data/testing-input-output/ as per your previous code
-    input_filepath = os.path.join(current_dir, "..", "data", "testing-input-output", input_json_filename)
-    output_filepath = os.path.join(current_dir, output_dir)
+    data_dir = os.path.join(current_dir, "..", "data", "testing-input-output") # Consistent data directory
+    
+    results_filepath = os.path.join(data_dir, input_json_filename)
+    initial_data_filepath = os.path.join(data_dir, initial_data_filename) # Path to initial_data.json
+    
+    output_filepath = os.path.join(current_dir, output_dir) # Output is directly from src/ (or your project root)
 
-    if not os.path.exists(input_filepath):
-        print(f"❌ Error: Input JSON file not found at {input_filepath}")
+    if not os.path.exists(results_filepath):
+        print(f"❌ Error: Simulation results JSON file not found at {results_filepath}")
+        return
+    
+    if not os.path.exists(initial_data_filepath):
+        print(f"❌ Error: Initial data JSON file not found at {initial_data_filepath}. Cannot get fluid properties/simulation parameters.")
         return
 
     # Create output directory if it doesn't exist
     os.makedirs(output_filepath, exist_ok=True)
 
-    print(f"Loading results from: {input_filepath}")
+    print(f"Loading simulation results from: {results_filepath}")
     try:
-        with open(input_filepath, "r") as f:
+        with open(results_filepath, "r") as f:
             results_data = json.load(f)
     except json.JSONDecodeError as e:
-        print(f"❌ Error decoding JSON from {input_filepath}: {e}")
+        print(f"❌ Error decoding JSON from {results_filepath}: {e}")
         return
     except Exception as e:
-        print(f"❌ An unexpected error occurred while loading {input_filepath}: {e}")
+        print(f"❌ An unexpected error occurred while loading {results_filepath}: {e}")
+        return
+
+    print(f"Loading initial data from: {initial_data_filepath}")
+    try:
+        with open(initial_data_filepath, "r") as f:
+            initial_data = json.load(f)
+        
+        density = initial_data["fluid_properties"]["density"]
+        simulation_parameters = initial_data["simulation_parameters"]
+    except json.JSONDecodeError as e:
+        print(f"❌ Error decoding JSON from {initial_data_filepath}: {e}")
+        return
+    except KeyError as e:
+        print(f"❌ Error: Missing key '{e}' in {initial_data_filepath}. Check JSON structure for fluid_properties or simulation_parameters.")
+        return
+    except Exception as e:
+        print(f"❌ An unexpected error occurred while loading {initial_data_filepath}: {e}")
         return
 
     time_points = np.array(results_data["time_points"])
@@ -55,66 +83,32 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
     np.save(time_points_output_path, time_points)
     print(f"✅ Saved time points to: {time_points_output_path}")
 
-    # Save velocity history
-    # Reshape velocity history to (num_time_steps, Nz, Ny, Nx, 3) if grid_shape is (Nx, Ny, Nz)
-    # The original velocity_history is (num_time_steps, num_nodes, 3)
-    # We need to map the 1D node index back to 3D (k, j, i) for proper reshaping.
-    # This assumes a C-like (row-major) order where the last index changes fastest (i.e., x-direction).
-    # If your original `idx_to_node` was (i, j, k) where i changes fastest, this is compatible.
-    
-    # Reverse grid_shape for reshaping if assuming (k, j, i) order for output for consistency
-    # with typical 3D array indexing (depth, height, width)
-    # Let's keep it consistent with the internal (Nx, Ny, Nz) but specify order 'C'
-    
-    # Note: velocity_history is (num_time_steps, num_nodes, 3)
-    # Target shape for saving as a grid: (num_time_steps, Nz, Ny, Nx, 3)
-    # This might require careful reordering of nodes if the 1D index mapping isn't sequential in Z, Y, X.
-    # However, create_structured_grid_info maps (i, j, k) to 1D index: k*ny*nx + j*nx + i
-    # This means the last dimension (x) varies fastest, then y, then z.
-    # So, reshaping directly to (Nz, Ny, Nx, 3) for a single timestep should work if nodes_coords is in that order.
-
-    # Option 1: Iterate and reshape each time step
-    # This is safer as it respects the order from the original 'create_structured_grid_info'
-    # which fills nodes_coords by iterating k, then j, then i.
-    # This corresponds to a (z, y, x) block order.
-    # So, we want to reshape to (num_time_steps, Nz, Ny, Nx, 3)
-    
-    # We need to map the 1D index to the 3D index for each node, and then place it correctly.
-    # Since nodes_coords is already in (Nx*Ny*Nz, 3) order where the 1D index corresponds
-    # to k*ny*nx + j*nx + i, we can directly reshape the 1D node arrays.
-    
-    # Reshape each timestep's velocity and pressure to the 3D grid shape
+    # Reshape velocity and pressure history to 3D grid shape
     # For velocity, it's (num_nodes, 3) -> (Nz, Ny, Nx, 3)
     # For pressure, it's (num_nodes,) -> (Nz, Ny, Nx)
-
-    # Create arrays to hold reshaped data
-    velocity_grid_history = np.zeros((num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0], 3))
-    pressure_grid_history = np.zeros((num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0]))
-
-    # For each time step, reshape the 1D arrays back into 3D grids
-    for t in range(num_time_steps):
-        # Reshape velocity (Nx, Ny, Nz) -> (Nz, Ny, Nx) for standard array access
-        velocity_grid_history[t] = velocity_history[t].reshape(grid_shape[2], grid_shape[1], grid_shape[0], 3)
-        pressure_grid_history[t] = pressure_history[t].reshape(grid_shape[2], grid_shape[1], grid_shape[0])
-
+    
+    # The grid_shape from mesh_info is (Nx, Ny, Nz).
+    # When reshaping from a 1D array filled by (k, j, i) loop (outer k, inner i),
+    # the numpy reshape order should match (Nz, Ny, Nx) for consistent 3D indexing.
+    # The original create_structured_grid_info fills nodes in k (outer), j, i (inner) order.
+    # So, a simple reshape to (Nz, Ny, Nx, ...) should be correct.
+    
+    # Note: velocity_history is (num_time_steps, num_nodes, 3)
+    velocity_grid_history = velocity_history.reshape(num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0], 3)
     velocity_output_path = os.path.join(output_filepath, "velocity_history.npy")
     np.save(velocity_output_path, velocity_grid_history)
     print(f"✅ Saved velocity history (shape: {velocity_grid_history.shape}) to: {velocity_output_path}")
 
-    # Save pressure history
+    # Note: pressure_history is (num_time_steps, num_nodes,)
+    pressure_grid_history = pressure_history.reshape(num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0])
     pressure_output_path = os.path.join(output_filepath, "pressure_history.npy")
     np.save(pressure_output_path, pressure_grid_history)
     print(f"✅ Saved pressure history (shape: {pressure_grid_history.shape}) to: {pressure_output_path}")
 
     # Placeholder for turbulence data (e.g., Kinetic Energy)
-    # You would replace this with actual turbulence model output if available.
-    # For now, let's calculate kinetic energy (0.5 * rho * |v|^2)
-    density = results_data["fluid_properties"]["density"]
+    # Using the 'density' loaded from initial_data.json
     kinetic_energy_history = 0.5 * density * np.linalg.norm(velocity_history, axis=2)**2
-    
-    kinetic_energy_grid_history = np.zeros((num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0]))
-    for t in range(num_time_steps):
-        kinetic_energy_grid_history[t] = kinetic_energy_history[t].reshape(grid_shape[2], grid_shape[1], grid_shape[0])
+    kinetic_energy_grid_history = kinetic_energy_history.reshape(num_time_steps, grid_shape[2], grid_shape[1], grid_shape[0])
 
     turbulence_output_path = os.path.join(output_filepath, "turbulence_kinetic_energy_history.npy")
     np.save(turbulence_output_path, kinetic_energy_grid_history)
@@ -135,8 +129,8 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
             "dy": mesh_info["dy"],
             "dz": mesh_info["dz"],
             "num_time_steps": num_time_steps,
-            "total_time": results_data["simulation_parameters"]["total_time"],
-            "time_step_size": results_data["simulation_parameters"]["time_step"]
+            "total_time": simulation_parameters["total_time"], # Using loaded simulation_parameters
+            "time_step_size": simulation_parameters["time_step"] # Using loaded simulation_parameters
         }, f, indent=4)
     print(f"✅ Saved grid metadata to: {grid_metadata_output_path}")
 
@@ -144,8 +138,6 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
     print("Preprocessing completed.")
 
 if __name__ == "__main__":
-    # You can specify the input JSON filename here.
-    # Make sure 'fluid_simulation_input.json' (or whatever your input is)
-    # has been run by the previous script to generate 'navier_stokes_results.json'
-    # in the correct relative path (../data/testing-input-output/).
-    post_process_simulation_results("navier_stokes_results.json")
+    # Call the function with both the results JSON and the initial data JSON
+    post_process_simulation_results(input_json_filename="navier_stokes_results.json",
+                                    initial_data_filename="initial_data.json")
