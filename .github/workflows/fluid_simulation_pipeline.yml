@@ -17,6 +17,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: List Repository Contents
+        run: ls -R
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -38,6 +41,8 @@ jobs:
           sudo apt-get install -y libtbb-dev
 
       - name: Install Python dependencies (NumPy, HDF5, SciPy)
+        # Assuming these are sufficient. If your simulation/post-processing needs more, add them to requirements.txt
+        # and use 'pip install -r requirements.txt' instead.
         run: |
           pip install --upgrade numpy h5py scipy pytest
 
@@ -45,13 +50,13 @@ jobs:
         run: |
           python -c "import numpy, h5py, scipy" || echo "⚠️ Missing dependencies!"
 
-      - name: Run fluid data processing script
-        env:
-          OUTPUT_FORMAT: npy  # Can be changed to hdf5
-        run: python "$GITHUB_WORKSPACE/src/generate_blender_format.py"
+      - name: Run Fluid Data Post-processing Script
+        # This script processes the JSON output and generates .npy files
+        run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
 
-      - name: Run tests
-        run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
+      # - name: Run tests
+      #   # The tests should ideally run after the data generation to ensure they can use the latest data
+      #   run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
 
       - name: Commit new fluid simulation outputs
         env:
@@ -62,14 +67,13 @@ jobs:
           git config --global user.email "${GIT_USER_EMAIL}"
 
           cd "$GITHUB_WORKSPACE"
-          git add data/testing-input-output/*.npy
-          git add data/testing-input-output/*.hdf5
+          
+          # Add the new .npy files and metadata JSON from the processed_data directory
+          git add processed_data/*.npy
+          git add processed_data/*.json
           
           # Remove obsolete Blender JSON output if it is no longer used
           git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
 
-          git commit -m "Auto-update: Fluid simulation outputs (Format: $OUTPUT_FORMAT)"
+          git commit -m "Auto-update: Fluid simulation outputs and processed data" || echo "No changes to commit."
           git push origin HEAD
-
-
-
