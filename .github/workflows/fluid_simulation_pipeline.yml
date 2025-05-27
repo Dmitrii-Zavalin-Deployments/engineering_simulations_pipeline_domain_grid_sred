@@ -25,6 +25,21 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
+      - name: Install system dependencies (Keep TBB if needed)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtbb-dev
+
+      - name: Install Python dependencies (NumPy, HDF5, SciPy)
+        # Assuming these are sufficient. If your simulation/post-processing needs more, add them to requirements.txt
+        # and use 'pip install -r requirements.txt' instead.
+        run: |
+          pip install --upgrade numpy h5py scipy pytest dropbox
+
+      - name: Debug Dependencies (Check NumPy, HDF5, SciPy)
+        run: |
+          python -c "import numpy, h5py, scipy" || echo "⚠️ Missing dependencies!"
+
       - name: Delete All Previous Files in Testing-Input-Output
         run: |
           if [ -d "$GITHUB_WORKSPACE/data/testing-input-output/" ]; then
@@ -50,21 +65,6 @@ jobs:
             echo "❌ Error: requirements.txt not found!"
             exit 1
           fi
-
-      - name: Install system dependencies (Keep TBB if needed)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libtbb-dev
-
-      - name: Install Python dependencies (NumPy, HDF5, SciPy)
-        # Assuming these are sufficient. If your simulation/post-processing needs more, add them to requirements.txt
-        # and use 'pip install -r requirements.txt' instead.
-        run: |
-          pip install --upgrade numpy h5py scipy pytest dropbox
-
-      - name: Debug Dependencies (Check NumPy, HDF5, SciPy)
-        run: |
-          python -c "import numpy, h5py, scipy" || echo "⚠️ Missing dependencies!"
 
       - name: Run Fluid Data Post-processing Script
         # This script processes the JSON output and generates .npy files
