@@ -25,13 +25,6 @@ jobs:
       - name: Upgrade pip
         run: python -m pip install --upgrade pip
 
-      - name: Verify requirements.txt exists
-        run: |
-          if [ ! -f "$GITHUB_WORKSPACE/requirements.txt" ]; then
-            echo "❌ Error: requirements.txt not found!"
-            exit 1
-          fi
-
       - name: Install system dependencies (Keep TBB if needed)
         run: |
           sudo apt-get update
@@ -41,11 +34,37 @@ jobs:
         # Assuming these are sufficient. If your simulation/post-processing needs more, add them to requirements.txt
         # and use 'pip install -r requirements.txt' instead.
         run: |
-          pip install --upgrade numpy h5py scipy pytest
+          pip install --upgrade numpy h5py scipy pytest dropbox
 
       - name: Debug Dependencies (Check NumPy, HDF5, SciPy)
         run: |
           python -c "import numpy, h5py, scipy" || echo "⚠️ Missing dependencies!"
+
+      - name: Delete All Previous Files in Testing-Input-Output
+        run: |
+          if [ -d "$GITHUB_WORKSPACE/data/testing-input-output/" ]; then
+            rm -rf "$GITHUB_WORKSPACE/data/testing-input-output/*"
+            echo "🗑️ Deleted all files inside data/testing-input-output/."
+          else
+            echo "ℹ️ No previous files found in data/testing-input-output/—proceeding with new generation."
+          fi
+      
+      - name: Make `download_from_dropbox.sh` Executable
+        run: chmod +x src/download_from_dropbox.sh
+  
+      - name: Download Simulation Files from Dropbox
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+        run: src/download_from_dropbox.sh
+
+      - name: Verify requirements.txt exists
+        run: |
+          if [ ! -f "$GITHUB_WORKSPACE/requirements.txt" ]; then
+            echo "❌ Error: requirements.txt not found!"
+            exit 1
+          fi
 
       - name: Run Fluid Data Post-processing Script
         # This script processes the JSON output and generates .npy files
@@ -59,36 +78,51 @@ jobs:
       - name: Debug Directory Structure Before Commit
         run: ls -R $GITHUB_WORKSPACE
 
-      - name: Commit new fluid simulation outputs
-        env:
-          GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
-          GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+    # - name: Commit new fluid simulation outputs
+    #   env:
+    #     GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
+    #     GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
+    #   run: |
+    #     git config --global user.name "${GIT_USER_NAME}"
+    #     git config --global user.email "${GIT_USER_EMAIL}"
+    
+    #     cd "$GITHUB_WORKSPACE"
+        
+    #     # Add the new .npy files and metadata JSON from the correct directory
+    #     if ls data/testing-input-output/*.npy 1> /dev/null 2>&1; then
+    #         git add data/testing-input-output/*.npy
+    #     else
+    #         echo "ℹ️ No .npy files to add."
+    #     fi
+    
+    #     if ls data/testing-input-output/*.json 1> /dev/null 2>&1; then
+    #         git add data/testing-input-output/*.json
+    #     else
+    #         echo "ℹ️ No .json files to add."
+    #     fi
+    
+    #     # Remove obsolete Blender JSON output if it is no longer used
+    #     git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
+    
+    #     # If the external solver commits navier_stokes_results.json, it should be committed too.
+    #     # If initial_data.json is part of this repo's input, you might want to add it too.
+    #     git add data/testing-input-output/initial_data.json || echo "ℹ️ No initial_data.json to add."
+    #     git add data/testing-input-output/navier_stokes_results.json || echo "ℹ️ No navier_stokes_results.json to add."
+    
+    #     git commit -m "Auto-update: Fluid simulation outputs and processed data (using initial_data.json)" || echo "No changes to commit."
+    #     git push origin HEAD
+
+      - name: Make `upload_to_dropbox.sh` Executable
+        run: chmod +x src/upload_to_dropbox.sh
+  
+      - name: Debug Before Dropbox Upload
         run: |
-          git config --global user.name "${GIT_USER_NAME}"
-          git config --global user.email "${GIT_USER_EMAIL}"
-
-          cd "$GITHUB_WORKSPACE"
-          
-          # Add the new .npy files and metadata JSON from the correct directory
-          if ls data/testing-input-output/*.npy 1> /dev/null 2>&1; then
-              git add data/testing-input-output/*.npy
-          else
-              echo "ℹ️ No .npy files to add."
-          fi
-
-          if ls data/testing-input-output/*.json 1> /dev/null 2>&1; then
-              git add data/testing-input-output/*.json
-          else
-              echo "ℹ️ No .json files to add."
-          fi
-
-          # Remove obsolete Blender JSON output if it is no longer used
-          git rm -f data/testing-input-output/blender_fluid_parameters.json || echo "Already removed."
-
-          # If the external solver commits navier_stokes_results.json, it should be committed too.
-          # If initial_data.json is part of this repo's input, you might want to add it too.
-          git add data/testing-input-output/initial_data.json || echo "ℹ️ No initial_data.json to add."
-          git add data/testing-input-output/navier_stokes_results.json || echo "ℹ️ No navier_stokes_results.json to add."
-
-          git commit -m "Auto-update: Fluid simulation outputs and processed data (using initial_data.json)" || echo "No changes to commit."
-          git push origin HEAD
+          echo "🔍 Checking directory structure before upload..."
+          ls -R $GITHUB_WORKSPACE
+  
+      - name: Upload Fluid Simulation Input to Dropbox
+        env:
+          APP_KEY: ${{ secrets.APP_KEY }}
+          APP_SECRET: ${{ secrets.APP_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
+        run: src/upload_to_dropbox.sh
