@@ -54,13 +54,13 @@ jobs:
       - name: Install system dependencies (Keep TBB if needed)
         run: |
           sudo apt-get update
-          sudo apt-get install -y libtbb-dev dropbox
+          sudo apt-get install -y libtbb-dev
 
       - name: Install Python dependencies (NumPy, HDF5, SciPy)
         # Assuming these are sufficient. If your simulation/post-processing needs more, add them to requirements.txt
         # and use 'pip install -r requirements.txt' instead.
         run: |
-          pip install --upgrade numpy h5py scipy pytest
+          pip install --upgrade numpy h5py scipy pytest dropbox
 
       - name: Debug Dependencies (Check NumPy, HDF5, SciPy)
         run: |
