@@ -6,7 +6,7 @@ APP_SECRET="${APP_SECRET}"   # Dropbox App Secret (Client Secret)
 REFRESH_TOKEN="${REFRESH_TOKEN}" # Dropbox Refresh Token
 
 # ✅ Updated: Corrected the local file path for fluid simulation input
-LOCAL_OUTPUT_FILE_PATH="$GITHUB_WORKSPACE/data/testing-input-output/navier_stokes_results.json"
+LOCAL_OUTPUT_FILE_PATH="$GITHUB_WORKSPACE/data/testing-input-output/*"
 
 # ✅ Fixed: Changed Dropbox folder path
 DROPBOX_UPLOAD_FOLDER="/engineering_simulations_pipeline"
