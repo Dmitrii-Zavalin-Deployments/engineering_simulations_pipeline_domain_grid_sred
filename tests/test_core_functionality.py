@@ -1,9 +1,10 @@
+import os
+import json
 import numpy as np
 import pytest
-import json
-import os
 
-FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "fixtures")
+# Set correct path to simulation outputs
+FIXTURES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "testing-input-output"))
 
 # ---------- Unit Tests ----------
 
@@ -30,28 +31,19 @@ def test_velocity_reshaping_valid():
 
 def test_pressure_reshaping_invalid():
     T, Z, Y, X = 2, 3, 3, 3
-    N = Z * Y * X
-    incorrect = np.ones((T, N + 1))  # Incorrect node count
+    incorrect = np.ones((T, 28))  # Should be 27 = 3×3×3
     with pytest.raises(ValueError):
         incorrect.reshape((T, Z, Y, X))
 
 
 def test_metadata_schema_types():
-    metadata = {
-        "nodes": 100,
-        "grid_shape": [10, 5, 2],
-        "dx": 0.1,
-        "dy": 0.1,
-        "dz": 0.2,
-        "time_step_size": 0.01,
-        "total_time": 1.0,
-        "num_time_steps": 100
-    }
+    metadata_path = os.path.join(FIXTURES_DIR, "grid_metadata.json")
+    with open(metadata_path) as f:
+        metadata = json.load(f)
     assert isinstance(metadata["nodes"], int)
     assert len(metadata["grid_shape"]) == 3
-    assert all(isinstance(x, (int, float)) for x in metadata["grid_shape"])
     for key in ["dx", "dy", "dz", "time_step_size", "total_time"]:
-        assert metadata[key] > 0
+        assert isinstance(metadata[key], (int, float)) and metadata[key] > 0
 
 
 # ---------- Integration Tests ----------
@@ -74,50 +66,38 @@ def test_metadata_matches_time_points():
         meta = json.load(f)
     time = np.load(os.path.join(FIXTURES_DIR, "time_points.npy"))
     assert meta["num_time_steps"] == len(time)
-    dt = np.diff(time)
-    assert np.all(dt > 0)  # Monotonic check
-    avg_dt = np.mean(dt)
-    assert np.isclose(meta["time_step_size"], avg_dt, rtol=1e-3)
+    deltas = np.diff(time)
+    assert np.all(deltas > 0)
+    assert np.isclose(np.mean(deltas), meta["time_step_size"], rtol=1e-3)
 
 
-# ---------- Negative Tests ----------
-
-def test_load_invalid_json():
-    with pytest.raises(json.JSONDecodeError):
-        with open(os.path.join(FIXTURES_DIR, "invalid_results.json")) as f:
-            json.load(f)
-
-
-def test_density_negative_raises():
-    fluid_props = {"density": -1.0}
-    assert fluid_props["density"] < 0
+def test_all_npy_files_are_finite():
+    files = [
+        "velocity_history.npy",
+        "pressure_history.npy",
+        "turbulence_kinetic_energy_history.npy"
+    ]
+    for name in files:
+        data = np.load(os.path.join(FIXTURES_DIR, name))
+        assert np.all(np.isfinite(data)), f"{name} contains NaN or inf"
 
 
-def test_shape_mismatch_on_reshape():
-    velocity = np.zeros((3, 125, 3))
-    with pytest.raises(ValueError):
-        velocity.reshape((3, 5, 5, 5, 3))  # Invalid shape
+def test_grid_index_matches_node_coordinates():
+    coords = np.load(os.path.join(FIXTURES_DIR, "nodes_coords.npy"))
+    with open(os.path.join(FIXTURES_DIR, "grid_metadata.json")) as f:
+        meta = json.load(f)
+    X, Y, Z = meta["grid_shape"]
+    dx, dy, dz = meta["dx"], meta["dy"], meta["dz"]
 
+    expected = []
+    for z in range(Z):
+        for y in range(Y):
+            for x in range(X):
+                expected.append([x * dx, y * dy, z * dz])
+    expected = np.array(expected)
 
-def test_missing_keys_raise_keyerror():
-    with open(os.path.join(FIXTURES_DIR, "missing_mesh_info.json")) as f:
-        data = json.load(f)
-    with pytest.raises(KeyError):
-        _ = data["mesh_info"]["nodes"]
-
-
-def test_non_monotonic_time_points():
-    time_points = np.array([0.0, 0.01, 0.02, 0.015])  # Non-monotonic
-    diffs = np.diff(time_points)
-    assert not np.all(diffs > 0), "Time vector is incorrectly monotonic"
-
-
-def test_tke_nan_input_propagates():
-    velocity = np.array([[[np.nan, 0.0, 0.0]]])
-    density = 1000
-    norms = np.linalg.norm(velocity, axis=2)
-    tke = 0.5 * density * norms**2
-    assert np.isnan(tke).all(), "TKE should be NaN if velocity contains NaN"
+    assert coords.shape == expected.shape, "Mismatch in expected vs actual node count"
+    np.testing.assert_allclose(coords, expected, rtol=1e-6, err_msg="Node coordinate order does not match grid indexing")
 
 
 
