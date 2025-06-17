@@ -71,9 +71,9 @@ jobs:
         # It will now correctly look for initial_data.json in data/testing-input-output/
         run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
 
-      # - name: Run tests
-      #   # The tests should ideally run after the data generation to ensure they can use the latest data
-      #   run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
+      - name: Run tests
+        # The tests should ideally run after the data generation to ensure they can use the latest data
+        run: pytest tests --verbose || echo "⚠️ Some tests failed, but workflow continues."
 
       - name: Debug Directory Structure Before Commit
         run: ls -R $GITHUB_WORKSPACE
