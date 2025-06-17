@@ -36,7 +36,7 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
         initial_data = json.load(f)
 
     try:
-        density = initial_data["fluid_properties"]["density"]
+        density = float(initial_data["fluid_properties"]["density"])
         simulation_parameters = initial_data["simulation_parameters"]
         mesh_info = results_data["mesh_info"]
     except KeyError as e:
@@ -46,9 +46,9 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
     velocity_history = np.array(results_data["velocity_history"])
     pressure_history = np.array(results_data["pressure_history"])
 
-    num_time_steps = len(time_points)
-    grid_shape = tuple(mesh_info["grid_shape"])  # (X, Y, Z)
-    expected_nodes = np.prod(grid_shape)
+    num_time_steps = int(len(time_points))
+    grid_shape = tuple(int(x) for x in mesh_info["grid_shape"])  # (X, Y, Z)
+    expected_nodes = int(np.prod(grid_shape))
     actual_nodes = velocity_history.shape[1]
 
     print(f"Processing data for {num_time_steps} time steps and {actual_nodes} nodes.")
@@ -88,16 +88,16 @@ def post_process_simulation_results(input_json_filename="navier_stokes_results.j
     np.save(os.path.join(output_filepath, "nodes_coords.npy"), coords)
     print(f"✅ Saved node coordinates to: {output_filepath}/nodes_coords.npy")
 
-    # Save grid metadata
+    # Save grid metadata (ensure types are serializable)
     grid_metadata = {
-        "nodes": expected_nodes,
-        "grid_shape": list(grid_shape),
-        "dx": mesh_info["dx"],
-        "dy": mesh_info["dy"],
-        "dz": mesh_info["dz"],
-        "num_time_steps": num_time_steps,
-        "total_time": simulation_parameters["total_time"],
-        "time_step_size": simulation_parameters["time_step"]
+        "nodes": int(expected_nodes),
+        "grid_shape": [int(x) for x in grid_shape],
+        "dx": float(mesh_info["dx"]),
+        "dy": float(mesh_info["dy"]),
+        "dz": float(mesh_info["dz"]),
+        "num_time_steps": int(num_time_steps),
+        "total_time": float(simulation_parameters["total_time"]),
+        "time_step_size": float(simulation_parameters["time_step"])
     }
     with open(os.path.join(output_filepath, "grid_metadata.json"), "w") as f:
         json.dump(grid_metadata, f, indent=4)
