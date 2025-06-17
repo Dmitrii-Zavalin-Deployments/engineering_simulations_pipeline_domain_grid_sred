@@ -32,11 +32,7 @@ jobs:
 
       - name: 📦 Install Python dependencies
         run: |
-          if [ -f "$GITHUB_WORKSPACE/requirements.txt" ]; then
-            pip install -r requirements.txt
-          else
-            pip install numpy h5py scipy pytest dropbox pytest-mock
-          fi
+          pip install numpy h5py scipy pytest dropbox pytest-mock
 
       - name: 🔍 Check Python packages are importable
         run: |
@@ -56,13 +52,6 @@ jobs:
           APP_SECRET: ${{ secrets.APP_SECRET }}
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
-
-      - name: 📄 Verify requirements.txt exists
-        run: |
-          if [ ! -f "$GITHUB_WORKSPACE/requirements.txt" ]; then
-            echo "❌ Error: requirements.txt not found!"
-            exit 1
-          fi
 
       - name: 🧪 Run post-processing script
         run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
