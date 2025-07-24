@@ -33,10 +33,11 @@ jobs:
         run: |
           pip install -r requirements.txt
 
-      - name: 🧹 Delete previous simulation output
+      - name: 🧹 Clear simulation output artifacts
         run: |
           rm -rf "$GITHUB_WORKSPACE/data/testing-input-output/"*
-          echo "✅ Output directory cleared"
+          rm -f "$GITHUB_WORKSPACE/output/test_enriched_metadata.json"
+          echo "✅ Output directories cleaned"
 
       - name: ✅ Make download script executable
         run: chmod +x src/download_from_dropbox.sh
@@ -51,12 +52,25 @@ jobs:
       - name: 🚀 Run enrichment pipeline
         run: python "$GITHUB_WORKSPACE/src/run_pipeline.py"
 
-      - name: 🔬 Run test suite (unit + integration + error handling)
+      - name: 🔍 Validate output JSON against schema
+        env:
+          PYTHONPATH: "${{ github.workspace }}/src"
+        run: |
+          python -c "
+          import json, jsonschema
+          with open('schemas/domain_schema.json') as s, open('output/test_enriched_metadata.json') as d:
+              schema = json.load(s)
+              data = json.load(d)
+              jsonschema.validate(instance=data, schema=schema)
+          "
+          echo "✅ Output schema validated"
+
+      - name: 🔬 Run test suite (unit + integration + edge guards)
         env:
           PYTHONPATH: "${{ github.workspace }}/src"
         run: |
           pytest -s tests/ --verbose -ra
-          echo "✅ Unit tests completed."
+          echo "✅ Unit tests completed"
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE
