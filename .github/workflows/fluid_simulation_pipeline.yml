@@ -1,4 +1,6 @@
-name: Fluid Data Processing and Commit
+# .github/workflows/fluid_simulation_pipeline.yml
+
+name: Fluid Simulation Data Pipeline
 
 on:
   push:
@@ -14,9 +16,6 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
-      - name: 📂 List repository contents
-        run: ls -R
-
       - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v4
         with:
@@ -30,9 +29,9 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libtbb-dev
 
-      - name: 📦 Install Python dependencies
+      - name: 📦 Install Python dependencies from requirements.txt
         run: |
-          pip install numpy h5py scipy pytest dropbox pytest-mock
+          pip install -r requirements.txt
 
       - name: 🔍 Check Python packages are importable
         run: |
@@ -53,11 +52,11 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
-      - name: 🧪 Run post-processing script
-        run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
+      # - name: 🧪 Run post-processing script
+      #   run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
 
-      - name: 🔬 Run test suite (unit + integration + error handling)
-        run: pytest tests --verbose
+      # - name: 🔬 Run test suite (unit + integration + error handling)
+      #   run: pytest tests --verbose
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE

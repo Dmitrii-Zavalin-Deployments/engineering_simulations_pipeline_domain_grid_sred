@@ -1,14 +1,24 @@
 # /src/pipeline/metadata_extractor.py
+# ----------------------------------------------------------------------
+# Stub Implementation for Metadata Extraction
+#
+# This module demonstrates how to hook into the metadata enrichment logic
+# using placeholder dimension values and volume estimates. It is intended
+# as a scaffold for future integration with real domain data sources.
+#
+# Replace stub functions (e.g., get_dimensions_from_source, get_bounding_volume)
+# with actual loading, parsing, or computation logic as needed.
+# ----------------------------------------------------------------------
 
 import json
 from metadata_enrichment import enrich_metadata_pipeline
 
 def get_dimensions_from_source():
-    # Replace this with actual data loading logic
+    # STUB: Replace this with real data source (e.g., mesh parser, config loader)
     return 64, 64, 128  # Example values
 
 def get_bounding_volume():
-    # Replace this with real calculation or metadata
+    # STUB: Replace with actual bounding volume computation or metadata retrieval
     return 512.0  # Example in m³
 
 def load_runtime_config(path="configs/system_config.json"):

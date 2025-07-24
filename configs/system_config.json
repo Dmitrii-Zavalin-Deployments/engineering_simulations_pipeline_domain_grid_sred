@@ -1,0 +1,18 @@
+{
+  "tagging_enabled": true,
+  "default_grid_dimensions": {
+    "nx": 64,
+    "ny": 64,
+    "nz": 128
+  },
+  "bounding_volume": 512.0,
+  "metadata_output_path": "output/enriched_metadata.json",
+  "pipeline_index_path": "configs/metadata/pipeline_index.json",
+  "logging": {
+    "level": "INFO",
+    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  }
+}
+
+
+
