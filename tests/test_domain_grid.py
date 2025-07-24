@@ -3,8 +3,8 @@
 import pytest
 import json
 from pathlib import Path
-from pipeline.metadata_enrichment import enrich_metadata_pipeline
-from processing.resolution_calculator import get_resolution
+from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
+from src.processing.resolution_calculator import get_resolution
 
 CONFIG_PATH = "configs/system_config.json"
 TEST_OUTPUT_PATH = "output/test_enriched_metadata.json"
@@ -35,7 +35,6 @@ def cleanup_output():
     if output_path.exists():
         output_path.unlink()
 
-
 # ✅ Test fallback resolution hierarchy (config and heuristics)
 def test_resolution_fallback_when_dx_missing():
     config = load_config()
@@ -46,7 +45,6 @@ def test_resolution_fallback_when_dx_missing():
 
     assert all(axis in result for axis in ["dx", "dy", "dz"])
     assert result["dx"] > 0 and result["dy"] > 0 and result["dz"] > 0
-
 
 # 🧪 Test enrichment output includes resolution tags
 def test_enriched_metadata_has_resolution_tags():
@@ -62,7 +60,6 @@ def test_enriched_metadata_has_resolution_tags():
     assert "spacing_hint" in enriched
     assert "resolution_density" in enriched
 
-
 # ⚠️ Test malformed bounding box triggers fallback or error
 def test_resolution_with_invalid_bounding_box():
     config = load_config()
@@ -76,7 +73,6 @@ def test_resolution_with_invalid_bounding_box():
     except Exception as e:
         assert "Bounding box heuristic failed" in str(e) or isinstance(e, AssertionError)
 
-
 # 🚨 Test missing config values triggers safe fallback
 def test_resolution_with_missing_config_defaults():
     config = load_config()
@@ -88,7 +84,6 @@ def test_resolution_with_missing_config_defaults():
     result = get_resolution(dx=None, dy=None, dz=None, bounding_box=bbox, config=config)
 
     assert all(result[axis] > 0 for axis in ["dx", "dy", "dz"])
-
 
 # 📦 Test metadata file output with valid enrichment
 def test_metadata_output_file_creation():

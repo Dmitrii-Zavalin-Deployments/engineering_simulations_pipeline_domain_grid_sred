@@ -4,7 +4,7 @@ import pytest
 import json
 import math
 from hypothesis import given, strategies as st
-from processing.resolution_calculator import get_resolution
+from src.processing.resolution_calculator import get_resolution
 
 CONFIG_PATH = "configs/system_config.json"
 
