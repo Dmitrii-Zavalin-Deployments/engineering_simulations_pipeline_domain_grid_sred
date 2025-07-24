@@ -48,8 +48,8 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
-      # - name: 🧪 Run post-processing script
-      #   run: python "$GITHUB_WORKSPACE/src/post_process_simulation_results.py"
+      - name: 🚀 Run enrichment pipeline
+        run: python "$GITHUB_WORKSPACE/src/run_pipeline.py"
 
       # - name: 🔬 Run test suite (unit + integration + error handling)
       #   run: pytest tests --verbose
