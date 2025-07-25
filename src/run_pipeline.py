@@ -14,10 +14,14 @@ from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution
 
+# 🧩 NEW: Import profile enforcement logic
+from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
+
 # 📁 Configurable I/O Directory — supports ENV override
 IO_DIRECTORY = Path(os.getenv("IO_DIRECTORY", "./data/testing-input-output"))
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH", IO_DIRECTORY / "system_config.json"))
 OUTPUT_PATH = Path(os.getenv("OUTPUT_PATH", IO_DIRECTORY / "enriched_metadata.json"))
+PROFILE_PATH = "schemas/validation_profile.yaml"  # 🧩 NEW: Declarative logic profile
 
 def load_config(path=CONFIG_PATH):
     try:
@@ -97,6 +101,14 @@ def main():
     }
 
     metadata = {"domain_definition": domain_definition}
+
+    # 🧩 NEW: Enforce declarative validation profile
+    try:
+        enforce_profile(PROFILE_PATH, metadata)
+    except ValidationProfileError as vpe:
+        print(f"❌ Profile rule triggered:\n{vpe}")
+        raise
+
     save_metadata(metadata)
     print("🏁 Pipeline completed.")
 

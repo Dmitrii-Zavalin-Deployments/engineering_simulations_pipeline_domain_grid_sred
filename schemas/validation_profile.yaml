@@ -1,0 +1,19 @@
+# Declarative Validation Profile for Domain Metadata
+# --------------------------------------------------
+# These rules enforce logical consistency between bounding box and grid resolution fields.
+# Each rule consists of:
+#   - `if`: logical expression using dot notation for metadata keys
+#   - `raise`: message triggered if condition evaluates to True
+
+rules:
+  - if: domain_definition.max_z <= domain_definition.min_z
+    raise: "Invalid bounds: max_z must exceed min_z"
+
+  - if: domain_definition.nx == 0
+    raise: "Grid resolution nx must be nonzero"
+
+  - if: domain_definition.max_x < domain_definition.min_x
+    raise: "max_x cannot be less than min_x"
+
+
+
