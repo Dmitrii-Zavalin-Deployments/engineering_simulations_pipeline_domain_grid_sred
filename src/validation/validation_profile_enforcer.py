@@ -1,7 +1,12 @@
 # src/validation/validation_profile_enforcer.py
 
-import yaml
+try:
+    import yaml
+except ImportError:
+    raise ImportError("Missing PyYAML. Install with: pip install PyYAML")
+
 import operator
+from validation.expression_utils import parse_literal  # ✅ Modular import added
 
 
 class ValidationProfileError(Exception):
@@ -35,12 +40,17 @@ def _evaluate_expression(expr: str, payload: dict) -> bool:
         "<": operator.lt,
     }
 
-    # Match longest symbol first to prevent split errors (e.g. '>=' vs '>')
     for symbol in sorted(ops.keys(), key=len, reverse=True):
         if symbol in expr:
             left, right = expr.split(symbol, 1)
             left_val = _get_nested_value(payload, left.strip())
-            right_val = _get_nested_value(payload, right.strip())
+
+            # Determine whether right side is a literal or key path
+            try:
+                right_val = parse_literal(right.strip())  # ✅ Replaces _parse_literal
+            except Exception:
+                right_val = _get_nested_value(payload, right.strip())
+
             return ops[symbol](left_val, right_val)
 
     raise ValueError(f"Unsupported expression format: '{expr}'")
@@ -49,7 +59,7 @@ def _evaluate_expression(expr: str, payload: dict) -> bool:
 def enforce_profile(profile_path: str, payload: dict):
     """
     Parse a validation YAML profile and enforce its rules on the given payload.
-    
+
     Each rule must include:
       - if: <expression>
       - raise: <error message>

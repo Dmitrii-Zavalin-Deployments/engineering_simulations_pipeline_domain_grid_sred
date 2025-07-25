@@ -1,9 +1,8 @@
 # Declarative Validation Profile for Domain Metadata
 # --------------------------------------------------
-# These rules enforce logical consistency between bounding box and grid resolution fields.
-# Each rule consists of:
-#   - `if`: logical expression using dot notation for metadata keys
-#   - `raise`: message triggered if condition evaluates to True
+# This profile enforces logical consistency and schema bounds for metadata fields.
+# Expression-based rules are listed under `rules:`.
+# Field-level constraints are mapped under top-level domain blocks (e.g. domain_definition).
 
 rules:
   - if: domain_definition.max_z <= domain_definition.min_z
@@ -14,6 +13,12 @@ rules:
 
   - if: domain_definition.max_x < domain_definition.min_x
     raise: "max_x cannot be less than min_x"
+
+domain_definition:
+  nx: {min: 1}
+  ny: {min: 1}
+  nz: {min: 1}
+  max_x: {max: 100.0}
 
 
 
