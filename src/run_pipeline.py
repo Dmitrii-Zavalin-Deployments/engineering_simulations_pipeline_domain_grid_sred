@@ -1,3 +1,5 @@
+# src/run_pipeline.py
+
 # ----------------------------------------------------------------------
 # Main entry-point for metadata enrichment and resolution tagging
 # Designed for execution via GitHub Actions or local testing
@@ -10,7 +12,7 @@ from pathlib import Path
 from geometry_parser import extract_bounding_box_from_step
 from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
-from processing.resolution_calculator import get_resolution, validate_bounding_box_inputs
+from processing.resolution_calculator import get_resolution
 
 # 📁 Centralized I/O Directory
 IO_DIRECTORY = Path("/data/testing-input-output")
@@ -33,6 +35,11 @@ def save_metadata(metadata, path=OUTPUT_PATH):
     with open(path, 'w') as f:
         json.dump(metadata, f, indent=4)
     print(f"✅ Metadata saved to {path}")
+
+# 🧪 Inline fallback validator for bounding box inputs
+def validate_bounding_box_inputs(bbox):
+    if not isinstance(bbox, (list, tuple)) or not all(isinstance(coord, (int, float)) for coord in bbox):
+        raise ValueError("Invalid bounding box inputs detected.")
 
 def main():
     print("🚀 Pipeline starting...")
