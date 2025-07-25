@@ -14,18 +14,23 @@ from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution
 
-# 📁 Centralized I/O Directory
-IO_DIRECTORY = Path("/data/testing-input-output")
-CONFIG_PATH = IO_DIRECTORY / "system_config.json"
-OUTPUT_PATH = IO_DIRECTORY / "enriched_metadata.json"
+# 📁 Configurable I/O Directory — now supports ENV override
+IO_DIRECTORY = Path(os.getenv("IO_DIRECTORY", "/data/testing-input-output"))
+CONFIG_PATH = Path(os.getenv("CONFIG_PATH", IO_DIRECTORY / "system_config.json"))
+OUTPUT_PATH = Path(os.getenv("OUTPUT_PATH", IO_DIRECTORY / "enriched_metadata.json"))
 
 def load_config(path=CONFIG_PATH):
     try:
         with open(path, 'r') as f:
             return json.load(f)
     except FileNotFoundError:
-        print(f"❌ Config file not found at {path}")
-        raise
+        print(f"❌ Config file not found at {path} — using defaults")
+        return {
+            "default_grid_dimensions": {"nx": 10, "ny": 10, "nz": 10},
+            "bounding_volume": None,
+            "tagging_enabled": False,
+            "step_filename": "empty.step"
+        }
     except json.JSONDecodeError:
         print(f"❌ Invalid JSON structure in config file: {path}")
         raise
@@ -86,6 +91,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-
-
