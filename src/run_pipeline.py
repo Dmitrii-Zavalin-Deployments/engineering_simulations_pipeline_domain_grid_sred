@@ -33,7 +33,10 @@ def load_config(path=CONFIG_PATH):
             "default_grid_dimensions": {"nx": 3, "ny": 2, "nz": 1},
             "bounding_volume": None,
             "tagging_enabled": False,
-            "enable_payload_sanitization": True  # 🧩 NEW: Default toggle
+            "enable_payload_sanitization": True,
+            "domain_definition": {
+                "min_z": 90.5  # ✅ Float literal added to avoid str cast issues
+            }
         }
     except json.JSONDecodeError:
         print(f"❌ Invalid JSON structure in config file: {path}")
@@ -123,9 +126,8 @@ def main():
 
     metadata = {"domain_definition": domain_definition}
 
-    # 🧼 Optional payload sanitization pre-validation
-    if config.get("enable_payload_sanitization", False):
-        metadata = sanitize_payload(metadata)
+    # ✅ Always sanitize payload before validation
+    metadata = sanitize_payload(metadata)
 
     # 🧩 NEW: Enforce declarative validation profile
     try:
