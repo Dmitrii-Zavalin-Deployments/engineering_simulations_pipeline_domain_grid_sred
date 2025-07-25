@@ -1,5 +1,3 @@
-# src/run_pipeline.py
-
 # ----------------------------------------------------------------------
 # Main entry-point for metadata enrichment and resolution tagging
 # Designed for execution via GitHub Actions or local testing
@@ -7,7 +5,6 @@
 
 import json
 import os
-import logging
 from pathlib import Path
 
 from geometry_parser import extract_bounding_box_from_step
@@ -15,26 +12,30 @@ from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution, validate_bounding_box_inputs
 
-CONFIG_PATH = "configs/system_config.json"
-OUTPUT_PATH = "output/enriched_metadata.json"
-
-log = logging.getLogger(__name__)
-logging.basicConfig(level=logging.INFO)
-
+# 📁 Centralized I/O Directory
+IO_DIRECTORY = Path("/data/testing-input-output")
+CONFIG_PATH = IO_DIRECTORY / "system_config.json"
+OUTPUT_PATH = IO_DIRECTORY / "enriched_metadata.json"
 
 def load_config(path=CONFIG_PATH):
-    with open(path, 'r') as f:
-        return json.load(f)
-
+    try:
+        with open(path, 'r') as f:
+            return json.load(f)
+    except FileNotFoundError:
+        print(f"❌ Config file not found at {path}")
+        raise
+    except json.JSONDecodeError:
+        print(f"❌ Invalid JSON structure in config file: {path}")
+        raise
 
 def save_metadata(metadata, path=OUTPUT_PATH):
-    Path(os.path.dirname(path)).mkdir(parents=True, exist_ok=True)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, 'w') as f:
         json.dump(metadata, f, indent=4)
     print(f"✅ Metadata saved to {path}")
 
-
 def main():
+    print("🚀 Pipeline starting...")
     config = load_config()
 
     nx = config["default_grid_dimensions"]["nx"]
@@ -42,16 +43,17 @@ def main():
     nz = config["default_grid_dimensions"]["nz"]
     bounding_volume = config.get("bounding_volume")
 
-    filepath = Path(config.get("step_filepath", "test_models/empty.step"))
+    # 📥 STEP input file must exist at specified path
+    step_filename = config.get("step_filename", "empty.step")
+    filepath = IO_DIRECTORY / step_filename
 
-    # ✅ Specific fallback for empty geometry added
+    print(f"📄 Reading STEP file from {filepath}")
     try:
         bounding_box = extract_bounding_box_from_step(filepath)
     except EmptyGeometryException:
-        log.warning("Empty STEP geometry — activating fallback")
+        print("⚠️ Empty STEP geometry — activating fallback")
         bounding_box = None
 
-    # 🛡️ Validate only if geometry is present
     if bounding_box is not None:
         validate_bounding_box_inputs(bounding_box)
 
@@ -73,9 +75,10 @@ def main():
     })
 
     save_metadata(enriched)
-
+    print("🏁 Pipeline completed.")
 
 if __name__ == "__main__":
     main()
+
 
 
