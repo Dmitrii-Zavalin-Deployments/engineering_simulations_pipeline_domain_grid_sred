@@ -32,7 +32,8 @@ def load_config(path=CONFIG_PATH):
         return {
             "default_grid_dimensions": {"nx": 3, "ny": 2, "nz": 1},
             "bounding_volume": None,
-            "tagging_enabled": False
+            "tagging_enabled": False,
+            "enable_payload_sanitization": True  # 🧩 NEW: Default toggle
         }
     except json.JSONDecodeError:
         print(f"❌ Invalid JSON structure in config file: {path}")
@@ -53,6 +54,26 @@ def validate_bounding_box_inputs(bbox):
     for val in bbox.values():
         if not isinstance(val, (int, float)):
             raise ValueError("Bounding box values must be numeric.")
+
+# 🧼 NEW: Pre-validation payload sanitization hook
+def sanitize_payload(payload: dict):
+    def try_cast_float(value):
+        if isinstance(value, str):
+            try:
+                return float(value)
+            except ValueError:
+                return value
+        return value
+
+    def recurse(obj):
+        if isinstance(obj, dict):
+            return {k: recurse(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [recurse(item) for item in obj]
+        else:
+            return try_cast_float(obj)
+
+    return recurse(payload)
 
 def main():
     print("🚀 Pipeline starting...")
@@ -101,6 +122,10 @@ def main():
     }
 
     metadata = {"domain_definition": domain_definition}
+
+    # 🧼 Optional payload sanitization pre-validation
+    if config.get("enable_payload_sanitization", False):
+        metadata = sanitize_payload(metadata)
 
     # 🧩 NEW: Enforce declarative validation profile
     try:

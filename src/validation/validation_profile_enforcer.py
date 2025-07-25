@@ -47,11 +47,23 @@ def _evaluate_expression(expr: str, payload: dict) -> bool:
 
             # Determine whether right side is a literal or key path
             try:
-                right_val = parse_literal(right.strip())  # ✅ Replaces _parse_literal
+                right_val = parse_literal(right.strip())
             except Exception:
                 right_val = _get_nested_value(payload, right.strip())
 
-            return ops[symbol](left_val, right_val)
+            # ✅ Type harmonization safeguard added
+            if type(left_val) != type(right_val):
+                try:
+                    right_val = type(left_val)(right_val)
+                except Exception:
+                    pass  # keep original if coercion fails
+
+            try:
+                return ops[symbol](left_val, right_val)
+            except TypeError as err:
+                raise ValueError(
+                    f"Incompatible types for operation '{symbol}': {type(left_val)} vs {type(right_val)}"
+                ) from err
 
     raise ValueError(f"Unsupported expression format: '{expr}'")
 
