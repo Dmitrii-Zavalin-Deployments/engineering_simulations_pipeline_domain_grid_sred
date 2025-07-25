@@ -22,9 +22,18 @@ def compute_resolution_density(domain_size, bounding_volume):
     logger.warning("Missing or invalid bounding_volume for resolution_density.")
     return None
 
+def is_zero_resolution(nx, ny, nz, bounding_volume):
+    domain_size = compute_domain_size(nx, ny, nz)
+    resolution_density = compute_resolution_density(domain_size, bounding_volume)
+    return resolution_density is None or resolution_density == 0
+
 def enrich_metadata_pipeline(nx, ny, nz, bounding_volume, config_flag=True):
     if not config_flag:
         logger.info("Metadata tagging disabled.")
+        return {}
+
+    if is_zero_resolution(nx, ny, nz, bounding_volume):
+        logger.warning("Zero resolution detected — skipping metadata enrichment.")
         return {}
 
     index = load_pipeline_index()

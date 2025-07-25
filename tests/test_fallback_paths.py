@@ -1,5 +1,9 @@
 import pytest
+import time
+from pathlib import Path
+
 from src.processing.resolution_calculator import get_resolution
+from src.run_pipeline import run_pipeline_with_geometry
 
 # 💡 Helper stub
 def stub_bbox(xmin=0.0, xmax=3.0, ymin=0.0, ymax=2.0, zmin=0.0, zmax=1.0):
@@ -11,7 +15,7 @@ def stub_bbox(xmin=0.0, xmax=3.0, ymin=0.0, ymax=2.0, zmin=0.0, zmax=1.0):
 
 # 🎯 Full fallback: no hints, partial config → heuristic
 def test_heuristic_fallback_triggered():
-    config = { "default_resolution": {} }  # intentionally empty
+    config = { "default_resolution": {} }
     bbox = stub_bbox()
     res = get_resolution(dx=None, dy=None, dz=None, bounding_box=bbox, config=config)
     assert res["dx"] > 0
@@ -22,9 +26,7 @@ def test_heuristic_fallback_triggered():
 def test_config_fallback_only():
     config = {
         "default_resolution": {
-            "dx": 0.4,
-            "dy": 0.5,
-            "dz": 0.25
+            "dx": 0.4, "dy": 0.5, "dz": 0.25
         }
     }
     res = get_resolution(dx=None, dy=None, dz=None, bounding_box=stub_bbox(), config=config)
@@ -32,42 +34,54 @@ def test_config_fallback_only():
     assert res["dy"] == 0.5
     assert res["dz"] == 0.25
 
-# 🧪 Mixed fallback: hint present for dx, config fills dy, heuristic fills dz
+# 🧪 Mixed fallback: hint → config → heuristic
 def test_mixed_fallback_sequence():
-    config = {
-        "default_resolution": { "dy": 0.5 }  # dz is missing
-    }
+    config = { "default_resolution": { "dy": 0.5 } }
     res = get_resolution(dx=0.4, dy=None, dz=None, bounding_box=stub_bbox(), config=config)
-    assert res["dx"] == 0.4         # input
-    assert res["dy"] == 0.5         # config
-    assert res["dz"] > 0.0          # heuristic
+    assert res["dx"] == 0.4
+    assert res["dy"] == 0.5
+    assert res["dz"] > 0.0
 
-# 🚨 Partial config omission triggers fallback
+# 🚨 Missing keys → heuristic fallback
 def test_missing_config_key_triggers_fallback():
-    config = {
-        "default_resolution": {
-            "dx": 0.4  # dy + dz missing
-        }
-    }
+    config = { "default_resolution": { "dx": 0.4 } }
     res = get_resolution(dx=None, dy=None, dz=None, bounding_box=stub_bbox(), config=config)
-    assert res["dx"] == 0.4         # config
-    assert res["dy"] > 0.0          # heuristic
-    assert res["dz"] > 0.0          # heuristic
+    assert res["dx"] == 0.4
+    assert res["dy"] > 0.0
+    assert res["dz"] > 0.0
 
-# ⛔️ All paths missing raises no crash — fallback must succeed
+# ⛔️ No paths → fallback completion
 def test_fallback_chain_completes_safely():
-    config = {}  # no default_resolution key
+    config = {}  # no config
     res = get_resolution(dx=None, dy=None, dz=None, bounding_box=stub_bbox(), config=config)
     assert all(res[axis] > 0.0 for axis in ["dx", "dy", "dz"])
 
-# ⏱️ Runtime ceiling check — fallback flow should be performant
+# ⏱️ Runtime ceiling check
 def test_fallback_resolution_runtime():
-    import time
-    config = {}  # pure heuristic
     bbox = stub_bbox()
+    config = {}
     start = time.time()
     res = get_resolution(dx=None, dy=None, dz=None, bounding_box=bbox, config=config)
     assert time.time() - start < 1.0
+
+# 🔄 Structured fallback assertion — run_pipeline wrapper
+def test_pipeline_triggers_config_fallback_on_geometry_failure():
+    config = {
+        "default_resolution": {
+            "dx": 0.33, "dy": 0.44, "dz": 0.55
+        },
+        "step_filepath": "test_models/empty.step",
+        "default_grid_dimensions": { "nx": 10, "ny": 10, "nz": 10 },
+        "bounding_volume": 0.0,
+        "tagging_enabled": True
+    }
+
+    result = run_pipeline_with_geometry("empty.step", config)
+    assert isinstance(result, dict)
+    assert "resolution" in result
+    assert result["resolution"]["dx"] == config["default_resolution"]["dx"]
+    assert result["resolution"]["dy"] == config["default_resolution"]["dy"]
+    assert result["resolution"]["dz"] == config["default_resolution"]["dz"]
 
 
 

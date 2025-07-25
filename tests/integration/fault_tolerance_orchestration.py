@@ -25,7 +25,6 @@ def test_pipeline_triggers_fallback_on_invalid_geometry(step_file):
     config = load_config()
 
     try:
-        # Geometry extraction should raise or fail
         bbox = extract_bounding_box_from_step(step_file)
         validate_bounding_box_inputs(bbox)
         valid_geometry = True
@@ -33,7 +32,6 @@ def test_pipeline_triggers_fallback_on_invalid_geometry(step_file):
         bbox = None
         valid_geometry = False
 
-    # Proceed with fallback resolution
     if not valid_geometry:
         dummy_bbox = {
             "xmin": 0.0, "xmax": 3.0,
@@ -58,15 +56,16 @@ def test_metadata_skipped_on_geometry_failure(step_file):
     try:
         bbox = extract_bounding_box_from_step(step_file)
         validate_bounding_box_inputs(bbox)
-        nx = ny = nz = 10  # Fake dimensions for test only
+        nx = ny = nz = 10
         volume = 500.0
         tagging_flag = config.get("tagging_enabled", True)
         metadata = enrich_metadata_pipeline(nx, ny, nz, volume, config_flag=tagging_flag)
         assert isinstance(metadata, dict)
+        assert "domain_size" in metadata
     except Exception:
-        # Geometry failure → enrichment must not proceed
-        metadata = enrich_metadata_pipeline(0, 0, 0, volume=0.0, config_flag=True)
-        assert metadata == {} or metadata is None
+        # Fallback: Enrichment must not yield metadata
+        metadata_dict = enrich_metadata_pipeline(0, 0, 0, bounding_volume=0.0, config_flag=True)
+        assert metadata_dict == {}  # 🔐 Required assertion patch
 
 # 🔍 Runtime safety check (no crash propagation)
 @pytest.mark.parametrize("step_file", [INVALID_STEP, EMPTY_STEP])
@@ -82,7 +81,6 @@ def test_pipeline_does_not_crash_on_bad_input(step_file):
         )
         assert resolution["nx"] >= 0
     except Exception:
-        # Fallback should handle gracefully
         dummy_bbox = {
             "xmin": 0.0, "xmax": 1.0,
             "ymin": 0.0, "ymax": 1.0,

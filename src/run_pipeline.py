@@ -1,4 +1,3 @@
-# /src/run_pipeline.py
 # ----------------------------------------------------------------------
 # Main entry-point for metadata enrichment and resolution tagging
 # Designed for execution via GitHub Actions or local testing
@@ -6,12 +5,18 @@
 
 import json
 import os
+import logging
+from pathlib import Path
+
+from geometry_parser import extract_bounding_box_from_step, EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution
-from pathlib import Path
 
 CONFIG_PATH = "configs/system_config.json"
 OUTPUT_PATH = "output/enriched_metadata.json"
+
+log = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 
 def load_config(path=CONFIG_PATH):
@@ -34,12 +39,14 @@ def main():
     nz = config["default_grid_dimensions"]["nz"]
     bounding_volume = config.get("bounding_volume")
 
-    # 🧪 STUB: Replace with real domain geometry or parser logic
-    bounding_box = {
-        "xmin": 0.0, "xmax": 1.0,
-        "ymin": 0.0, "ymax": 2.0,
-        "zmin": 0.0, "zmax": 3.0
-    }
+    filepath = Path(config.get("step_filepath", "test_models/empty.step"))
+
+    # 🔁 Fallback trigger added here
+    try:
+        bounding_box = extract_bounding_box_from_step(filepath)
+    except Exception as e:
+        log.warning(f"Geometry parse failed — activating fallback. Reason: {e}")
+        bounding_box = None
 
     resolution = get_resolution(
         dx=None, dy=None, dz=None,
