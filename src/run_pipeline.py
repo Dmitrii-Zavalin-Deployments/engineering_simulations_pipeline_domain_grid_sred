@@ -1,3 +1,5 @@
+# src/run_pipeline.py
+
 # ----------------------------------------------------------------------
 # Main entry-point for metadata enrichment and resolution tagging
 # Designed for execution via GitHub Actions or local testing
@@ -8,9 +10,10 @@ import os
 import logging
 from pathlib import Path
 
-from geometry_parser import extract_bounding_box_from_step, EmptyGeometryException
+from geometry_parser import extract_bounding_box_from_step
+from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
-from processing.resolution_calculator import get_resolution
+from processing.resolution_calculator import get_resolution, validate_bounding_box_inputs
 
 CONFIG_PATH = "configs/system_config.json"
 OUTPUT_PATH = "output/enriched_metadata.json"
@@ -41,12 +44,16 @@ def main():
 
     filepath = Path(config.get("step_filepath", "test_models/empty.step"))
 
-    # 🔁 Fallback trigger added here
+    # ✅ Specific fallback for empty geometry added
     try:
         bounding_box = extract_bounding_box_from_step(filepath)
-    except Exception as e:
-        log.warning(f"Geometry parse failed — activating fallback. Reason: {e}")
+    except EmptyGeometryException:
+        log.warning("Empty STEP geometry — activating fallback")
         bounding_box = None
+
+    # 🛡️ Validate only if geometry is present
+    if bounding_box is not None:
+        validate_bounding_box_inputs(bounding_box)
 
     resolution = get_resolution(
         dx=None, dy=None, dz=None,
@@ -70,6 +77,5 @@ def main():
 
 if __name__ == "__main__":
     main()
-
 
 
