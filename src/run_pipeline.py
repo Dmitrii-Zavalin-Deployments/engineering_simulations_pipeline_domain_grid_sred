@@ -15,7 +15,7 @@ from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution
 
 # 📁 Configurable I/O Directory — supports ENV override
-IO_DIRECTORY = Path(os.getenv("IO_DIRECTORY", "/data/testing-input-output"))
+IO_DIRECTORY = Path(os.getenv("IO_DIRECTORY", "./data/testing-input-output"))
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH", IO_DIRECTORY / "system_config.json"))
 OUTPUT_PATH = Path(os.getenv("OUTPUT_PATH", IO_DIRECTORY / "enriched_metadata.json"))
 
@@ -53,7 +53,15 @@ def validate_bounding_box_inputs(bbox):
 def main():
     print("🚀 Pipeline starting...")
     config = load_config()
+
+    # 🛡️ Guard against missing directory
+    if not IO_DIRECTORY.exists():
+        raise FileNotFoundError(f"Directory does not exist: {IO_DIRECTORY}")
+
+    # 🔍 Add diagnostics for STEP file discovery
+    print(f"📁 Searching for .step files in: {IO_DIRECTORY}")
     step_files = list(IO_DIRECTORY.glob("*.step"))
+    print(f"🔎 Detected STEP files: {[f.name for f in step_files]}")
 
     if len(step_files) == 0:
         raise FileNotFoundError(f"No .step files found in {IO_DIRECTORY}")

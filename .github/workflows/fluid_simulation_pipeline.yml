@@ -1,5 +1,3 @@
-# .github/workflows/fluid_simulation_pipeline.yml
-
 name: Fluid Simulation Data Pipeline
 
 on:
@@ -50,6 +48,8 @@ jobs:
         run: src/download_from_dropbox.sh
 
       - name: 🚀 Run enrichment pipeline
+        env:
+          IO_DIRECTORY: ${{ github.workspace }}/data/testing-input-output
         run: python "$GITHUB_WORKSPACE/src/run_pipeline.py"
 
       - name: 🔍 Validate output JSON against schema
