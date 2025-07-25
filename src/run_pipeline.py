@@ -12,6 +12,12 @@ from utils.step_parser import validate_bounding_box
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 import json
 
+# ✅ Defensive runtime check for BRepBndLib_Add availability
+try:
+    from OCP.BRepBndLib import BRepBndLib_Add
+except ImportError:
+    raise ImportError("Missing BRepBndLib_Add — verify cadquery-ocp installation.")
+
 # 🎛️ Accept optional CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
