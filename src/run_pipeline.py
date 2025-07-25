@@ -14,7 +14,7 @@ from errors.exceptions import EmptyGeometryException
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from processing.resolution_calculator import get_resolution
 
-# 📁 Configurable I/O Directory — now supports ENV override
+# 📁 Configurable I/O Directory — supports ENV override
 IO_DIRECTORY = Path(os.getenv("IO_DIRECTORY", "/data/testing-input-output"))
 CONFIG_PATH = Path(os.getenv("CONFIG_PATH", IO_DIRECTORY / "system_config.json"))
 OUTPUT_PATH = Path(os.getenv("OUTPUT_PATH", IO_DIRECTORY / "enriched_metadata.json"))
@@ -26,10 +26,9 @@ def load_config(path=CONFIG_PATH):
     except FileNotFoundError:
         print(f"❌ Config file not found at {path} — using defaults")
         return {
-            "default_grid_dimensions": {"nx": 10, "ny": 10, "nz": 10},
+            "default_grid_dimensions": {"nx": 3, "ny": 2, "nz": 1},
             "bounding_volume": None,
-            "tagging_enabled": False,
-            "step_filename": "empty.step"
+            "tagging_enabled": False
         }
     except json.JSONDecodeError:
         print(f"❌ Invalid JSON structure in config file: {path}")
@@ -41,33 +40,35 @@ def save_metadata(metadata, path=OUTPUT_PATH):
         json.dump(metadata, f, indent=4)
     print(f"✅ Metadata saved to {path}")
 
-# 🧪 Inline fallback validator for bounding box inputs
 def validate_bounding_box_inputs(bbox):
-    if not isinstance(bbox, (list, tuple)) or not all(isinstance(coord, (int, float)) for coord in bbox):
-        raise ValueError("Invalid bounding box inputs detected.")
+    if not isinstance(bbox, dict):
+        raise ValueError("Bounding box should be a dictionary.")
+    required_keys = {"xmin", "xmax", "ymin", "ymax", "zmin", "zmax"}
+    if not required_keys.issubset(bbox.keys()):
+        raise ValueError(f"Bounding box missing required keys: {required_keys}")
+    for val in bbox.values():
+        if not isinstance(val, (int, float)):
+            raise ValueError("Bounding box values must be numeric.")
 
 def main():
     print("🚀 Pipeline starting...")
     config = load_config()
+    step_files = list(IO_DIRECTORY.glob("*.step"))
 
-    nx = config["default_grid_dimensions"]["nx"]
-    ny = config["default_grid_dimensions"]["ny"]
-    nz = config["default_grid_dimensions"]["nz"]
-    bounding_volume = config.get("bounding_volume")
+    if len(step_files) == 0:
+        raise FileNotFoundError(f"No .step files found in {IO_DIRECTORY}")
+    elif len(step_files) > 1:
+        raise RuntimeError(f"Multiple STEP files found in {IO_DIRECTORY}. Expected exactly one.")
 
-    # 📥 STEP input file must exist at specified path
-    step_filename = config.get("step_filename", "empty.step")
-    filepath = IO_DIRECTORY / step_filename
+    filepath = step_files[0]
+    print(f"📄 Reading STEP file: {filepath.name}")
 
-    print(f"📄 Reading STEP file from {filepath}")
     try:
         bounding_box = extract_bounding_box_from_step(filepath)
     except EmptyGeometryException:
-        print("⚠️ Empty STEP geometry — activating fallback")
-        bounding_box = None
+        raise RuntimeError(f"STEP file '{filepath.name}' contains no geometry.")
 
-    if bounding_box is not None:
-        validate_bounding_box_inputs(bounding_box)
+    validate_bounding_box_inputs(bounding_box)
 
     resolution = get_resolution(
         dx=None, dy=None, dz=None,
@@ -75,19 +76,24 @@ def main():
         config=config
     )
 
-    enriched = enrich_metadata_pipeline(
-        nx, ny, nz, bounding_volume,
-        config_flag=config.get("tagging_enabled", False)
-    )
+    domain_definition = {
+        "min_x": bounding_box["xmin"],
+        "max_x": bounding_box["xmax"],
+        "min_y": bounding_box["ymin"],
+        "max_y": bounding_box["ymax"],
+        "min_z": bounding_box["zmin"],
+        "max_z": bounding_box["zmax"],
+        "nx": config["default_grid_dimensions"]["nx"],
+        "ny": config["default_grid_dimensions"]["ny"],
+        "nz": config["default_grid_dimensions"]["nz"]
+    }
 
-    enriched.update({
-        "dx": resolution["dx"],
-        "dy": resolution["dy"],
-        "dz": resolution["dz"]
-    })
-
-    save_metadata(enriched)
+    metadata = {"domain_definition": domain_definition}
+    save_metadata(metadata)
     print("🏁 Pipeline completed.")
 
 if __name__ == "__main__":
     main()
+
+
+
