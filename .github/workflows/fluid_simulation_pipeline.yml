@@ -18,6 +18,9 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
+      - name: 🧹 Remove stale conda cache
+        run: rm -rf /usr/share/miniconda/envs/occ-env
+
       - name: 🧪 Set up Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
