@@ -12,6 +12,9 @@ except ImportError:
 import json
 import os
 
+# ✅ NEW: Import volume integrity checker
+from utils.gmsh_input_check import validate_step_has_volumes
+
 
 def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
     """
@@ -33,12 +36,17 @@ def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
 
     try:
         gmsh.logger.start()
+
+        # ✅ NEW: Call volume integrity check
+        validate_step_has_volumes(step_path)
+
         gmsh.open(step_path)
 
-        # ✅ Fixed API call with explicit parameters
-        min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(dim=3, tag=0)
+        volumes = gmsh.model.getEntities(3)
+        entity_tag = volumes[0][1]
 
-        # ✅ Added guard against malformed geometries
+        min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(3, entity_tag)
+
         if (max_x - min_x) <= 0 or (max_y - min_y) <= 0 or (max_z - min_z) <= 0:
             raise ValueError("Invalid geometry: bounding box has zero size.")
 
@@ -73,6 +81,10 @@ if __name__ == "__main__":
     parser.add_argument("--output", type=str, help="Path to write domain JSON")
 
     args = parser.parse_args()
+
+    # ✅ NEW: Validate input file before parsing
+    validate_step_has_volumes(args.step)
+
     result = extract_bounding_box_with_gmsh(args.step, resolution=args.resolution)
 
     print(json.dumps({"domain_definition": result}, indent=2))
