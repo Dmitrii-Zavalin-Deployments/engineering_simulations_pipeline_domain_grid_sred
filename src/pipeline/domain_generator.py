@@ -1,15 +1,13 @@
-# src/pipeline/domain_generator.py
-
 import os
 import logging
 from math import ceil
 
 try:
-    from OCP.STEPControl import STEPControl_Reader
-    from OCP.Bnd import Bnd_Box
-    from OCP.BRepBndLib import BRepBndLib
+    from OCC.Core.STEPControl import STEPControl_Reader
+    from OCC.Core.Bnd import Bnd_Box
+    from OCC.Core.BRepBndLib import BRepBndLib
 except ImportError:
-    raise ImportError("Required libraries not found. Ensure OCP is installed.")
+    raise ImportError("Required libraries not found. Ensure pythonocc-core is installed.")
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -31,7 +29,7 @@ def compute_domain_from_step(step_path: str, resolution: float = DEFAULT_RESOLUT
     shape = reader.OneShape()
 
     bbox = Bnd_Box()
-    BRepBndLib.Add(shape, bbox)
+    BRepBndLib().Add(shape, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
 
     logger.info(f"Geometry bounds: x=({xmin}, {xmax}), y=({ymin}, {ymax}), z=({zmin}, {zmax})")

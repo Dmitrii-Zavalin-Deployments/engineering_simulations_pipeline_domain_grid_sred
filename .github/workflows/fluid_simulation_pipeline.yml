@@ -25,7 +25,15 @@ jobs:
       - name: 🧱 Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libtbb-dev
+          sudo apt-get install -y \
+            libtbb-dev \
+            libgl1-mesa-dev \
+            libxmu-dev \
+            libxi-dev \
+            libglu1-mesa-dev \
+            freeglut3-dev \
+            libfreetype6-dev \
+            libfontconfig1-dev
 
       - name: 📦 Install Python dependencies from requirements.txt
         run: |

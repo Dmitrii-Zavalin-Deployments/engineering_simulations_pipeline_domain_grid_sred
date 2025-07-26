@@ -45,5 +45,21 @@ def test_domain_computation_from_dummy_shape(tmp_path):
     assert result["bounds"]["ymax"] > result["bounds"]["ymin"]
     assert result["bounds"]["zmax"] > result["bounds"]["zmin"]
 
+def test_bounding_box_parsing_sample_step():
+    import os
+    from pathlib import Path
+
+    sample_path = Path("data/testing-input-output/sample.step")
+    if not sample_path.exists():
+        pytest.skip("Sample STEP file missing")
+
+    result = compute_domain_from_step(str(sample_path), resolution=TEST_RESOLUTION)
+
+    # Validate bounding box length in at least one axis is nonzero
+    xlen = result["bounds"]["xmax"] - result["bounds"]["xmin"]
+    ylen = result["bounds"]["ymax"] - result["bounds"]["ymin"]
+    zlen = result["bounds"]["zmax"] - result["bounds"]["zmin"]
+    assert max(xlen, ylen, zlen) > 0.0, "Bounding box dimensions must be greater than zero"
+
 
 
