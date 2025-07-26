@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Dict
 import logging
+from logger_utils import log_checkpoint  # ✅ Added for standardized logging
 
 log = logging.getLogger(__name__)
 
@@ -24,6 +25,8 @@ def extract_bounding_box_with_freecad(filepath: Path) -> Dict:
         EmptyGeometryException: If no valid geometry objects are detected.
         Exception: For FreeCAD import failures or shape errors.
     """
+    log_checkpoint("🛠️ Starting FreeCAD bounding box extraction...")
+
     if not filepath.exists():
         raise FileNotFoundError(f"STEP file not found: {filepath}")
 
@@ -42,6 +45,8 @@ def extract_bounding_box_with_freecad(filepath: Path) -> Dict:
 
         shape = doc.Objects[0].Shape
         bounds = shape.BoundBox
+
+        log_checkpoint("📦 Finished geometry parsing.")
         return {
             "xmin": bounds.XMin,
             "xmax": bounds.XMax,

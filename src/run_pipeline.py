@@ -15,10 +15,11 @@ from logger_utils import log_checkpoint, log_error, log_success
 # 🎛️ CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
-IO_DIRECTORY = Path("./data/testing-input-output")
+IO_DIRECTORY = Path(__file__).parent.resolve() / "data/testing-input-output"
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 def main(resolution=DEFAULT_RESOLUTION):
+    log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (FreeCAD backend)")
 
     if not IO_DIRECTORY.exists():
