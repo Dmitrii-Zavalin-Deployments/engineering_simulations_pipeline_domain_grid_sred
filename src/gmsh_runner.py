@@ -35,7 +35,12 @@ def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
         gmsh.logger.start()
         gmsh.open(step_path)
 
-        min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox()
+        # ✅ Fixed API call with explicit parameters
+        min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(dim=3, tag=0)
+
+        # ✅ Added guard against malformed geometries
+        if (max_x - min_x) <= 0 or (max_y - min_y) <= 0 or (max_z - min_z) <= 0:
+            raise ValueError("Invalid geometry: bounding box has zero size.")
 
         nx = int((max_x - min_x) / resolution)
         ny = int((max_y - min_y) / resolution)
