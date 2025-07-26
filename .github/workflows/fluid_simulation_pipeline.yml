@@ -14,6 +14,9 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
+      - name: 📦 Install libfuse2 (for AppImage support)
+        run: sudo apt-get install -y libfuse2
+
       - name: 🧱 Install system dependencies (excl. FreeCAD)
         run: |
           sudo apt-get update
@@ -48,7 +51,18 @@ jobs:
         run: src/download_from_dropbox.sh
 
       - name: 🚀 Run enrichment pipeline (FreeCAD AppImage)
+        continue-on-error: true
         run: ./FreeCAD.AppImage --console src/run_pipeline.py --resolution 0.01
+
+      - name: 🛒 Extract FreeCAD AppImage (fallback if FUSE fails)
+        if: failure()
+        run: |
+          ./FreeCAD.AppImage --appimage-extract
+          chmod +x squashfs-root/AppRun
+
+      - name: 🚀 Run enrichment pipeline (FUSE-free mode fallback)
+        if: failure()
+        run: squashfs-root/AppRun --console src/run_pipeline.py --resolution 0.01
 
       - name: 🔍 Validate output JSON against schema
         env:
