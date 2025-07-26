@@ -1,8 +1,14 @@
+# src/gmsh_runner.py
+
 # -------------------------------------------------------------------
 # Gmsh-based geometry processor for STEP domain extraction pipeline
 # -------------------------------------------------------------------
 
-import gmsh
+try:
+    import gmsh
+except ImportError:
+    raise RuntimeError("Gmsh module not found. Run: pip install gmsh==4.11.1")
+
 import json
 import os
 
