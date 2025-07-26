@@ -1,0 +1,15 @@
+name: occ-env
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - pythonocc-core=7.9.0
+  - numpy>=1.24.0
+  - dropbox>=11.36.2
+  - hypothesis>=6.98.0
+  - pytest>=7.4.0
+  - jsonschema>=4.0.0
+  - pyyaml>=6.0.1
+
+
+
