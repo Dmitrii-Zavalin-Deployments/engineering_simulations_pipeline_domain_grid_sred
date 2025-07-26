@@ -2,7 +2,7 @@
 
 import pytest
 from OCP.BRepPrimAPI import BRepPrimAPI_MakeBox
-from OCP.BRepBndLib import BRepBndLib_Add
+from OCP.BRepBndLib import BRepBndLib
 from OCP.Bnd import Bnd_Box
 from pipeline.domain_generator import compute_domain_from_step
 
@@ -12,10 +12,10 @@ def get_dummy_shape():
     # Creates a solid box shape: dimensions 1x1x1 meters
     return BRepPrimAPI_MakeBox(1.0, 1.0, 1.0).Shape()
 
-def test_bounding_box_add():
+def test_bounding_box_add_method():
     shape = get_dummy_shape()
     bbox = Bnd_Box()
-    BRepBndLib_Add(shape, bbox)
+    BRepBndLib.Add(shape, bbox)
 
     # Validate bounding box is correctly populated
     assert not bbox.IsVoid(), "Bounding box should not be void after shape addition"
@@ -25,14 +25,9 @@ def test_bounding_box_add():
         "Max bounds must be greater than min bounds"
 
 def test_domain_computation_from_dummy_shape(tmp_path):
-    # Create a temporary STEP file from the dummy shape
-    # Instead of writing a STEP, mock the domain computation directly
     import os
-    import json
     from pathlib import Path
 
-    # This test assumes a known dummy STEP file is already available
-    # Replace with dynamic creation if STEP writer is accessible
     step_path = Path("data/testing-input-output/test.step")
     if not step_path.exists():
         pytest.skip("STEP test fixture not found")

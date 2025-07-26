@@ -12,11 +12,16 @@ from utils.step_parser import validate_bounding_box
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 import json
 
-# ✅ Defensive runtime check for BRepBndLib_Add availability
+# ✅ Defensive runtime check for Python version and updated imports
+if sys.version_info >= (3, 12):
+    print("🔍 Python 3.12 detected — ensure cadquery-ocp >= 7.8.0 is installed")
+
 try:
-    from OCP.BRepBndLib import BRepBndLib_Add
+    from OCP.BRepBndLib import BRepBndLib
 except ImportError:
-    raise ImportError("Missing BRepBndLib_Add — verify cadquery-ocp installation.")
+    raise ImportError(
+        "Missing BRepBndLib — check that cadquery-ocp >= 7.8.0 is installed and compatible with Python 3.12+."
+    )
 
 # 🎛️ Accept optional CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters

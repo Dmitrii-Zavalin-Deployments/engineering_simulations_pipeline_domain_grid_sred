@@ -7,7 +7,7 @@ from math import ceil
 try:
     from OCP.STEPControl import STEPControl_Reader
     from OCP.Bnd import Bnd_Box
-    from OCP.BRepBndLib import BRepBndLib_Add
+    from OCP.BRepBndLib import BRepBndLib
 except ImportError:
     raise ImportError("Required libraries not found. Ensure OCP is installed.")
 
@@ -31,7 +31,7 @@ def compute_domain_from_step(step_path: str, resolution: float = DEFAULT_RESOLUT
     shape = reader.OneShape()
 
     bbox = Bnd_Box()
-    BRepBndLib_Add(shape, bbox)
+    BRepBndLib.Add(shape, bbox)
     xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
 
     logger.info(f"Geometry bounds: x=({xmin}, {xmax}), y=({ymin}, {ymax}), z=({zmin}, {zmax})")
