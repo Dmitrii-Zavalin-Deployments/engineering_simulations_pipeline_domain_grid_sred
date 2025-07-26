@@ -17,7 +17,7 @@ jobs:
       - name: 📦 Install libfuse2 (for AppImage support)
         run: sudo apt-get install -y libfuse2
 
-      - name: 🧱 Install system dependencies (excl. FreeCAD)
+      - name: 🧱 Install system dependencies (incl. Qt platform support)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
@@ -28,7 +28,12 @@ jobs:
             libglu1-mesa-dev \
             freeglut3-dev \
             libfreetype6-dev \
-            libfontconfig1-dev
+            libfontconfig1-dev \
+            libxcb-xinerama0 \
+            libxcb1 \
+            libx11-xcb1 \
+            libxrender1 \
+            libxtst6
 
       - name: 🛒 Download FreeCAD AppImage
         run: |
@@ -50,8 +55,10 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
-      - name: 🚀 Run enrichment pipeline (FreeCAD AppImage)
+      - name: 🚀 Run enrichment pipeline (FreeCAD AppImage - Qt offscreen)
         continue-on-error: true
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: ./FreeCAD.AppImage --console src/run_pipeline.py --resolution 0.01
 
       - name: 🛒 Extract FreeCAD AppImage (fallback if FUSE fails)
@@ -60,8 +67,10 @@ jobs:
           ./FreeCAD.AppImage --appimage-extract
           chmod +x squashfs-root/AppRun
 
-      - name: 🚀 Run enrichment pipeline (FUSE-free mode fallback)
+      - name: 🚀 Run enrichment pipeline (FUSE-free mode fallback - Qt offscreen)
         if: failure()
+        env:
+          QT_QPA_PLATFORM: offscreen
         run: squashfs-root/AppRun --console src/run_pipeline.py --resolution 0.01
 
       - name: 🔍 Validate output JSON against schema
