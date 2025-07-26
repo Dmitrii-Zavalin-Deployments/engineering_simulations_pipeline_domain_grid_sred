@@ -1,73 +1,46 @@
-import os
-import logging
-from math import ceil
+# src/pipeline/domain_generator.py
 
-logging.basicConfig(level=logging.INFO)
+"""
+Domain Generator using Gmsh-based STEP parser
+
+Replaces legacy OCC or FreeCAD-based introspection logic.
+Generates domain_definition metadata from STEP input.
+"""
+
+import logging
+from pathlib import Path
+from gmsh_runner import extract_bounding_box_with_gmsh
+
 logger = logging.getLogger(__name__)
 
-try:
-    from OCC.Core.STEPControl import STEPControl_Reader
-    from OCC.Core.Bnd import Bnd_Box
-    import OCC.Core.BRepBndLib as brepbndlib
+DEFAULT_RESOLUTION = 0.01  # Grid resolution in meters
 
-    # ✅ Check if required symbol exists
-    if not hasattr(brepbndlib, "BRepBndLib"):
-        raise ImportError(
-            "Symbol 'BRepBndLib' not found in OCC.Core.BRepBndLib. "
-            "You may be using an incompatible version of pythonocc-core."
-        )
 
-    BRepBndLib = brepbndlib.BRepBndLib
+def compute_domain_metadata(step_path: str, resolution: float = DEFAULT_RESOLUTION) -> dict:
+    """
+    Parses STEP geometry and returns domain_definition schema.
 
-except ImportError as e:
-    logger.error("Failed to import required OCC modules.")
-    try:
-        logger.debug(f"Available symbols in BRepBndLib: {dir(brepbndlib)}")
-    except Exception:
-        logger.debug("Unable to inspect BRepBndLib module symbols.")
-    raise ImportError("Required libraries not found or incompatible. "
-                      "Ensure pythonocc-core is correctly installed and version-aligned.") from e
+    Args:
+        step_path (str): Path to STEP file (.step)
+        resolution (float): Grid resolution in meters
 
-DEFAULT_RESOLUTION = 0.01  # Approximate voxel size in meters
+    Returns:
+        dict: domain_definition matching schema
+    """
+    step_file = Path(step_path)
+    if not step_file.exists():
+        raise FileNotFoundError(f"STEP file not found: {step_file}")
 
-def compute_domain_from_step(step_path: str, resolution: float = DEFAULT_RESOLUTION):
-    if not os.path.exists(step_path):
-        raise FileNotFoundError(f"STEP file not found: {step_path}")
+    logger.info(f"Extracting domain definition from: {step_file}")
+    domain_definition = extract_bounding_box_with_gmsh(step_file, resolution=resolution)
 
-    logger.info(f"Reading STEP file: {step_path}")
-    reader = STEPControl_Reader()
-    status = reader.ReadFile(step_path)
+    # Optionally verify required keys for downstream schema alignment
+    required_keys = {"min_x", "max_x", "min_y", "max_y", "min_z", "max_z", "nx", "ny", "nz"}
+    if not required_keys.issubset(domain_definition.keys()):
+        raise ValueError(f"Incomplete domain metadata. Missing: {required_keys - domain_definition.keys()}")
 
-    if status != 1:
-        raise RuntimeError("Failed to read STEP file.")
-
-    reader.TransferRoot()
-    shape = reader.OneShape()
-
-    bbox = Bnd_Box()
-    BRepBndLib().Add(shape, bbox)
-    xmin, ymin, zmin, xmax, ymax, zmax = bbox.Get()
-
-    logger.info(f"Geometry bounds: x=({xmin}, {xmax}), y=({ymin}, {ymax}), z=({zmin}, {zmax})")
-
-    dx, dy, dz = xmax - xmin, ymax - ymin, zmax - zmin
-    nx, ny, nz = ceil(dx / resolution), ceil(dy / resolution), ceil(dz / resolution)
-
-    logger.info(f"Computed grid resolution: nx={nx}, ny={ny}, nz={nz}")
-
-    return {
-        "bounds": {
-            "xmin": xmin, "xmax": xmax,
-            "ymin": ymin, "ymax": ymax,
-            "zmin": zmin, "zmax": zmax
-        },
-        "resolution": {
-            "dx": dx, "dy": dy, "dz": dz
-        },
-        "grid": {
-            "nx": nx, "ny": ny, "nz": nz
-        }
-    }
+    logger.info("✅ Domain definition successfully extracted via Gmsh.")
+    return domain_definition
 
 
 

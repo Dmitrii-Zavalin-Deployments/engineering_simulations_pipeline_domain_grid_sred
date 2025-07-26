@@ -14,31 +14,15 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
-      - name: 📦 Install libfuse2 (for AppImage support)
-        run: sudo apt-get install -y libfuse2
-
-      - name: 🧱 Install system dependencies (incl. Qt platform support)
+      - name: 🧱 Install system dependencies (Gmsh, Qt, etc.)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libtbb-dev \
-            libgl1-mesa-dev \
-            libxmu-dev \
-            libxi-dev \
             libglu1-mesa-dev \
-            freeglut3-dev \
             libfreetype6-dev \
             libfontconfig1-dev \
-            libxcb-xinerama0 \
-            libxcb1 \
-            libx11-xcb1 \
             libxrender1 \
-            libxtst6
-
-      - name: 🛒 Download FreeCAD AppImage
-        run: |
-          wget https://github.com/FreeCAD/FreeCAD/releases/download/0.21.2/FreeCAD-0.21.2-Linux-x86_64.AppImage -O FreeCAD.AppImage
-          chmod +x FreeCAD.AppImage
+            gmsh
 
       - name: 🧹 Clear simulation output artifacts
         run: |
@@ -55,37 +39,12 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
-      - name: ✅ Make pipeline launcher executable
-        run: chmod +x scripts/launch_pipeline.sh
-
-      - name: 🚀 Run enrichment pipeline via launcher (FreeCAD AppImage - Qt offscreen)
-        continue-on-error: true
-        timeout-minutes: 5
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: ./scripts/launch_pipeline.sh
-
-      - name: ✅ Make timed fault-tolerant wrapper executable
-        if: failure()
-        run: chmod +x src/timed_pipeline.py
-
-      - name: 🔁 Retry pipeline using fault-tolerant wrapper
-        if: failure()
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: python3 src/timed_pipeline.py
-
-      - name: 🛒 Extract FreeCAD AppImage (fallback if FUSE fails)
-        if: failure()
+      - name: 🧠 Run domain extraction via Gmsh CLI module
         run: |
-          ./FreeCAD.AppImage --appimage-extract
-          chmod +x squashfs-root/AppRun
-
-      - name: 🚀 Run enrichment pipeline (FUSE-free fallback)
-        if: failure()
-        env:
-          QT_QPA_PLATFORM: offscreen
-        run: squashfs-root/AppRun --console --py src/run_pipeline.py --resolution 0.01
+          python3 src/gmsh_runner.py \
+            --step data/testing-input-output/input.step \
+            --resolution 0.01 \
+            --output data/testing-input-output/enriched_metadata.json
 
       - name: 🔍 Validate output JSON against schema
         env:

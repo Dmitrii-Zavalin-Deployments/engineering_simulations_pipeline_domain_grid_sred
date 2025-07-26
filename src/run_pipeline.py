@@ -8,7 +8,7 @@
 import sys
 import json
 from pathlib import Path
-from geometry_parser import extract_bounding_box_with_freecad
+from gmsh_runner import extract_bounding_box_with_gmsh
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 from logger_utils import log_checkpoint, log_error, log_success
 
@@ -20,7 +20,7 @@ OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 def main(resolution=DEFAULT_RESOLUTION):
     log_checkpoint("🔧 Pipeline script has entered main()")
-    log_checkpoint("🚀 STEP-driven pipeline initialized (FreeCAD backend)")
+    log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
 
     if not IO_DIRECTORY.exists():
         log_error(f"Input directory not found: {IO_DIRECTORY}", fatal=True)
@@ -34,36 +34,15 @@ def main(resolution=DEFAULT_RESOLUTION):
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
-    # 🧠 Geometry extraction with FreeCAD (wrapped for error visibility)
+    # 🧠 Geometry extraction via Gmsh runner
     try:
-        log_checkpoint("📂 Calling FreeCAD geometry parser...")
-        bounds = extract_bounding_box_with_freecad(str(step_path))
-        log_checkpoint(f"📐 Bounding box extracted: {bounds}")
+        log_checkpoint("📂 Calling Gmsh geometry parser...")
+        domain_definition = extract_bounding_box_with_gmsh(str(step_path), resolution)
+        log_checkpoint(f"📐 Domain extracted: {domain_definition}")
     except Exception as e:
-        log_error(f"Geometry extraction failed:\n{e}", fatal=True)
+        log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
 
-    domain_info = {
-        "bounds": bounds,
-        "grid": {
-            "nx": int((bounds["xmax"] - bounds["xmin"]) / resolution),
-            "ny": int((bounds["ymax"] - bounds["ymin"]) / resolution),
-            "nz": int((bounds["zmax"] - bounds["zmin"]) / resolution)
-        }
-    }
-
-    metadata = {
-        "domain_definition": {
-            "min_x": bounds["xmin"],
-            "max_x": bounds["xmax"],
-            "min_y": bounds["ymin"],
-            "max_y": bounds["ymax"],
-            "min_z": bounds["zmin"],
-            "max_z": bounds["zmax"],
-            "nx": domain_info["grid"]["nx"],
-            "ny": domain_info["grid"]["ny"],
-            "nz": domain_info["grid"]["nz"]
-        }
-    }
+    metadata = {"domain_definition": domain_definition}
 
     try:
         log_checkpoint("🔎 Validating domain metadata against schema...")
@@ -84,7 +63,7 @@ def main(resolution=DEFAULT_RESOLUTION):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (FreeCAD only)")
+    parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (Gmsh backend)")
     parser.add_argument("--resolution", type=float, default=DEFAULT_RESOLUTION,
                         help="Voxel resolution in meters (default: 0.01)")
 
