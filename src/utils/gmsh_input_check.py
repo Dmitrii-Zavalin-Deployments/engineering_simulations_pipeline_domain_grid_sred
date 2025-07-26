@@ -5,6 +5,8 @@ Utility: Validate imported STEP geometry integrity before domain extraction.
 
 Checks that the STEP file contains at least one 3D volume entity
 to safely proceed with bounding box extraction or meshing.
+
+Note: Gmsh session lifecycle must be handled by the caller.
 """
 
 try:
@@ -18,7 +20,7 @@ def validate_step_has_volumes(step_path):
     Validates that the specified STEP file contains at least one 3D volume entity.
 
     Parameters:
-        step_path (str): Path to the STEP file.
+        step_path (str): Path to the STEP file. Must already be opened via Gmsh.
 
     Raises:
         FileNotFoundError: If the file path is invalid.
@@ -28,16 +30,12 @@ def validate_step_has_volumes(step_path):
     if not os.path.isfile(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
 
-    gmsh.initialize()
-    try:
-        gmsh.model.add("volume_check_model")
-        gmsh.open(step_path)
+    gmsh.model.add("volume_check_model")
+    gmsh.open(step_path)
 
-        volumes = gmsh.model.getEntities(3)
-        if not volumes:
-            raise RuntimeError(f"STEP file contains no 3D volumes: {step_path}")
-    finally:
-        gmsh.finalize()
+    volumes = gmsh.model.getEntities(3)
+    if not volumes:
+        raise RuntimeError(f"STEP file contains no 3D volumes: {step_path}")
 
 
 

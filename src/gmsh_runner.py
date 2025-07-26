@@ -12,7 +12,7 @@ except ImportError:
 import json
 import os
 
-# ✅ NEW: Import volume integrity checker
+# ✅ Import volume integrity checker
 from utils.gmsh_input_check import validate_step_has_volumes
 
 
@@ -31,45 +31,36 @@ def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
     if not os.path.isfile(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
 
-    gmsh.initialize()
     gmsh.model.add("domain_model")
+    gmsh.logger.start()
 
-    try:
-        gmsh.logger.start()
+    validate_step_has_volumes(step_path)  # assumes Gmsh already initialized
 
-        # ✅ NEW: Call volume integrity check
-        validate_step_has_volumes(step_path)
+    gmsh.open(step_path)
 
-        gmsh.open(step_path)
+    volumes = gmsh.model.getEntities(3)
+    entity_tag = volumes[0][1]
 
-        volumes = gmsh.model.getEntities(3)
-        entity_tag = volumes[0][1]
+    min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(3, entity_tag)
 
-        min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(3, entity_tag)
+    if (max_x - min_x) <= 0 or (max_y - min_y) <= 0 or (max_z - min_z) <= 0:
+        raise ValueError("Invalid geometry: bounding box has zero size.")
 
-        if (max_x - min_x) <= 0 or (max_y - min_y) <= 0 or (max_z - min_z) <= 0:
-            raise ValueError("Invalid geometry: bounding box has zero size.")
+    nx = int((max_x - min_x) / resolution)
+    ny = int((max_y - min_y) / resolution)
+    nz = int((max_z - min_z) / resolution)
 
-        nx = int((max_x - min_x) / resolution)
-        ny = int((max_y - min_y) / resolution)
-        nz = int((max_z - min_z) / resolution)
-
-        domain_definition = {
-            "min_x": min_x,
-            "max_x": max_x,
-            "min_y": min_y,
-            "max_y": max_y,
-            "min_z": min_z,
-            "max_z": max_z,
-            "nx": nx,
-            "ny": ny,
-            "nz": nz
-        }
-
-    finally:
-        gmsh.finalize()
-
-    return domain_definition
+    return {
+        "min_x": min_x,
+        "max_x": max_x,
+        "min_y": min_y,
+        "max_y": max_y,
+        "min_z": min_z,
+        "max_z": max_z,
+        "nx": nx,
+        "ny": ny,
+        "nz": nz
+    }
 
 
 if __name__ == "__main__":
@@ -82,16 +73,17 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # ✅ NEW: Validate input file before parsing
-    validate_step_has_volumes(args.step)
+    gmsh.initialize()  # ✅ SINGLE init point
+    try:
+        result = extract_bounding_box_with_gmsh(args.step, resolution=args.resolution)
 
-    result = extract_bounding_box_with_gmsh(args.step, resolution=args.resolution)
+        print(json.dumps({"domain_definition": result}, indent=2))
 
-    print(json.dumps({"domain_definition": result}, indent=2))
-
-    if args.output:
-        with open(args.output, "w") as f:
-            json.dump({"domain_definition": result}, f, indent=2)
+        if args.output:
+            with open(args.output, "w") as f:
+                json.dump({"domain_definition": result}, f, indent=2)
+    finally:
+        gmsh.finalize()  # ✅ SINGLE finalize point
 
 
 
