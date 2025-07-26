@@ -54,6 +54,28 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
+      - name: 🔎 Normalize STEP filename
+        run: |
+          STEP_FILES=$(find data/testing-input-output -maxdepth 1 -type f -name "*.step")
+          COUNT=$(echo "$STEP_FILES" | wc -l)
+
+          if [ "$COUNT" -eq 0 ]; then
+            echo "❌ No STEP file found. Cannot proceed."
+            exit 1
+          elif [ "$COUNT" -gt 1 ]; then
+            echo "❌ Multiple STEP files found. Expecting exactly one."
+            echo "$STEP_FILES"
+            exit 1
+          else
+            STEP_FILE=$(echo "$STEP_FILES")
+            if [ "$STEP_FILE" != "data/testing-input-output/input.step" ]; then
+              mv "$STEP_FILE" data/testing-input-output/input.step
+              echo "✅ Renamed $STEP_FILE to input.step"
+            else
+              echo "ℹ️ STEP file is already named input.step. No renaming needed."
+            fi
+          fi
+
       - name: 🧠 Run domain extraction via Gmsh CLI module
         run: |
           python3 src/gmsh_runner.py \
