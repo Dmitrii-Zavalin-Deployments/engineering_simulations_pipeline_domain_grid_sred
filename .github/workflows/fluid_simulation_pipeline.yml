@@ -6,6 +6,10 @@ on:
       - "**"
   workflow_dispatch:
 
+defaults:
+  run:
+    shell: bash -l {0}
+
 jobs:
   process_fluid_data:
     runs-on: ubuntu-latest
@@ -52,16 +56,13 @@ jobs:
       - name: 🚀 Run enrichment pipeline
         env:
           IO_DIRECTORY: ${{ github.workspace }}/data/testing-input-output
-        run: |
-          conda activate occ-env
-          python "$GITHUB_WORKSPACE/src/run_pipeline.py"
+        run: conda run -n occ-env python src/run_pipeline.py
 
       - name: 🔍 Validate output JSON against schema
         env:
           PYTHONPATH: "${{ github.workspace }}/src"
         run: |
-          conda activate occ-env
-          python -c "
+          conda run -n occ-env python -c "
           import json, jsonschema
           from pathlib import Path
           output_path = Path('data/testing-input-output/enriched_metadata.json')
@@ -77,10 +78,7 @@ jobs:
       - name: 🔬 Run test suite (unit + integration + edge guards)
         env:
           PYTHONPATH: "${{ github.workspace }}/src"
-        run: |
-          conda activate occ-env
-          pytest -s tests/ --verbose -ra
-          echo "✅ Unit tests completed"
+        run: conda run -n occ-env pytest -s tests/ --verbose -ra
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE
