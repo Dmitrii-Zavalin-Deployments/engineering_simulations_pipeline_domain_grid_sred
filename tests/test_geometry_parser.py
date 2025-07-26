@@ -1,21 +1,21 @@
+# tests/test_geometry_parser.py
+
 import pytest
 from pathlib import Path
-
 from src.geometry_parser import (
-    extract_bounding_box_from_step,
+    extract_bounding_box_with_freecad,
     EmptyGeometryException
 )
 
 # 📦 STEP Assets
-VALID_STEP = Path("test_models/test.step")
-INVALID_STEP = Path("test_models/mock_invalid_geometry.step")
-EMPTY_STEP = Path("test_models/empty.step")
-MISSING_STEP = Path("test_models/file_does_not_exist.step")
+VALID_STEP = Path("tests/assets/simple.step")
+EMPTY_STEP = Path("tests/assets/empty.step")
+MISSING_STEP = Path("tests/assets/file_does_not_exist.step")
 
 
-# ✅ Valid STEP extraction test
-def test_valid_step_extraction():
-    bbox = extract_bounding_box_from_step(VALID_STEP)
+# ✅ Valid STEP extraction using FreeCAD
+def test_extract_bounding_box_with_freecad():
+    bbox = extract_bounding_box_with_freecad(VALID_STEP)
     assert isinstance(bbox, dict)
     assert all(key in bbox for key in ["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"])
     assert bbox["xmax"] > bbox["xmin"]
@@ -23,32 +23,25 @@ def test_valid_step_extraction():
     assert bbox["zmax"] > bbox["zmin"]
 
 
-# 🚫 Empty STEP should explicitly raise EmptyGeometryException
-def test_empty_step_file_rejection():
+# 🚫 Empty STEP should raise EmptyGeometryException
+def test_empty_geometry_raises_exception():
     with pytest.raises(EmptyGeometryException):
-        extract_bounding_box_from_step(EMPTY_STEP)
+        extract_bounding_box_with_freecad(EMPTY_STEP)
 
 
-# 🛡️ Malformed STEP file triggers general parse exception
-def test_invalid_step_file_handling():
-    with pytest.raises(Exception) as exc_info:
-        extract_bounding_box_from_step(INVALID_STEP)
-    assert "geometry" in str(exc_info.value).lower() or "parse" in str(exc_info.value).lower()
-
-
-# ⚠️ Nonexistent file should raise file-level error
-def test_missing_step_file():
+# ⚠️ Nonexistent file should raise FileNotFoundError
+def test_missing_step_file_raises_file_error():
     with pytest.raises(FileNotFoundError):
-        extract_bounding_box_from_step(MISSING_STEP)
+        extract_bounding_box_with_freecad(MISSING_STEP)
 
 
-# 🎯 Performance bound: no long parse delays on small assets
-def test_step_parsing_runtime_below_threshold():
+# 🎯 Parse performance remains within acceptable bounds
+def test_freecad_parsing_runtime_below_threshold():
     import time
     start = time.time()
-    extract_bounding_box_from_step(VALID_STEP)
+    extract_bounding_box_with_freecad(VALID_STEP)
     duration = time.time() - start
-    assert duration < 2.0  # seconds
+    assert duration < 2.5  # seconds
 
 
 

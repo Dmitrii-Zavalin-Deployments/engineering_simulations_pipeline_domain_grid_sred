@@ -18,20 +18,11 @@ jobs:
       - name: 🛎️ Checkout repository
         uses: actions/checkout@v3
 
-      - name: 🧹 Remove stale conda cache
-        run: rm -rf /usr/share/miniconda/envs/occ-env
-
-      - name: 🧪 Set up Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          activate-environment: occ-env
-          environment-file: environment.yml
-          auto-activate-base: false
-
-      - name: 🧱 Install system dependencies
+      - name: 🧱 Install system dependencies (incl. FreeCAD)
         run: |
           sudo apt-get update
           sudo apt-get install -y \
+            freecad \
             libtbb-dev \
             libgl1-mesa-dev \
             libxmu-dev \
@@ -56,16 +47,14 @@ jobs:
           REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
         run: src/download_from_dropbox.sh
 
-      - name: 🚀 Run enrichment pipeline
-        env:
-          IO_DIRECTORY: ${{ github.workspace }}/data/testing-input-output
-        run: conda run -n occ-env python src/run_pipeline.py
+      - name: 🚀 Run enrichment pipeline (FreeCAD CLI)
+        run: FreeCADCmd src/run_pipeline.py --resolution 0.01
 
       - name: 🔍 Validate output JSON against schema
         env:
           PYTHONPATH: "${{ github.workspace }}/src"
         run: |
-          conda run -n occ-env python -c "
+          python -c "
           import json, jsonschema
           from pathlib import Path
           output_path = Path('data/testing-input-output/enriched_metadata.json')
@@ -81,7 +70,7 @@ jobs:
       - name: 🔬 Run test suite (unit + integration + edge guards)
         env:
           PYTHONPATH: "${{ github.workspace }}/src"
-        run: conda run -n occ-env pytest -s tests/ --verbose -ra
+        run: python -m pytest -s tests/ --verbose -ra
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE

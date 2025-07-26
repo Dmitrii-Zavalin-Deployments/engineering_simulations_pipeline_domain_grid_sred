@@ -6,31 +6,19 @@
 # ----------------------------------------------------------------------
 
 import sys
-from pathlib import Path
-from pipeline.domain_generator import compute_domain_from_step
-from utils.step_parser import validate_bounding_box
-from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 import json
+from pathlib import Path
+from geometry_parser import extract_bounding_box_with_freecad
+from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 
-# ✅ Defensive runtime check for Python version and updated imports
-if sys.version_info >= (3, 12):
-    print("🔍 Python 3.12 detected — ensure cadquery-ocp >= 7.8.0 is installed")
-
-try:
-    from OCP.BRepBndLib import BRepBndLib
-except ImportError:
-    raise ImportError(
-        "Missing BRepBndLib — check that cadquery-ocp >= 7.8.0 is installed and compatible with Python 3.12+."
-    )
-
-# 🎛️ Accept optional CLI resolution override
+# 🎛️ CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
 IO_DIRECTORY = Path("./data/testing-input-output")
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 def main(resolution=DEFAULT_RESOLUTION):
-    print("🚀 STEP-driven pipeline initialized.")
+    print("🚀 STEP-driven pipeline initialized (FreeCAD backend).")
 
     if not IO_DIRECTORY.exists():
         raise FileNotFoundError(f"Input directory not found: {IO_DIRECTORY}")
@@ -44,17 +32,27 @@ def main(resolution=DEFAULT_RESOLUTION):
     step_path = step_files[0]
     print(f"📄 Using STEP file: {step_path.name}")
 
-    domain_info = compute_domain_from_step(str(step_path), resolution=resolution)
-    validate_bounding_box(domain_info["bounds"])
+    # 🧠 Geometry extraction with FreeCAD
+    bounds = extract_bounding_box_with_freecad(str(step_path))
+    print(f"📐 Bounding box extracted: {bounds}")
+
+    domain_info = {
+        "bounds": bounds,
+        "grid": {
+            "nx": int((bounds["xmax"] - bounds["xmin"]) / resolution),
+            "ny": int((bounds["ymax"] - bounds["ymin"]) / resolution),
+            "nz": int((bounds["zmax"] - bounds["zmin"]) / resolution)
+        }
+    }
 
     metadata = {
         "domain_definition": {
-            "min_x": domain_info["bounds"]["xmin"],
-            "max_x": domain_info["bounds"]["xmax"],
-            "min_y": domain_info["bounds"]["ymin"],
-            "max_y": domain_info["bounds"]["ymax"],
-            "min_z": domain_info["bounds"]["zmin"],
-            "max_z": domain_info["bounds"]["zmax"],
+            "min_x": bounds["xmin"],
+            "max_x": bounds["xmax"],
+            "min_y": bounds["ymin"],
+            "max_y": bounds["ymax"],
+            "min_z": bounds["zmin"],
+            "max_z": bounds["zmax"],
             "nx": domain_info["grid"]["nx"],
             "ny": domain_info["grid"]["ny"],
             "nz": domain_info["grid"]["nz"]
@@ -75,7 +73,7 @@ def main(resolution=DEFAULT_RESOLUTION):
 if __name__ == "__main__":
     import argparse
 
-    parser = argparse.ArgumentParser(description="STEP-driven domain pipeline")
+    parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (FreeCAD only)")
     parser.add_argument("--resolution", type=float, default=DEFAULT_RESOLUTION,
                         help="Voxel resolution in meters (default: 0.01)")
 

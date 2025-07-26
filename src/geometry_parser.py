@@ -1,10 +1,8 @@
+# src/geometry_parser.py
+
 from pathlib import Path
 from typing import Dict
 import logging
-
-# Optional import depending on STEP parser library used
-# from step_parser import parse_step_file  
-# this file contains stubs
 
 log = logging.getLogger(__name__)
 
@@ -12,84 +10,50 @@ class EmptyGeometryException(Exception):
     """Raised when no geometry is found in the STEP file."""
     pass
 
-def is_geometry_empty(parsed_data) -> bool:
+def extract_bounding_box_with_freecad(filepath: Path) -> Dict:
     """
-    Determines if parsed geometry contains any valid solids/entities.
-
-    Args:
-        parsed_data: Parsed representation of the STEP file.
-    Returns:
-        bool: True if geometry is empty, False otherwise.
-    """
-    # Placeholder logic — customize based on STEP format schema
-    return not parsed_data or len(parsed_data.get("solids", [])) == 0
-
-def extract_bounding_box_from_step(filepath: Path) -> Dict:
-    """
-    Parses the STEP file and extracts bounding box dimensions.
+    Loads a STEP file using FreeCAD and extracts its bounding box.
 
     Args:
         filepath (Path): Path to the .step file.
     Returns:
-        dict: Bounding box data in format {'xmin': ..., 'xmax': ..., etc.}
+        dict: Bounding box data in format {'xmin': ..., 'xmax': ..., ...}
 
     Raises:
-        EmptyGeometryException: If no solids/entities are found in the STEP file.
-        ValueError: If file format is invalid or corrupted.
+        FileNotFoundError: If the file does not exist.
+        EmptyGeometryException: If no valid geometry objects are detected.
+        Exception: For FreeCAD import failures or shape errors.
     """
     if not filepath.exists():
         raise FileNotFoundError(f"STEP file not found: {filepath}")
-    
-    try:
-        # Replace this with actual parser logic
-        # parsed_data = parse_step_file(filepath)
-        parsed_data = mock_step_parse(filepath)  # for demonstration
-        
-        if is_geometry_empty(parsed_data):
-            raise EmptyGeometryException("No geometry found in STEP file")
 
-        return compute_bounding_box(parsed_data)
+    try:
+        import FreeCAD
+        import Import
+    except ImportError as e:
+        raise ImportError("FreeCAD module not available in runtime environment") from e
+
+    try:
+        doc = FreeCAD.newDocument()
+        Import.insert(str(filepath), doc.Name)
+
+        if not doc.Objects:
+            raise EmptyGeometryException("STEP file loaded but contains no geometry.")
+
+        shape = doc.Objects[0].Shape
+        bounds = shape.BoundBox
+        return {
+            "xmin": bounds.XMin,
+            "xmax": bounds.XMax,
+            "ymin": bounds.YMin,
+            "ymax": bounds.YMax,
+            "zmin": bounds.ZMin,
+            "zmax": bounds.ZMax
+        }
 
     except Exception as e:
-        log.error(f"Failed to extract bounding box: {e}")
+        log.error(f"Failed to parse STEP file with FreeCAD: {e}")
         raise
-
-def compute_bounding_box(parsed_data) -> Dict:
-    """
-    Computes bounding box based on parsed geometry data.
-
-    Args:
-        parsed_data: Parsed STEP geometry.
-    Returns:
-        dict: {'xmin': float, 'xmax': float, 'ymin': ..., 'ymax': ..., ...}
-    """
-    # Dummy example — replace with actual geometry logic
-    return {
-        "xmin": 0.0,
-        "xmax": 1.0,
-        "ymin": 0.0,
-        "ymax": 1.0,
-        "zmin": 0.0,
-        "zmax": 1.0
-    }
-
-def mock_step_parse(filepath: Path) -> dict:
-    """
-    Simulated STEP parser for dev/test purposes.
-
-    Args:
-        filepath (Path): STEP file path.
-    Returns:
-        dict: Mocked parsed result.
-    """
-    filename = filepath.name
-    if filename == "empty.step":
-        return {}  # Simulate empty geometry
-    if filename == "mock_invalid_geometry.step":
-        raise ValueError("Corrupted STEP syntax")
-    return {
-        "solids": [ {"id": 1, "bounds": {}} ]  # Simulate valid geometry
-    }
 
 
 
