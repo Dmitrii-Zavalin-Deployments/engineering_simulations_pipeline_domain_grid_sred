@@ -2,15 +2,31 @@ import os
 import logging
 from math import ceil
 
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 try:
     from OCC.Core.STEPControl import STEPControl_Reader
     from OCC.Core.Bnd import Bnd_Box
-    from OCC.Core.BRepBndLib import BRepBndLib
-except ImportError:
-    raise ImportError("Required libraries not found. Ensure pythonocc-core is installed.")
+    import OCC.Core.BRepBndLib as brepbndlib
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+    # ✅ Check if required symbol exists
+    if not hasattr(brepbndlib, "BRepBndLib"):
+        raise ImportError(
+            "Symbol 'BRepBndLib' not found in OCC.Core.BRepBndLib. "
+            "You may be using an incompatible version of pythonocc-core."
+        )
+
+    BRepBndLib = brepbndlib.BRepBndLib
+
+except ImportError as e:
+    logger.error("Failed to import required OCC modules.")
+    try:
+        logger.debug(f"Available symbols in BRepBndLib: {dir(brepbndlib)}")
+    except Exception:
+        logger.debug("Unable to inspect BRepBndLib module symbols.")
+    raise ImportError("Required libraries not found or incompatible. "
+                      "Ensure pythonocc-core is correctly installed and version-aligned.") from e
 
 DEFAULT_RESOLUTION = 0.01  # Approximate voxel size in meters
 
