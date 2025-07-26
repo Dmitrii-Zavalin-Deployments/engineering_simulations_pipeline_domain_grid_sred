@@ -57,6 +57,7 @@ jobs:
 
       - name: 🚀 Run enrichment pipeline (FreeCAD AppImage - Qt offscreen)
         continue-on-error: true
+        timeout-minutes: 5
         env:
           QT_QPA_PLATFORM: offscreen
         run: ./FreeCAD.AppImage --console src/run_pipeline.py --resolution 0.01

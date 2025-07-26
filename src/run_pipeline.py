@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from geometry_parser import extract_bounding_box_with_freecad
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
+from logger_utils import log_checkpoint, log_error, log_success
 
 # 🎛️ CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
@@ -18,23 +19,27 @@ IO_DIRECTORY = Path("./data/testing-input-output")
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 def main(resolution=DEFAULT_RESOLUTION):
-    print("🚀 STEP-driven pipeline initialized (FreeCAD backend).")
+    log_checkpoint("🚀 STEP-driven pipeline initialized (FreeCAD backend)")
 
     if not IO_DIRECTORY.exists():
-        raise FileNotFoundError(f"Input directory not found: {IO_DIRECTORY}")
+        log_error(f"Input directory not found: {IO_DIRECTORY}", fatal=True)
 
     step_files = list(IO_DIRECTORY.glob("*.step"))
     if len(step_files) == 0:
-        raise FileNotFoundError("No STEP files found.")
+        log_error("No STEP files found", fatal=True)
     elif len(step_files) > 1:
-        raise RuntimeError("Multiple STEP files detected — provide exactly one.")
+        log_error("Multiple STEP files detected — provide exactly one", fatal=True)
 
     step_path = step_files[0]
-    print(f"📄 Using STEP file: {step_path.name}")
+    log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
-    # 🧠 Geometry extraction with FreeCAD
-    bounds = extract_bounding_box_with_freecad(str(step_path))
-    print(f"📐 Bounding box extracted: {bounds}")
+    # 🧠 Geometry extraction with FreeCAD (wrapped for error visibility)
+    try:
+        log_checkpoint("📂 Calling FreeCAD geometry parser...")
+        bounds = extract_bounding_box_with_freecad(str(step_path))
+        log_checkpoint(f"📐 Bounding box extracted: {bounds}")
+    except Exception as e:
+        log_error(f"Geometry extraction failed:\n{e}", fatal=True)
 
     domain_info = {
         "bounds": bounds,
@@ -60,15 +65,20 @@ def main(resolution=DEFAULT_RESOLUTION):
     }
 
     try:
+        log_checkpoint("🔎 Validating domain metadata against schema...")
         enforce_profile(PROFILE_PATH, metadata)
+        log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
-        print(f"❌ Validation failed:\n{e}")
-        sys.exit(1)
+        log_error(f"Validation failed:\n{e}", fatal=True)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w") as f:
         json.dump(metadata, f, indent=2)
-    print(f"✅ Metadata written to {OUTPUT_PATH}")
+    log_success(f"Metadata written to {OUTPUT_PATH}")
+
+    # 🧼 Explicit exit for CI flow
+    log_checkpoint("🏁 Pipeline completed successfully")
+    sys.exit(0)
 
 if __name__ == "__main__":
     import argparse
