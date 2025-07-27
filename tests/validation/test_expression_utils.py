@@ -1,4 +1,4 @@
-# tests/test_expression_utils.py
+# tests/validation/test_expression_utils.py
 
 import pytest
 from validation.expression_utils import parse_literal
@@ -27,6 +27,8 @@ def test_quoted_string_literals():
     assert parse_literal("'42'") == "42"
     assert parse_literal('"false"') == "false"
     assert parse_literal(" ' spaced ' ") == " spaced "
+    assert parse_literal("''") == ""  # Empty quoted string
+    assert parse_literal('" "') == " "  # Space inside quotes
 
 def test_unquoted_string_literals():
     assert parse_literal("unquoted") == "unquoted"
@@ -63,11 +65,10 @@ def test_non_string_inputs():
 def test_fallback_behavior():
     assert parse_literal("not_a_literal") == "not_a_literal"
     assert parse_literal("  ") == ""  # Empty string after strip
-    assert parse_literal("") == ""
+    assert parse_literal("") == ""  # Fully empty
     assert parse_literal("3.14.15") == "3.14.15"  # Invalid float
-    assert parse_literal("'broken") == "'broken"  # Unmatched quote
-    assert parse_literal("''") == ""  # Empty quoted string
-    assert parse_literal('" "') == " "  # Space inside quotes
+    assert parse_literal("'broken") == "'broken"  # Unmatched single quote
+    assert parse_literal('"unfinished') == '"unfinished'  # Unmatched double quote
 
 
 
