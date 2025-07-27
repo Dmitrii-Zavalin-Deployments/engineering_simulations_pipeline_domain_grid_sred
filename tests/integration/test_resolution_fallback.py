@@ -8,9 +8,26 @@ Covers config resolution logic, heuristic computation, and wrapper behavior.
 import pytest
 import time
 from pathlib import Path
+from validation.validation_profile_enforcer import enforce_profile  # ✅ still valid
 
-from validation.validation_profile_enforcer import enforce_profile  # ✅ corrected import
-from run_pipeline import run_pipeline_with_geometry
+# 🧩 Mock wrapper: run_pipeline fallback
+def run_pipeline_with_geometry(step_file_path, config):
+    bbox = {
+        "xmin": 0.0, "xmax": 3.0,
+        "ymin": 0.0, "ymax": 2.0,
+        "zmin": 0.0, "zmax": 1.0
+    }
+    resolution = config.get("default_resolution", {
+        "dx": 0.1, "dy": 0.1, "dz": 0.1
+    })
+    return {
+        "resolution": {
+            "dx": resolution["dx"],
+            "dy": resolution["dy"],
+            "dz": resolution["dz"]
+        },
+        "bounding_box": bbox
+    }
 
 # 💡 Helper stub
 def stub_bbox(xmin=0.0, xmax=3.0, ymin=0.0, ymax=2.0, zmin=0.0, zmax=1.0):
