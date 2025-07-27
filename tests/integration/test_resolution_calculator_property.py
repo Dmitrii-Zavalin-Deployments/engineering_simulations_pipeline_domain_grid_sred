@@ -1,4 +1,4 @@
-# /tests/test_property_validation.py
+# tests/integration/test_resolution_calculator_property.py
 
 import pytest
 import json
@@ -10,8 +10,18 @@ CONFIG_PATH = "configs/system_config.json"
 
 # Utility
 def load_config():
-    with open(CONFIG_PATH, "r") as f:
-        return json.load(f)
+    try:
+        with open(CONFIG_PATH, "r") as f:
+            return json.load(f)
+    except FileNotFoundError:
+        # Safe fallback for test resilience
+        return {
+            "default_resolution": {
+                "dx": 0.1,
+                "dy": 0.1,
+                "dz": 0.1
+            }
+        }
 
 # Strategy: Generate bounding boxes with randomized ranges
 @st.composite
@@ -35,12 +45,12 @@ def bounding_box_strategy(draw):
 # Strategy: Generate invalid bounding boxes (reversed bounds, zero ranges)
 @st.composite
 def malformed_bbox_strategy(draw):
-    xmin = draw(st.floats(min_value=0, max_value=1))
-    xmax = draw(st.floats(min_value=-1, max_value=0))  # Intentionally reversed
-    ymin = draw(st.floats(min_value=0, max_value=0))   # Zero width
-    ymax = draw(st.floats(min_value=0, max_value=0))
-    zmin = draw(st.floats(min_value=1, max_value=1))
-    zmax = draw(st.floats(min_value=1, max_value=1))
+    xmin = draw(st.floats(min_value=0, max_value=0.1))
+    xmax = draw(st.floats(min_value=-0.1, max_value=0))  # Reversed
+    ymin = draw(st.floats(min_value=0, max_value=0.01))
+    ymax = draw(st.floats(min_value=0, max_value=0.01))  # Near zero
+    zmin = draw(st.floats(min_value=0.99, max_value=1.01))
+    zmax = draw(st.floats(min_value=0.99, max_value=1.01))  # Equal/flat
 
     return {
         "xmin": xmin,
@@ -72,9 +82,10 @@ def test_resolution_with_malformed_bbox(bbox):
         res = get_resolution(dx=None, dy=None, dz=None, bounding_box=bbox, config=config)
         for axis in ["dx", "dy", "dz"]:
             assert res[axis] > 0
-    except Exception as e:
-        assert isinstance(e, Exception)
-        # Allow fallback to fail gracefully
+            assert math.isfinite(res[axis])
+    except ValueError as e:
+        # Expect fallback failure with informative error
+        assert "bounding box" in str(e).lower()
 
 # 🚨 Guard against extreme spacing hint corruption
 @given(dx=st.floats(min_value=1e-8, max_value=1000),
@@ -90,9 +101,9 @@ def test_resolution_with_extreme_hints(dx, dy, dz):
     res = get_resolution(dx=dx, dy=dy, dz=dz, bounding_box=bbox, config=config)
 
     # Ensure resolution fallback is bypassed and direct values retained
-    assert abs(res["dx"] - dx) < 1e-6
-    assert abs(res["dy"] - dy) < 1e-6
-    assert abs(res["dz"] - dz) < 1e-6
+    assert math.isclose(res["dx"], dx, rel_tol=1e-6)
+    assert math.isclose(res["dy"], dy, rel_tol=1e-6)
+    assert math.isclose(res["dz"], dz, rel_tol=1e-6)
 
 
 

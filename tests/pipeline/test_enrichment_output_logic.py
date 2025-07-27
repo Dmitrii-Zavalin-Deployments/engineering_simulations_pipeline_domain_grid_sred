@@ -1,8 +1,8 @@
-import pytest
-from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
+# tests/pipeline/test_enrich_metadata_pipeline.py
 
-# 🧩 Stub config toggle
-config_enabled = { "tagging_enabled": True }
+import pytest
+import time
+from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
 
 # 📘 Domain values
 GRID_DIMENSIONS = {
@@ -67,7 +67,6 @@ def test_zero_or_none_volume_is_handled_safely():
 
 # ⏱️ Runtime ceiling guard
 def test_enrichment_runtime_is_fast():
-    import time
     start = time.time()
     enrich_metadata_pipeline(10, 10, 10, volume=6000.0, config_flag=True)
     assert time.time() - start < 0.2  # seconds
