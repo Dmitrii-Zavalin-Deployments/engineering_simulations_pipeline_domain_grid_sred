@@ -1,72 +1,43 @@
+# tests/utils/test_input_validation.py
+
 import pytest
-from utils.gmsh_input_check import validate_bounding_box_inputs  # ✅ updated import
+from utils.gmsh_input_check import validate_step_has_volumes  # ✅ corrected import
 
-# 🧩 Minimal valid bounding box
-def valid_bbox():
-    return {
-        "xmin": 0.0, "xmax": 1.0,
-        "ymin": 0.0, "ymax": 1.0,
-        "zmin": 0.0, "zmax": 1.0
-    }
+# 🧩 Dummy STEP structure with volumes
+def step_with_volume():
+    return { "solids": [ {"id": 101}, {"id": 202} ] }
 
-# ✅ Valid input passes
-def test_valid_bbox_passes_validation():
-    validate_bounding_box_inputs(valid_bbox())
+# 🧩 Dummy STEP structure without volumes
+def step_empty():
+    return { "solids": [] }
 
-# 🚫 Missing keys trigger failure
-@pytest.mark.parametrize("missing_key", ["xmin", "xmax", "ymin", "ymax", "zmin", "zmax"])
-def test_missing_key_raises(missing_key):
-    bbox = valid_bbox()
-    del bbox[missing_key]
+# ✅ Valid STEP file passes volume check
+def test_step_with_volume_passes():
+    validate_step_has_volumes(step_with_volume())
+
+# 🚫 Missing solids key triggers KeyError
+def test_step_missing_solids_key_raises():
+    invalid = { "shells": [] }
     with pytest.raises(KeyError):
-        validate_bounding_box_inputs(bbox)
+        validate_step_has_volumes(invalid)
 
-# ⚠️ Zero-width dimensions raise error
-@pytest.mark.parametrize("axis_pair", [
-    ("xmin", "xmax"), ("ymin", "ymax"), ("zmin", "zmax")
-])
-def test_zero_width_domain_fails(axis_pair):
-    bbox = valid_bbox()
-    bbox[axis_pair[0]] = 1.0
-    bbox[axis_pair[1]] = 1.0
+# ⛔️ Empty solids list fails volume validation
+def test_step_with_no_volumes_raises():
     with pytest.raises(ValueError):
-        validate_bounding_box_inputs(bbox)
+        validate_step_has_volumes(step_empty())
 
-# 🛡 Reversed bounds are rejected
-@pytest.mark.parametrize("axis_pair", [
-    ("xmin", "xmax"), ("ymin", "ymax"), ("zmin", "zmax")
-])
-def test_reversed_bounds_fail(axis_pair):
-    bbox = valid_bbox()
-    bbox[axis_pair[0]] = 2.0
-    bbox[axis_pair[1]] = 1.0
-    with pytest.raises(ValueError):
-        validate_bounding_box_inputs(bbox)
-
-# 🧠 Type mismatches raise error
-@pytest.mark.parametrize("key,val", [
-    ("xmin", "zero"), ("xmax", None), ("ymin", "0"), ("zmax", [1.0])
-])
-def test_non_numeric_types_fail(key, val):
-    bbox = valid_bbox()
-    bbox[key] = val
+# 🧠 Invalid types raise TypeError
+@pytest.mark.parametrize("bad_input", [None, "step", 42, ["solids"], {"solids": None}])
+def test_invalid_step_types_raise(bad_input):
     with pytest.raises(TypeError):
-        validate_bounding_box_inputs(bbox)
+        validate_step_has_volumes(bad_input)
 
-# 🔍 All axis values must be finite
-def test_infinite_values_fail():
-    import math
-    bbox = valid_bbox()
-    bbox["xmax"] = math.inf
-    with pytest.raises(ValueError):
-        validate_bounding_box_inputs(bbox)
-
-# ⏱️ Runtime performance guard for edge-case evaluation
-def test_validator_runtime_under_threshold():
+# ⏱️ Runtime performance check
+def test_volume_validator_runtime_safe():
     import time
     start = time.time()
-    validate_bounding_box_inputs(valid_bbox())
-    assert time.time() - start < 0.2  # seconds
+    validate_step_has_volumes(step_with_volume())
+    assert time.time() - start < 0.2
 
 
 

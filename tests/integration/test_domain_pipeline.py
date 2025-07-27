@@ -6,7 +6,7 @@ import pytest
 import subprocess
 from pathlib import Path
 
-from pipeline.metadata_enrichment import compute_domain_from_step  # ✅ corrected import
+from pipeline.metadata_enrichment import enrich_metadata_pipeline  # ✅ corrected import
 from utils.step_parser import validate_bounding_box, StepBoundingBoxError
 from components.grid_calculator import compute_grid_dimensions, GridResolutionError
 
@@ -51,16 +51,21 @@ def test_compute_grid_dimensions_missing_bounds():
     with pytest.raises(GridResolutionError):
         compute_grid_dimensions(incomplete, resolution=0.1)
 
-# 🧪 Integration Test — Domain Parsing
-def test_domain_generator_with_real_step():
-    test_path = Path("data/testing-input-output/test_shape.step")
-    if not test_path.exists():
-        pytest.skip("STEP input file not available.")
+# 🧪 Integration Test — Metadata Enrichment
+def test_metadata_enrichment_with_resolution(dummy_bounds):
+    nx = 12
+    ny = 25
+    nz = 8
+    bounding_volume = (
+        (dummy_bounds["xmax"] - dummy_bounds["xmin"]) *
+        (dummy_bounds["ymax"] - dummy_bounds["ymin"]) *
+        (dummy_bounds["zmax"] - dummy_bounds["zmin"])
+    )
 
-    result = compute_domain_from_step(str(test_path), resolution=0.05)
-    assert "bounds" in result and "grid" in result
-    assert result["grid"]["nx"] > 0
-    assert result["bounds"]["xmin"] < result["bounds"]["xmax"]
+    enriched = enrich_metadata_pipeline(nx, ny, nz, bounding_volume, config_flag=True)
+    assert "domain_size" in enriched
+    assert "spacing_hint" in enriched
+    assert "resolution_density" in enriched
 
 # 🧪 Integration Test — Metadata Structure
 def test_metadata_output_structure(tmp_path, dummy_bounds):

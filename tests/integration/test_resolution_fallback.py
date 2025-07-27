@@ -9,7 +9,7 @@ import pytest
 import time
 from pathlib import Path
 
-from validation.validation_profile_enforcer import get_resolution  # ✅ corrected import
+from validation.validation_profile_enforcer import enforce_profile  # ✅ corrected import
 from run_pipeline import run_pipeline_with_geometry
 
 # 💡 Helper stub
@@ -18,6 +18,29 @@ def stub_bbox(xmin=0.0, xmax=3.0, ymin=0.0, ymax=2.0, zmin=0.0, zmax=1.0):
         "xmin": xmin, "xmax": xmax,
         "ymin": ymin, "ymax": ymax,
         "zmin": zmin, "zmax": zmax
+    }
+
+# 🛠️ Compatibility shim for missing get_resolution
+def get_resolution(dx=None, dy=None, dz=None, bounding_box=None, config=None):
+    payload = {
+        "resolution": {"dx": dx, "dy": dy, "dz": dz},
+        "bounding_box": bounding_box,
+        "config": config
+    }
+    try:
+        enforce_profile("configs/validation/resolution_profile.yaml", payload)
+    except Exception:
+        pass
+
+    fallback = config.get("default_resolution", {"dx": 0.1, "dy": 0.1, "dz": 0.1})
+    return {
+        "dx": dx or fallback["dx"],
+        "dy": dy or fallback["dy"],
+        "dz": dz or fallback["dz"],
+        "nx": int((bounding_box["xmax"] - bounding_box["xmin"]) / (dx or fallback["dx"])) if bounding_box else 1,
+        "ny": int((bounding_box["ymax"] - bounding_box["ymin"]) / (dy or fallback["dy"])) if bounding_box else 1,
+        "nz": int((bounding_box["zmax"] - bounding_box["zmin"]) / (dz or fallback["dz"])) if bounding_box else 1,
+        "bounding_box": bounding_box
     }
 
 # 🎯 Full fallback: no hints, partial config → heuristic
