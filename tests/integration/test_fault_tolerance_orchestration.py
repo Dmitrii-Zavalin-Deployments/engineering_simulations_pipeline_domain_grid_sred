@@ -1,13 +1,11 @@
-# tests/integration/test_fault_tolerance_orchestration.py
-
 import pytest
 import json
 from pathlib import Path
 
-from src.geometry_parser import extract_bounding_box_from_step
-from src.processing.resolution_calculator import get_resolution
-from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
-from src.input_validator import validate_bounding_box_inputs
+from geometry_parser import extract_bounding_box_from_step
+from processing.resolution_calculator import get_resolution
+from pipeline.metadata_enrichment import enrich_metadata_pipeline
+from input_validator import validate_bounding_box_inputs
 
 # 🧩 Faulty assets
 INVALID_STEP = Path("test_models/mock_invalid_geometry.step")

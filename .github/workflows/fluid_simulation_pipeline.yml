@@ -103,6 +103,9 @@ jobs:
           "
           echo "✅ Output schema validated"
 
+      - name: 🔍 Print sys.path for module discovery insight
+        run: python -c "import sys; print('PYTHON sys.path:', sys.path)"
+
       - name: 🔬 Run integration test suite only
         run: PYTHONPATH=./src:./pipeline pytest -m integration -s tests/ --verbose -ra
 

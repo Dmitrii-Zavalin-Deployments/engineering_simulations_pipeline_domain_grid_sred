@@ -9,8 +9,8 @@ import pytest
 import time
 from pathlib import Path
 
-from src.processing.resolution_calculator import get_resolution
-from src.run_pipeline import run_pipeline_with_geometry
+from processing.resolution_calculator import get_resolution
+from run_pipeline import run_pipeline_with_geometry
 
 # 💡 Helper stub
 def stub_bbox(xmin=0.0, xmax=3.0, ymin=0.0, ymax=2.0, zmin=0.0, zmax=1.0):

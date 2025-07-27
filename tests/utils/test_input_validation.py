@@ -1,5 +1,5 @@
 import pytest
-from src.input_validator import validate_bounding_box_inputs
+from input_validator import validate_bounding_box_inputs
 
 # 🧩 Minimal valid bounding box
 def valid_bbox():

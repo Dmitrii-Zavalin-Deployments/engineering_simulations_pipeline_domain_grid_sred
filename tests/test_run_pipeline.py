@@ -2,6 +2,7 @@
 
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
+from pathlib import Path  # ✅ Required for spec=Path usage
 from src.run_pipeline import sanitize_payload, main, DEFAULT_RESOLUTION
 
 class TestSanitizePayload(unittest.TestCase):
@@ -47,7 +48,6 @@ class TestPipelineMain(unittest.TestCase):
         main(resolution=DEFAULT_RESOLUTION)
         mock_log_error.assert_called_with("Input directory not found: {}".format(
             str(Path(__file__).parent.resolve() / "../../src/data/testing-input-output")), fatal=True)
-
 
 
 

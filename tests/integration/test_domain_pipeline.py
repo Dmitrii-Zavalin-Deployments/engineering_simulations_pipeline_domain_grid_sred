@@ -1,5 +1,3 @@
-# tests/integration/test_domain_pipeline.py
-
 import os
 import json
 import pytest

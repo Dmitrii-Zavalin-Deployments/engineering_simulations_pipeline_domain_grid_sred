@@ -2,7 +2,7 @@
 
 import pytest
 import time
-from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
+from pipeline.metadata_enrichment import enrich_metadata_pipeline
 
 # 📘 Domain values
 GRID_DIMENSIONS = {

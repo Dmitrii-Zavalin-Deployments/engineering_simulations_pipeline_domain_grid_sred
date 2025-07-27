@@ -3,8 +3,8 @@
 import pytest
 import json
 from pathlib import Path
-from src.pipeline.metadata_enrichment import enrich_metadata_pipeline
-from src.processing.resolution_calculator import get_resolution
+from pipeline.metadata_enrichment import enrich_metadata_pipeline
+from processing.resolution_calculator import get_resolution
 
 CONFIG_PATH = "configs/system_config.json"
 TEST_OUTPUT_PATH = "output/test_enriched_metadata.json"
