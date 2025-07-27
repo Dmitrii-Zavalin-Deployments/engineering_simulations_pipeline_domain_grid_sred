@@ -1,3 +1,5 @@
+# tests/integration/test_gmsh_lifecycle.py
+
 import pytest
 import gmsh
 
