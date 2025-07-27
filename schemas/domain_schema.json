@@ -18,9 +18,7 @@
     "max_x": {
       "type": "number",
       "description": "Maximum bound in x-direction",
-      "minimum": {
-        "$data": "1/min_x"
-      }
+      "minimum": 0.0
     },
     "min_y": {
       "type": "number",
@@ -29,9 +27,7 @@
     "max_y": {
       "type": "number",
       "description": "Maximum bound in y-direction",
-      "minimum": {
-        "$data": "1/min_y"
-      }
+      "minimum": 0.0
     },
     "min_z": {
       "type": "number",
@@ -40,9 +36,7 @@
     "max_z": {
       "type": "number",
       "description": "Maximum bound in z-direction",
-      "minimum": {
-        "$data": "1/min_z"
-      }
+      "minimum": 0.0
     },
     "nx": {
       "type": "integer",
