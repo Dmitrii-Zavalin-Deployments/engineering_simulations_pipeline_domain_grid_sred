@@ -1,8 +1,10 @@
+# tests/integration/test_resolution_calculator_property.py
+
 import pytest
 import json
 import math
 from hypothesis import given, strategies as st
-from processing.resolution_calculator import get_resolution
+from validation.validation_profile_enforcer import get_resolution  # ✅ corrected import
 
 CONFIG_PATH = "configs/system_config.json"
 

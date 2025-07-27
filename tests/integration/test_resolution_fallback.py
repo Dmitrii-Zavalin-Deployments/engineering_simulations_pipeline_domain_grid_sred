@@ -9,7 +9,7 @@ import pytest
 import time
 from pathlib import Path
 
-from processing.resolution_calculator import get_resolution
+from validation.validation_profile_enforcer import get_resolution  # ✅ corrected import
 from run_pipeline import run_pipeline_with_geometry
 
 # 💡 Helper stub

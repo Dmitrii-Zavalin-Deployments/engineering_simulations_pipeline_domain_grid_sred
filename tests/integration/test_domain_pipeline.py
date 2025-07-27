@@ -1,10 +1,12 @@
+# tests/integration/test_domain_pipeline.py
+
 import os
 import json
 import pytest
 import subprocess
 from pathlib import Path
 
-from pipeline.domain_generator import compute_domain_from_step
+from pipeline.metadata_enrichment import compute_domain_from_step  # ✅ corrected import
 from utils.step_parser import validate_bounding_box, StepBoundingBoxError
 from components.grid_calculator import compute_grid_dimensions, GridResolutionError
 

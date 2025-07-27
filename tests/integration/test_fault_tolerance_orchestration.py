@@ -2,7 +2,7 @@ import pytest
 import json
 from pathlib import Path
 
-from geometry_parser import extract_bounding_box_from_step
+from domain_definition_writer import extract_bounding_box_from_step  # ✅ corrected import
 from processing.resolution_calculator import get_resolution
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
 from input_validator import validate_bounding_box_inputs

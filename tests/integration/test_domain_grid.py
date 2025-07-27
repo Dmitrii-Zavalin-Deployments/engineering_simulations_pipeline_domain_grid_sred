@@ -1,10 +1,8 @@
-# tests/integration/test_domain_grid.py
-
 import pytest
 import json
 from pathlib import Path
 from pipeline.metadata_enrichment import enrich_metadata_pipeline
-from processing.resolution_calculator import get_resolution
+from validation.validation_profile_enforcer import get_resolution  # ✅ updated import
 
 CONFIG_PATH = "configs/system_config.json"
 TEST_OUTPUT_PATH = "output/test_enriched_metadata.json"
