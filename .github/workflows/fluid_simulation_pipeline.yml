@@ -9,6 +9,8 @@ on:
 jobs:
   process_fluid_data:
     runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ./src
 
     steps:
       - name: 🛎️ Checkout repository
@@ -87,8 +89,6 @@ jobs:
             --output data/testing-input-output/enriched_metadata.json
 
       - name: 🔍 Validate output JSON against schema
-        env:
-          PYTHONPATH: "${{ github.workspace }}/src"
         run: |
           python -c "
           import json, jsonschema
@@ -104,8 +104,6 @@ jobs:
           echo "✅ Output schema validated"
 
       - name: 🔬 Run test suite (unit + integration + edge guards)
-        env:
-          PYTHONPATH: "${{ github.workspace }}/src"
         run: python -m pytest -s tests/ --verbose -ra
 
       - name: 🧭 Debug directory tree
