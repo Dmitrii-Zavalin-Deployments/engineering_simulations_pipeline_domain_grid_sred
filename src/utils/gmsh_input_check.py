@@ -31,7 +31,7 @@ def validate_step_has_volumes(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
 
     gmsh.model.add("volume_check_model")
-    gmsh.open(step_path)
+    gmsh.open(str(step_path))  # ✅ Ensures compatibility with Path-like inputs
 
     volumes = gmsh.model.getEntities(3)
     if not volumes:
