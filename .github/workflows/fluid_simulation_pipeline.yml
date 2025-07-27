@@ -6,10 +6,6 @@ on:
       - "**"
   workflow_dispatch:
 
-defaults:
-  run:
-    working-directory: ${{ github.workspace }}
-
 jobs:
   process_fluid_data:
     runs-on: ubuntu-latest
