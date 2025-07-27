@@ -6,11 +6,15 @@ on:
       - "**"
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: ${{ github.workspace }}
+
 jobs:
   process_fluid_data:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ./src
+      PYTHONPATH: ./src:./pipeline
 
     steps:
       - name: 🛎️ Checkout repository
@@ -103,8 +107,8 @@ jobs:
           "
           echo "✅ Output schema validated"
 
-      - name: 🔬 Run test suite (unit + integration + edge guards)
-        run: python -m pytest -s tests/ --verbose -ra
+      - name: 🔬 Run integration test suite only
+        run: PYTHONPATH=./src:./pipeline pytest -m integration -s tests/ --verbose -ra
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE

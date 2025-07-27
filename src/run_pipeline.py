@@ -19,6 +19,27 @@ PROFILE_PATH = "schemas/validation_profile.yaml"
 IO_DIRECTORY = Path(__file__).parent.resolve() / "data/testing-input-output"
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
+__all__ = ["sanitize_payload"]
+
+def sanitize_payload(metadata: dict) -> dict:
+    """
+    Normalize and clean domain metadata dictionary to ensure schema compliance.
+    This might include resolving nulls, coercing types, or removing extraneous fields.
+    """
+    # Sample logic — adapt as needed for real validation schema
+    domain = metadata.get("domain_definition", {})
+    sanitized = {
+        "domain_definition": {
+            "x": float(domain.get("x", 0.0)),
+            "y": float(domain.get("y", 0.0)),
+            "z": float(domain.get("z", 0.0)),
+            "width": float(domain.get("width", 0.0)),
+            "height": float(domain.get("height", 0.0)),
+            "depth": float(domain.get("depth", 0.0)),
+        }
+    }
+    return sanitized
+
 def main(resolution=DEFAULT_RESOLUTION):
     log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
@@ -59,9 +80,11 @@ def main(resolution=DEFAULT_RESOLUTION):
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)
 
+    sanitized_metadata = sanitize_payload(metadata)
+
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w") as f:
-        json.dump(metadata, f, indent=2)
+        json.dump(sanitized_metadata, f, indent=2)
     log_success(f"Metadata written to {OUTPUT_PATH}")
 
     # 🧼 Explicit exit for CI flow
