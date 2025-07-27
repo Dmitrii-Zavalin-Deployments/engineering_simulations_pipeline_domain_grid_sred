@@ -10,6 +10,7 @@ import json
 from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
+from domain_definition_writer import validate_domain_bounds, DomainValidationError
 from logger_utils import log_checkpoint, log_error, log_success
 
 # 🎛️ CLI resolution override
@@ -41,6 +42,13 @@ def main(resolution=DEFAULT_RESOLUTION):
         log_checkpoint(f"📐 Domain extracted: {domain_definition}")
     except Exception as e:
         log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
+
+    # 🔐 Cross-field bounds check
+    try:
+        validate_domain_bounds(domain_definition)
+        log_success("Domain bounds validated successfully")
+    except DomainValidationError as err:
+        log_error(f"Domain bounds validation failed:\n{err}", fatal=True)
 
     metadata = {"domain_definition": domain_definition}
 
