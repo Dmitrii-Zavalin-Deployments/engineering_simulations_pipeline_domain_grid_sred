@@ -23,6 +23,15 @@ class TestSanitizePayload(unittest.TestCase):
         expected = {"domain_definition": {"x": 0.0, "y": 0.0, "z": 0.0, "width": 0.0, "height": 0.0, "depth": 0.0}}
         self.assertEqual(result, expected)
 
+    def test_width_clamping_on_misaligned_bounds(self):
+        # ✅ New test for inverted legacy bounds
+        raw = {"domain_definition": {"min_x": "1.0", "max_x": "0.0"}}
+        result = sanitize_payload(raw)
+        domain = result["domain_definition"]
+        self.assertIn("width", domain)
+        self.assertIsInstance(domain["width"], float)
+        self.assertEqual(domain["width"], 0.0)  # ✅ Clamped non-negative
+
 class TestPipelineMain(unittest.TestCase):
     @patch("pathlib.Path.glob", return_value=[MagicMock(name="mock.step", spec=Path)])
     @patch("pathlib.Path.exists", return_value=True)

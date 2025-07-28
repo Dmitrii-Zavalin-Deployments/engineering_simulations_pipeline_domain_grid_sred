@@ -54,9 +54,9 @@ def sanitize_payload(metadata: dict) -> dict:
     y = safe_float(domain.get("y") or domain.get("min_y"))
     z = safe_float(domain.get("z") or domain.get("min_z"))
 
-    width = safe_float(domain.get("width")) or (safe_float(domain.get("max_x")) - x)
-    height = safe_float(domain.get("height")) or (safe_float(domain.get("max_y")) - y)
-    depth = safe_float(domain.get("depth")) or (safe_float(domain.get("max_z")) - z)
+    width = max(0.0, safe_float(domain.get("width")) or (safe_float(domain.get("max_x")) - x))
+    height = max(0.0, safe_float(domain.get("height")) or (safe_float(domain.get("max_y")) - y))
+    depth = max(0.0, safe_float(domain.get("depth")) or (safe_float(domain.get("max_z")) - z))
 
     sanitized = {
         "domain_definition": {
