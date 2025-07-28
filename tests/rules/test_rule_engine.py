@@ -67,8 +67,9 @@ def test_rule_with_missing_key():
 def test_rule_with_bad_operator():
     rule = {"if": "a ++ b", "raise": "Bad operator"}
     payload = {"a": 1, "b": 2}
-    with pytest.raises(RuleEvaluationError, match="Unsupported comparison operator"):
+    with pytest.raises(RuleEvaluationError) as err:
         evaluate_rule(rule, payload)
+    assert "Unsupported comparison operator" in str(err.value)
 
 # 🧪 Literal Handling – Null Comparison
 def test_null_literal_passes():
