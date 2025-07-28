@@ -53,6 +53,11 @@ def test_invalid_bounds_trigger_exception(axis, min_val, max_val):
     "min_x", "max_x", "min_y", "max_y", "min_z", "max_z"
 ])
 def test_missing_keys_trigger_exception(missing_key):
+    """
+    Tests whether validate_domain_bounds raises DomainValidationError
+    when domain keys are missing. Exception messages are validated
+    by expected axis ('x', 'y', 'z') identification.
+    """
     domain = {
         "min_x": 0.0, "max_x": 1.0,
         "min_y": 0.0, "max_y": 1.0,
@@ -62,7 +67,10 @@ def test_missing_keys_trigger_exception(missing_key):
 
     with pytest.raises(DomainValidationError) as exc:
         validate_domain_bounds(domain)
-    assert missing_key in str(exc.value)
+
+    axis = missing_key[-1]
+    assert f"axis '{axis}'" in str(exc.value)
+    assert isinstance(exc.value, DomainValidationError)
 
 def test_non_numeric_values_are_invalid():
     domain = {
