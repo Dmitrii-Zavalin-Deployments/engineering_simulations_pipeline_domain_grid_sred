@@ -106,8 +106,12 @@ jobs:
       - name: 🔍 Print sys.path for module discovery insight
         run: python -c "import sys; print('PYTHON sys.path:', sys.path)"
 
-      - name: 🔬 Run integration test suite only
-        run: PYTHONPATH=./src:./pipeline pytest -m integration -s tests/ --verbose -ra
+      - name: 🧪 Run Unit Tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
+        run: |
+          pytest -s tests/ --verbose -ra
+          echo "✅ Unit tests completed."
 
       - name: 🧭 Debug directory tree
         run: ls -R $GITHUB_WORKSPACE
