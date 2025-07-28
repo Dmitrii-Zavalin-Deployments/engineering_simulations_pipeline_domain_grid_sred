@@ -1,5 +1,3 @@
-# tests/integration/test_gmsh_runner_test.py
-
 import pytest
 from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh

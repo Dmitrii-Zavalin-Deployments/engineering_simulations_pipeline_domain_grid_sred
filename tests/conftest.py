@@ -22,13 +22,9 @@ def gmsh_session():
             ...
             # Gmsh will finalize automatically after test
     """
-    if not gmsh.isInitialized():
-        gmsh.initialize()
+    gmsh.initialize()
     yield
-    try:
-        gmsh.finalize()
-    except Exception:
-        pass  # suppress teardown error to prevent test failure
+    gmsh.finalize()
 
 
 
