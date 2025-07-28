@@ -1,4 +1,4 @@
-# tests/rules/test_rule_engine_integration.py
+# 📄 tests/rules/test_rule_engine_integration.py
 
 import pytest
 from src.rules.rule_engine import evaluate_rule
@@ -9,6 +9,7 @@ def test_numeric_string_equals_float_relaxed():
         "if": "values.height == 50.0",
         "raise": "Height mismatch",
         "strict_type_check": False,
+        "relaxed_type_check": True,
     }
     payload = {"values": {"height": "50.0"}}
     assert evaluate_rule(rule, payload) is True
