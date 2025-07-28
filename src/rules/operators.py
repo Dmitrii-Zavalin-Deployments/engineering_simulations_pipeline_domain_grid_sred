@@ -1,4 +1,4 @@
-# src/rules/operators.py
+# 📄 src/rules/operators.py
 
 import re
 
@@ -47,10 +47,9 @@ def resolve_operator(op: str):
     Raises:
         OperatorError: If operator is not supported
     """
-    try:
-        return OPS[op]
-    except KeyError:
+    if op not in OPS:
         raise OperatorError(f"Unsupported comparison operator: '{op}'")
+    return OPS[op]
 
 
 
