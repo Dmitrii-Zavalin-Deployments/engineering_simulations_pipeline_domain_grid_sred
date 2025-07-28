@@ -13,6 +13,7 @@ from gmsh_runner import extract_bounding_box_with_gmsh
 from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 from domain_definition_writer import validate_domain_bounds, DomainValidationError
 from logger_utils import log_checkpoint, log_error, log_success
+from src.utils.coercion import safe_float  # ✅ Integrated from reusable coercion module
 
 # 🎛️ CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
@@ -49,13 +50,13 @@ def sanitize_payload(metadata: dict) -> dict:
     metadata.setdefault("domain_definition", default_domain())
     domain = metadata["domain_definition"]
 
-    x = float(domain.get("x") or domain.get("min_x", 0.0))
-    y = float(domain.get("y") or domain.get("min_y", 0.0))
-    z = float(domain.get("z") or domain.get("min_z", 0.0))
+    x = safe_float(domain.get("x") or domain.get("min_x"))
+    y = safe_float(domain.get("y") or domain.get("min_y"))
+    z = safe_float(domain.get("z") or domain.get("min_z"))
 
-    width = float(domain.get("width") or (float(domain.get("max_x", x)) - x))
-    height = float(domain.get("height") or (float(domain.get("max_y", y)) - y))
-    depth = float(domain.get("depth") or (float(domain.get("max_z", z)) - z))
+    width = safe_float(domain.get("width")) or (safe_float(domain.get("max_x")) - x)
+    height = safe_float(domain.get("height")) or (safe_float(domain.get("max_y")) - y)
+    depth = safe_float(domain.get("depth")) or (safe_float(domain.get("max_z")) - z)
 
     sanitized = {
         "domain_definition": {
