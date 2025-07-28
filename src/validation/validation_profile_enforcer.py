@@ -1,78 +1,16 @@
-# src/validation/validation_profile_enforcer.py
+# 📄 src/validation/validation_profile_enforcer.py
 
 try:
     import yaml
 except ImportError:
     raise ImportError("Missing PyYAML. Install with: pip install PyYAML")
 
-import operator
-from validation.expression_utils import parse_literal  # ✅ Modular import added
+from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
 
 
 class ValidationProfileError(Exception):
     """Raised when a validation profile rule fails."""
     pass
-
-
-def _get_nested_value(payload: dict, key_path: str):
-    """Traverse nested dict using dot-separated key path (e.g. 'a.b.c')."""
-    keys = key_path.strip().split(".")
-    value = payload
-    for k in keys:
-        if isinstance(value, dict) and k in value:
-            value = value[k]
-        else:
-            raise KeyError(f"Missing key in payload: '{key_path}'")
-    return value
-
-
-def _evaluate_expression(expr: str, payload: dict, strict_type_check=False) -> bool:
-    """
-    Evaluate simple relational expression using payload values.
-    Supported operators: ==, !=, >, <, >=, <=
-    If types mismatch and coercion fails:
-      - return False silently (default)
-      - raise ValueError if strict_type_check=True
-    """
-    ops = {
-        "==": operator.eq,
-        "!=": operator.ne,
-        ">=": operator.ge,
-        "<=": operator.le,
-        ">": operator.gt,
-        "<": operator.lt,
-    }
-
-    for symbol in sorted(ops.keys(), key=len, reverse=True):
-        if symbol in expr:
-            left, right = expr.split(symbol, 1)
-            left_val = _get_nested_value(payload, left.strip())
-
-            # Determine whether right side is a literal or key path
-            try:
-                right_val = parse_literal(right.strip())
-            except Exception:
-                right_val = _get_nested_value(payload, right.strip())
-
-            # ✅ Type harmonization safeguard with fallback behavior
-            if type(left_val) != type(right_val):
-                try:
-                    right_val = type(left_val)(right_val)
-                except Exception as err:
-                    if strict_type_check:
-                        raise ValueError(
-                            f"Failed coercion for comparison '{symbol}': {type(left_val)} vs {type(right_val)}"
-                        ) from err
-                    return False  # fail quietly by default
-
-            try:
-                return ops[symbol](left_val, right_val)
-            except TypeError as err:
-                raise ValueError(
-                    f"Incompatible types for operation '{symbol}': {type(left_val)} vs {type(right_val)}"
-                ) from err
-
-    raise ValueError(f"Unsupported expression format: '{expr}'")
 
 
 def enforce_profile(profile_path: str, payload: dict):
@@ -82,6 +20,7 @@ def enforce_profile(profile_path: str, payload: dict):
     Each rule must include:
       - if: <expression>
       - raise: <error message>
+      - Optional: strict_type_check: <bool>
     """
     try:
         with open(profile_path, "r") as f:
@@ -98,8 +37,8 @@ def enforce_profile(profile_path: str, payload: dict):
             continue  # skip incomplete rule
 
         try:
-            triggered = _evaluate_expression(condition, payload)
-        except Exception as err:
+            triggered = evaluate_rule(rule, payload)
+        except RuleEvaluationError as err:
             raise ValidationProfileError(
                 f"[Rule {i}] Evaluation error for '{condition}': {err}"
             )

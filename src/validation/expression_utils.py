@@ -1,5 +1,3 @@
-# src/validation/expression_utils.py
-
 import ast
 
 def parse_literal(value: str):

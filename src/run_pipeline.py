@@ -10,12 +10,13 @@ import os
 import json
 from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh
-from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 from domain_definition_writer import validate_domain_bounds, DomainValidationError
 from logger_utils import log_checkpoint, log_error, log_success
-from src.utils.coercion import safe_float  # ✅ Integrated from reusable coercion module
+from src.utils.coercion import safe_float
+from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
+from src.rules.rule_engine import evaluate_rule
+from validation.validation_profile_enforcer import ValidationProfileError
 
-# 🎛️ CLI resolution override
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
 IO_DIRECTORY = Path(__file__).parent.resolve() / "data/testing-input-output"
@@ -23,7 +24,6 @@ OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 __all__ = ["sanitize_payload"]
 
-# 🧪 Optional test-mode guard
 TEST_MODE_ENABLED = os.getenv("PIPELINE_TEST_MODE", "false").lower() == "true"
 
 def conditional_exit(code=0):
@@ -39,14 +39,6 @@ def default_domain():
     }
 
 def sanitize_payload(metadata: dict) -> dict:
-    """
-    Normalize and clean domain metadata dictionary to ensure schema compliance.
-    Includes default injection, type coercion, and legacy key fallback support.
-
-    Legacy fallback:
-    - If 'x', 'y', 'z' missing, fallback to 'min_x', etc.
-    - If 'width' missing, derive as max_x - min_x (same for height, depth)
-    """
     metadata.setdefault("domain_definition", default_domain())
     domain = metadata["domain_definition"]
 
@@ -58,13 +50,12 @@ def sanitize_payload(metadata: dict) -> dict:
     height = max(0.0, safe_float(domain.get("height")) or (safe_float(domain.get("max_y")) - y))
     depth = max(0.0, safe_float(domain.get("depth")) or (safe_float(domain.get("max_z")) - z))
 
-    sanitized = {
+    return {
         "domain_definition": {
             "x": x, "y": y, "z": z,
             "width": width, "height": height, "depth": depth,
         }
     }
-    return sanitized
 
 def main(resolution=DEFAULT_RESOLUTION):
     log_checkpoint("🔧 Pipeline script has entered main()")
@@ -106,19 +97,30 @@ def main(resolution=DEFAULT_RESOLUTION):
 
     metadata = {"domain_definition": domain_definition}
 
+    # 🔍 Load and enforce validation profile with strict type checking support
     try:
-        log_checkpoint("🔎 Validating domain metadata against schema...")
-        enforce_profile(PROFILE_PATH, metadata)
+        log_checkpoint("📖 Parsing validation profile...")
+        rule_list = load_rule_profile(PROFILE_PATH)
+        log_checkpoint(f"🔧 {len(rule_list)} validation rules loaded")
+    except RuleConfigError as e:
+        log_error(f"Failed to load validation profile:\n{e}", fatal=True)
+        conditional_exit(1)
+
+    payload = sanitize_payload(metadata)
+
+    try:
+        log_checkpoint("🔎 Enforcing validation rules on payload...")
+        for rule in rule_list:
+            if evaluate_rule(rule, payload):
+                raise ValidationProfileError(rule["raise"])
         log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)
         conditional_exit(1)
 
-    sanitized_metadata = sanitize_payload(metadata)
-
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     with open(OUTPUT_PATH, "w") as f:
-        json.dump(sanitized_metadata, f, indent=2)
+        json.dump(payload, f, indent=2)
     log_success(f"Metadata written to {OUTPUT_PATH}")
 
     log_checkpoint("🏁 Pipeline completed successfully")
