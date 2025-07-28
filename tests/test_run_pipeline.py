@@ -42,16 +42,17 @@ class TestPipelineMain(unittest.TestCase):
         mock_open_fn.assert_called()
         mock_exit.assert_called_with(0)
 
-    @patch("src.run_pipeline.sys.exit")  # ✅ Prevent actual exit
-    @patch("pathlib.Path.glob", return_value=[])  # ✅ Prevent IndexError
-    @patch("pathlib.Path.exists", return_value=False)  # ✅ Simulate missing dir
+    @patch("src.run_pipeline.sys.exit", side_effect=SystemExit)  # ✅ Properly simulate exit
+    @patch("pathlib.Path.exists", return_value=False)  # ✅ Simulate missing input dir
     @patch("src.run_pipeline.log_error")
-    def test_main_input_directory_missing(self, mock_log_error, mock_exists, mock_glob, mock_exit):
-        main(resolution=DEFAULT_RESOLUTION)
+    def test_main_input_directory_missing(self, mock_log_error, mock_exists, mock_exit):
+        with self.assertRaises(SystemExit):  # ✅ Guard against continuation
+            main(resolution=DEFAULT_RESOLUTION)
         mock_log_error.assert_called()
         mock_exit.assert_called_once_with(1)
         args, kwargs = mock_log_error.call_args
         assert "Input directory not found" in args[0]
         assert kwargs.get("fatal") is True
+
 
 
