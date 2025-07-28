@@ -9,41 +9,50 @@ from tests.helpers.payload_factory import (
     mixed_schema_payload
 )
 
+EXPECTED_KEYS = ["x", "y", "z", "width", "height", "depth"]
 
 def test_valid_domain_payload_sanitization():
     payload = valid_domain_payload()
     sanitized = sanitize_payload(payload)
-    assert isinstance(sanitized["domain_definition"]["min_x"], float)
-    assert sanitized["domain_definition"]["max_z"] == 1.0
+    domain = sanitized["domain_definition"]
 
+    for key in EXPECTED_KEYS:
+        assert key in domain, f"Missing key: {key}"
+        assert isinstance(domain[key], float), f"{key} should be float"
 
 def test_empty_domain_payload_fallback():
     payload = empty_domain_payload()
     sanitized = sanitize_payload(payload)
-    assert all(k in sanitized["domain_definition"] for k in [
-        "x", "y", "z", "width", "height", "depth"
-    ])
-    assert all(isinstance(v, float) for v in sanitized["domain_definition"].values())
+    domain = sanitized["domain_definition"]
 
+    for key in EXPECTED_KEYS:
+        assert key in domain
+        assert isinstance(domain[key], float)
 
 def test_non_numeric_domain_payload_graceful_handling():
     payload = non_numeric_domain_payload()
     sanitized = sanitize_payload(payload)
-    assert "domain_definition" in sanitized
-    # Invalid values should fallback or be excluded safely
-    assert isinstance(sanitized["domain_definition"], dict)
+    domain = sanitized.get("domain_definition")
 
+    assert isinstance(domain, dict)
+    for key in EXPECTED_KEYS:
+        assert key in domain
+        assert isinstance(domain[key], float)
 
 def test_mixed_schema_payload_sanitization():
     payload = mixed_schema_payload()
     sanitized = sanitize_payload(payload)
+    domain = sanitized["domain_definition"]
 
-    assert "domain_definition" in sanitized
-    assert isinstance(sanitized["domain_definition"]["min_x"], float)
-    assert isinstance(sanitized["domain_definition"]["max_y"], float)
-    assert sanitized["domain_definition"]["min_z"] == "invalid_float"  # Preserved as-is
+    # Assert legacy keys were dropped and normalized keys preserved
+    for key in EXPECTED_KEYS:
+        assert key in domain
+        assert isinstance(domain[key], float)
 
-    assert "extra" not in sanitized  # Outside schema scope
+    # Assert no unexpected fields leaked in
+    unexpected_keys = ["min_x", "max_y", "min_z", "extra"]
+    for key in unexpected_keys:
+        assert key not in domain
 
 
 

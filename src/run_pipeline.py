@@ -40,19 +40,27 @@ def default_domain():
 def sanitize_payload(metadata: dict) -> dict:
     """
     Normalize and clean domain metadata dictionary to ensure schema compliance.
-    This includes injecting defaults, resolving nulls, coercing types, and removing extraneous fields.
+    Includes default injection, type coercion, and legacy key fallback support.
+
+    Legacy fallback:
+    - If 'x', 'y', 'z' missing, fallback to 'min_x', etc.
+    - If 'width' missing, derive as max_x - min_x (same for height, depth)
     """
     metadata.setdefault("domain_definition", default_domain())
     domain = metadata["domain_definition"]
 
+    x = float(domain.get("x") or domain.get("min_x", 0.0))
+    y = float(domain.get("y") or domain.get("min_y", 0.0))
+    z = float(domain.get("z") or domain.get("min_z", 0.0))
+
+    width = float(domain.get("width") or (float(domain.get("max_x", x)) - x))
+    height = float(domain.get("height") or (float(domain.get("max_y", y)) - y))
+    depth = float(domain.get("depth") or (float(domain.get("max_z", z)) - z))
+
     sanitized = {
         "domain_definition": {
-            "x": float(domain.get("x", 0.0)),
-            "y": float(domain.get("y", 0.0)),
-            "z": float(domain.get("z", 0.0)),
-            "width": float(domain.get("width", 0.0)),
-            "height": float(domain.get("height", 0.0)),
-            "depth": float(domain.get("depth", 0.0)),
+            "x": x, "y": y, "z": z,
+            "width": width, "height": height, "depth": depth,
         }
     }
     return sanitized

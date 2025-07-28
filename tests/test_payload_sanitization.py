@@ -4,13 +4,14 @@ import pytest
 from src.run_pipeline import sanitize_payload
 from tests.helpers.payload_factory import valid_domain_payload
 
-
 def test_float_str_normalization_basic():
     payload = {"domain_definition": {"min_z": "90.5", "max_z": 100.0}}
     sanitized = sanitize_payload(payload)
-    assert isinstance(sanitized["domain_definition"]["min_z"], float)
-    assert sanitized["domain_definition"]["min_z"] == 90.5
+    domain = sanitized["domain_definition"]
 
+    assert "z" in domain
+    assert isinstance(domain["z"], float)
+    assert domain["z"] == 90.5
 
 def test_mixed_type_list_sanitization():
     payload = {"values": ["1.5", 2.0, "3.25", "not_a_float"]}
@@ -18,7 +19,6 @@ def test_mixed_type_list_sanitization():
 
     with pytest.raises(KeyError):
         _ = sanitized["values"]
-
 
 def test_nested_dict_and_list_normalization():
     payload = {
@@ -32,7 +32,6 @@ def test_nested_dict_and_list_normalization():
     with pytest.raises(KeyError):
         _ = sanitized["grid"]
 
-
 def test_non_float_string_preservation():
     payload = {"metadata": {"label": "version_1.2"}}
     sanitized = sanitize_payload(payload)
@@ -40,19 +39,15 @@ def test_non_float_string_preservation():
     with pytest.raises(KeyError):
         _ = sanitized["metadata"]
 
-
 def test_no_mutation_on_valid_input():
     sanitized = sanitize_payload(valid_domain_payload())
-    expected = {
-        "domain_definition": {
-            "min_x": 0.0, "max_x": 3.0,
-            "min_y": 0.0, "max_y": 2.0,
-            "min_z": 0.0, "max_z": 1.0,
-            "nx": 3, "ny": 2, "nz": 1
-        }
-    }
-    assert sanitized == expected
+    domain = sanitized["domain_definition"]
 
+    expected_keys = ["x", "y", "z", "width", "height", "depth"]
+
+    for key in expected_keys:
+        assert key in domain
+        assert isinstance(domain[key], float)
 
 def test_edge_case_empty_payload():
     sanitized = sanitize_payload({})

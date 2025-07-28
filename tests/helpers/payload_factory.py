@@ -1,6 +1,15 @@
 # tests/helpers/payload_factory.py
 
+"""
+Payload factory fixtures for domain sanitizer tests.
+
+These are raw input payloads meant to test pre-sanitization behavior.
+They intentionally include legacy keys (e.g. min_x, nx) and malformed values
+to validate sanitizer robustness and fallback logic.
+"""
+
 def valid_domain_payload():
+    """Structured geometry definition using legacy keys, before sanitization."""
     return {
         "domain_definition": {
             "min_x": 0.0, "max_x": 3.0,
@@ -10,14 +19,14 @@ def valid_domain_payload():
         }
     }
 
-
 def empty_domain_payload():
+    """Edge case: empty domain section — sanitizer should inject defaults."""
     return {
         "domain_definition": {}
     }
 
-
 def non_numeric_domain_payload():
+    """Invalid values simulating corrupted or misconfigured input."""
     return {
         "domain_definition": {
             "min_x": "left", "max_x": "right",
@@ -26,8 +35,8 @@ def non_numeric_domain_payload():
         }
     }
 
-
 def mixed_schema_payload():
+    """Combines stringified floats, incorrect types, and extra metadata."""
     return {
         "domain_definition": {
             "min_x": "0.0", "max_x": 3.0,
