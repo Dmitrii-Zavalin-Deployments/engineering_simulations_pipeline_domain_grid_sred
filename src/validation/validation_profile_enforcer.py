@@ -26,10 +26,13 @@ def _get_nested_value(payload: dict, key_path: str):
     return value
 
 
-def _evaluate_expression(expr: str, payload: dict) -> bool:
+def _evaluate_expression(expr: str, payload: dict, strict_type_check=False) -> bool:
     """
     Evaluate simple relational expression using payload values.
     Supported operators: ==, !=, >, <, >=, <=
+    If types mismatch and coercion fails:
+      - return False silently (default)
+      - raise ValueError if strict_type_check=True
     """
     ops = {
         "==": operator.eq,
@@ -51,12 +54,16 @@ def _evaluate_expression(expr: str, payload: dict) -> bool:
             except Exception:
                 right_val = _get_nested_value(payload, right.strip())
 
-            # ✅ Type harmonization safeguard added
+            # ✅ Type harmonization safeguard with fallback behavior
             if type(left_val) != type(right_val):
                 try:
                     right_val = type(left_val)(right_val)
-                except Exception:
-                    pass  # keep original if coercion fails
+                except Exception as err:
+                    if strict_type_check:
+                        raise ValueError(
+                            f"Failed coercion for comparison '{symbol}': {type(left_val)} vs {type(right_val)}"
+                        ) from err
+                    return False  # fail quietly by default
 
             try:
                 return ops[symbol](left_val, right_val)

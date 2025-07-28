@@ -20,7 +20,7 @@ def test_get_nested_value_missing_key():
 @pytest.mark.parametrize("expr, payload, expected", [
     ("values.x == 5", {"values": {"x": 5}}, True),
     ("data.flag != false", {"data": {"flag": True}}, True),
-    ("limits.upper > limits.lower", {"limits": {"upper": 10, "lower": 5}}, True),
+    ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": 5.0}}, True),  # 🔧 Harmonized as floats
     ("metrics.score < 0.5", {"metrics": {"score": 0.3}}, True),
     ("config.enabled == true", {"config": {"enabled": "true"}}, False),
 ])

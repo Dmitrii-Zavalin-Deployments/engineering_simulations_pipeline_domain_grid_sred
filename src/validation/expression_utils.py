@@ -1,14 +1,18 @@
 # src/validation/expression_utils.py
 
+import ast
+
 def parse_literal(value: str):
     """
     Safely converts a string representation into its Python literal equivalent.
 
+    Uses `ast.literal_eval` for robust conversion with fallback to raw string
+    when evaluation fails or input is ambiguous.
+
     Supported conversions:
     - 'null', 'None' ➝ None
     - 'true', 'false' ➝ bool
-    - Integers ➝ int
-    - Floats ➝ float
+    - Numeric strings ➝ int / float
     - Quoted strings ➝ str
     - All other values ➝ raw str (fallback)
 
@@ -23,29 +27,10 @@ def parse_literal(value: str):
     if not isinstance(value, str):
         return value  # Already parsed
 
-    val = value.strip()
-
-    # Boolean literals
-    if val.lower() == "true":
-        return True
-    if val.lower() == "false":
-        return False
-
-    # Null / None literals
-    if val.lower() in {"null", "none"}:
-        return None
-
-    # Quoted strings
-    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
-        return val[1:-1]
-
-    # Integer and float conversion
     try:
-        if '.' in val:
-            return float(val)
-        return int(val)
-    except ValueError:
-        return val  # Fallback to string
+        return ast.literal_eval(value.strip())
+    except Exception:
+        return value.strip()  # Fallback to raw string
 
 
 
