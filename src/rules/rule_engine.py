@@ -1,4 +1,4 @@
-# src/rules/rule_engine.py
+# 📄 src/rules/rule_engine.py
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
@@ -49,14 +49,28 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     try:
         compare_fn = resolve_operator(operator_str)
     except OperatorError as err:
-        raise ValueError(str(err))  # Short-circuit evaluation if operator is invalid
+        raise ValueError(str(err))
 
     lhs_value = _get_nested_value(payload, lhs_path)
     rhs_value = parse_literal(rhs_literal)
 
-    if strict_type_check:
+    # 🛡️ Enhanced fallback mode if both enforcement flags are False
+    if not strict_type_check and not relaxed_type_check:
+        if isinstance(rhs_value, (int, float, bool)):
+            try:
+                if isinstance(rhs_value, int):
+                    lhs_value = int(lhs_value)
+                elif isinstance(rhs_value, float):
+                    lhs_value = float(lhs_value)
+                elif isinstance(rhs_value, bool):
+                    lhs_value = str(lhs_value).lower() == "true"
+            except Exception:
+                pass  # silently skip coercion if unsafe
+
+    elif strict_type_check:
         if type(lhs_value) != type(rhs_value):
             raise ValueError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
+
     elif relaxed_type_check:
         try:
             if isinstance(rhs_value, int):
