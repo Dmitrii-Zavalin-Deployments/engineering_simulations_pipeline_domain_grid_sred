@@ -1,4 +1,4 @@
-# src/run_pipeline.py
+# 📄 src/run_pipeline.py
 
 # ----------------------------------------------------------------------
 # Lightweight entrypoint for STEP-driven domain generation pipeline
@@ -15,7 +15,7 @@ from logger_utils import log_checkpoint, log_error, log_success
 from src.utils.coercion import safe_float
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
-from validation.validation_profile_enforcer import ValidationProfileError
+from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile  # ✅ Added missing method
 
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
@@ -110,9 +110,7 @@ def main(resolution=DEFAULT_RESOLUTION):
 
     try:
         log_checkpoint("🔎 Enforcing validation rules on payload...")
-        for rule in rule_list:
-            if evaluate_rule(rule, payload):
-                raise ValidationProfileError(rule["raise"])
+        enforce_profile(rule_list, payload)  # ✅ Replaced loop with centralized enforcement method
         log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)

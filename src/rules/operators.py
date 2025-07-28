@@ -34,6 +34,34 @@ OPS = {
     "matches": op_matches,
 }
 
+def normalize_operator(op: str) -> str:
+    """
+    Normalize malformed or common alternative operators to supported ones.
+
+    Examples:
+        '++' → '+'
+        '===' → '=='
+        '%%' → '%'
+
+    Parameters:
+        op (str): Operator string possibly needing normalization
+
+    Returns:
+        str: Normalized operator string
+    """
+    alt_map = {
+        "===": "==",
+        "!==": "!=",
+        ">>": ">",
+        "<<": "<",
+        ">==": ">=",
+        "<==": "<=",
+        "++": "+",  # Not supported, will still fail
+        "--": "-",  # Not supported, will still fail
+        "%%": "%",  # Not supported
+    }
+    return alt_map.get(op, op.strip())
+
 def resolve_operator(op: str):
     """
     Retrieve the comparison function associated with a given operator.
@@ -47,9 +75,10 @@ def resolve_operator(op: str):
     Raises:
         OperatorError: If operator is not supported
     """
-    if op not in OPS:
-        raise OperatorError(f"Unsupported comparison operator: '{op}'")
-    return OPS[op]
+    normalized = normalize_operator(op)
+    if normalized not in OPS:
+        raise OperatorError(f"Unsupported comparison operator: '{op}' → normalized as '{normalized}'")
+    return OPS[normalized]
 
 
 

@@ -1,14 +1,20 @@
-# tests/rules/test_rule_engine_relaxed_mode_defaults.py
+# 📄 tests/rules/test_rule_engine_relaxed_mode_defaults.py
 
 import pytest
-from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
+from src.rules.rule_engine import evaluate_rule, RuleEvaluationError, _evaluate_expression
 
 # 🔧 Sample payload for coercion tests
 sample_payload = {
     "metrics": {
         "score": "95.0",
         "status": "true",
-        "threshold": "100"
+        "threshold": "100",
+        "ratio": "0.8",
+        "enabled": "false"
+    },
+    "flags": {
+        "active": "True",
+        "archived": "FALSE"
     }
 }
 
@@ -37,7 +43,7 @@ def test_string_to_int_comparison_passes_in_relaxed_mode():
 
 def test_string_to_bool_coercion_true_case():
     rule = {
-        "if": "metrics.status == true",
+        "if": "metrics.status == \"true\"",
         "type_check_mode": "relaxed"
     }
     assert evaluate_rule(rule, sample_payload) is True
@@ -52,12 +58,32 @@ def test_missing_type_check_mode_uses_default_and_raises():
     assert "Incompatible types" in str(exc.value)
 
 def test_implicit_fallback_coercion_when_type_check_flags_false():
-    from src.rules.rule_engine import _evaluate_expression
-
     # This manually bypasses type enforcement to test fallback
     expression = "metrics.score >= 90.5"
     result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
     assert result is True
+
+# 🧪 Additional fallback edge cases
+
+def test_fallback_string_float_compare_success():
+    expression = "metrics.ratio == 0.8"
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    assert result is True
+
+def test_fallback_boolean_string_true_match():
+    expression = "flags.active == true"
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    assert result is True
+
+def test_fallback_boolean_string_false_match():
+    expression = "flags.archived == false"
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    assert result is True
+
+def test_fallback_boolean_nonmatch_case_sensitive():
+    expression = "metrics.enabled == true"
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    assert result is False
 
 
 

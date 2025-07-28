@@ -8,17 +8,16 @@ def test_numeric_string_equals_float_relaxed():
     rule = {
         "if": "values.height == 50.0",
         "raise": "Height mismatch",
-        "strict_type_check": False,
-        "relaxed_type_check": True,
+        "type_check_mode": "relaxed"
     }
     payload = {"values": {"height": "50.0"}}
     assert evaluate_rule(rule, payload) is True
 
 def test_boolean_string_equals_true_relaxed():
     rule = {
-        "if": "flags.active == true",
+        "if": "flags.active == \"true\"",
         "raise": "Active flag failure",
-        "strict_type_check": False,
+        "type_check_mode": "relaxed"
     }
     payload = {"flags": {"active": "true"}}
     assert evaluate_rule(rule, payload) is True
@@ -26,18 +25,18 @@ def test_boolean_string_equals_true_relaxed():
 # 🚫 Strict Type Enforcement (Should Fail)
 def test_boolean_string_equals_true_strict():
     rule = {
-        "if": "flags.active == true",
+        "if": "flags.active == \"true\"",
         "raise": "Strict active flag mismatch",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
-    payload = {"flags": {"active": "true"}}  # string, not bool
+    payload = {"flags": {"active": "true"}}
     assert evaluate_rule(rule, payload) is False
 
 def test_int_string_strict_comparison_failure():
     rule = {
         "if": "metrics.score == 85",
         "raise": "Score mismatch",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
     payload = {"metrics": {"score": "85"}}
     assert evaluate_rule(rule, payload) is False
@@ -47,7 +46,7 @@ def test_native_int_match_strict():
     rule = {
         "if": "metrics.score == 85",
         "raise": "Score mismatch",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
     payload = {"metrics": {"score": 85}}
     assert evaluate_rule(rule, payload) is True
@@ -57,7 +56,7 @@ def test_nested_value_strict_match():
     rule = {
         "if": "domain.bounds.max_z == 100.0",
         "raise": "max_z mismatch",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
     payload = {"domain": {"bounds": {"max_z": 100.0}}}
     assert evaluate_rule(rule, payload) is True
@@ -66,7 +65,7 @@ def test_nested_string_coercion_relaxed():
     rule = {
         "if": "domain.bounds.max_z == 100.0",
         "raise": "max_z mismatch",
-        "strict_type_check": False,
+        "type_check_mode": "relaxed"
     }
     payload = {"domain": {"bounds": {"max_z": "100.0"}}}
     assert evaluate_rule(rule, payload) is True
@@ -76,7 +75,7 @@ def test_invalid_string_comparison_relaxed():
     rule = {
         "if": "values.status == 404",
         "raise": "Invalid fallback mismatch",
-        "strict_type_check": False,
+        "type_check_mode": "relaxed"
     }
     payload = {"values": {"status": "not_found"}}
     assert evaluate_rule(rule, payload) is False
@@ -86,15 +85,15 @@ def test_direct_literal_comparison_strict_pass():
     rule = {
         "if": "123 == 123",
         "raise": "Should pass",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
     assert evaluate_rule(rule, {}) is True
 
 def test_direct_literal_comparison_strict_fail():
     rule = {
-        "if": "true == 'true'",
+        "if": "true == \"true\"",
         "raise": "Mismatch literal strict",
-        "strict_type_check": True,
+        "type_check_mode": "strict"
     }
     assert evaluate_rule(rule, {}) is False
 

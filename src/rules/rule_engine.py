@@ -46,6 +46,10 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
 
     lhs_path, operator_str, rhs_literal = parts
 
+    # Defensive literal misuse detection
+    if lhs_path.strip().lower() in ["true", "false"] or lhs_path.isdigit():
+        raise ValueError(f"Malformed expression: '{lhs_path}' cannot be used as a key path")
+
     try:
         compare_fn = resolve_operator(operator_str)
     except OperatorError as err:
@@ -54,18 +58,18 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     lhs_value = _get_nested_value(payload, lhs_path)
     rhs_value = parse_literal(rhs_literal)
 
-    # 🛡️ Enhanced fallback mode if both enforcement flags are False
+    # 🛡️ Enhanced fallback coercion
     if not strict_type_check and not relaxed_type_check:
-        if isinstance(rhs_value, (int, float, bool)):
-            try:
-                if isinstance(rhs_value, int):
-                    lhs_value = int(lhs_value)
-                elif isinstance(rhs_value, float):
-                    lhs_value = float(lhs_value)
-                elif isinstance(rhs_value, bool):
+        try:
+            if isinstance(rhs_value, int):
+                lhs_value = int(lhs_value)
+            elif isinstance(rhs_value, float):
+                lhs_value = float(lhs_value)
+            elif isinstance(rhs_value, bool):
+                if str(lhs_value).lower() in ["true", "false"]:
                     lhs_value = str(lhs_value).lower() == "true"
-            except Exception:
-                pass  # silently skip coercion if unsafe
+        except Exception:
+            pass  # Silently ignore unsafe fallback attempts
 
     elif strict_type_check:
         if type(lhs_value) != type(rhs_value):
@@ -80,6 +84,8 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
             elif isinstance(rhs_value, bool):
                 if str(lhs_value).lower() in ["true", "false"]:
                     lhs_value = str(lhs_value).lower() == "true"
+                else:
+                    raise ValueError(f"Cannot coerce non-boolean string: {lhs_value}")
         except Exception as e:
             raise ValueError(f"Coercion failed: {e}")
 
