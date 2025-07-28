@@ -1,7 +1,7 @@
-# tests/validation/test_validation_profile_expressions.py
+# 📄 tests/validation/test_validation_profile_expressions.py
 
 import pytest
-from src.validation.validation_profile_enforcer import (
+from src.rules.rule_engine import (
     _get_nested_value,
     _evaluate_expression
 )
@@ -79,7 +79,6 @@ def test_literal_comparison_strict_type_disabled():
     assert _evaluate_expression("count == 123", payload, strict_type_check=False)
 
 def test_non_expression_literal_equality():
-    # Simulate fallback evaluation of literals directly
     assert _evaluate_expression("123 == 123", {}) is True
     assert _evaluate_expression("'hello' == \"hello\"", {}) is True
 
