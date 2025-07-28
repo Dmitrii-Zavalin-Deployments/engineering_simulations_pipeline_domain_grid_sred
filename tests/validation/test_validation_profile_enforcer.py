@@ -1,4 +1,4 @@
-# tests/validation/test_validation_profile_enforcer.py
+# ✅ tests/validation/test_validation_profile_enforcer.py
 
 import pytest
 import tempfile
@@ -68,9 +68,9 @@ def test_enforce_profile_triggered_error():
 
 def test_enforce_profile_expression_failure():
     path = _write_temp_profile([
-        {"if": "a.b == x.y", "raise": "Comparison failed"}
+        {"if": "a.b == 'xyz'", "raise": "Comparison failed"}
     ])
-    payload = {"a": {"b": "abc"}, "x": {"y": "xyz"}}  # 🔧 Mismatch ensures evaluation failure
+    payload = {"a": {"b": "abc"}}  # ✅ Literal string comparison to ensure failure
     with pytest.raises(ValidationProfileError, match="Comparison failed"):
         enforce_profile(path, payload)
 

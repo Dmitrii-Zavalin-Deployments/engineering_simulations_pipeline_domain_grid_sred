@@ -6,13 +6,16 @@ def parse_literal(value: str):
     """
     Safely converts a string representation into its Python literal equivalent.
 
-    Uses `ast.literal_eval` for robust conversion with fallback to raw string
-    when evaluation fails or input is ambiguous.
+    Uses layered logic:
+      - Handles canonical JSON-style literals explicitly
+      - Attempts safe literal evaluation with ast.literal_eval
+      - Falls back to raw string if evaluation fails
 
     Supported conversions:
     - 'null', 'None' ➝ None
     - 'true', 'false' ➝ bool
-    - Numeric strings ➝ int / float
+    - Padded integers ➝ int
+    - Floats ➝ float
     - Quoted strings ➝ str
     - All other values ➝ raw str (fallback)
 
@@ -23,14 +26,31 @@ def parse_literal(value: str):
         parse_literal('"world"') ➝ "world"
         parse_literal("true") ➝ True
         parse_literal("null") ➝ None
+        parse_literal("00123") ➝ 123
     """
     if not isinstance(value, str):
         return value  # Already parsed
 
+    val = value.strip()
+    val_lower = val.lower()
+
+    # ✅ Explicit JSON-style literal handling
+    if val_lower == "true":
+        return True
+    if val_lower == "false":
+        return False
+    if val_lower in {"null", "none"}:
+        return None
+
+    # ✅ Leading-zero-safe integer fallback
+    if val.isdigit():
+        return int(val)
+
+    # ✅ Attempt literal evaluation (floats, quoted strings, etc.)
     try:
-        return ast.literal_eval(value.strip())
+        return ast.literal_eval(val)
     except Exception:
-        return value.strip()  # Fallback to raw string
+        return val  # Fallback to raw string
 
 
 

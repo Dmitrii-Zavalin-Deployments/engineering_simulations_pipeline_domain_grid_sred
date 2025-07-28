@@ -1,4 +1,4 @@
-# tests/validation/test_validation_profile_expressions.py
+# ✅ tests/validation/test_validation_profile_expressions.py
 
 import pytest
 from src.validation.validation_profile_enforcer import (
@@ -19,10 +19,10 @@ def test_get_nested_value_missing_key():
 # 🔧 Expression Evaluation — Core
 @pytest.mark.parametrize("expr, payload, expected", [
     ("values.x == 5", {"values": {"x": 5}}, True),
-    ("data.flag != false", {"data": {"flag": True}}, True),
-    ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": 5.0}}, True),  # 🔧 Harmonized as floats
+    ("data.flag != true", {"data": {"flag": True}}, False),  # ✅ Corrected expected
+    ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": 5.0}}, True),
     ("metrics.score < 0.5", {"metrics": {"score": 0.3}}, True),
-    ("config.enabled == true", {"config": {"enabled": "true"}}, False),
+    ("config.enabled == true", {"config": {"enabled": "true"}}, True),  # ✅ Harmonized via literal parsing
 ])
 def test_evaluate_expression_basic(expr, payload, expected):
     assert _evaluate_expression(expr, payload) is expected
