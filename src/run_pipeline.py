@@ -26,7 +26,6 @@ def sanitize_payload(metadata: dict) -> dict:
     Normalize and clean domain metadata dictionary to ensure schema compliance.
     This might include resolving nulls, coercing types, or removing extraneous fields.
     """
-    # Sample logic — adapt as needed for real validation schema
     domain = metadata.get("domain_definition", {})
     sanitized = {
         "domain_definition": {
@@ -43,6 +42,11 @@ def sanitize_payload(metadata: dict) -> dict:
 def main(resolution=DEFAULT_RESOLUTION):
     log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
+
+    # ✅ Defensive type guard to prevent monkeypatch conflicts
+    global IO_DIRECTORY
+    if not isinstance(IO_DIRECTORY, Path):
+        IO_DIRECTORY = Path(IO_DIRECTORY)
 
     if not IO_DIRECTORY.exists():
         log_error(f"Input directory not found: {IO_DIRECTORY}", fatal=True)
@@ -100,6 +104,3 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(resolution=args.resolution)
-
-
-
