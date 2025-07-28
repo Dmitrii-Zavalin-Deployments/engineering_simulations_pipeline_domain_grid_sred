@@ -68,9 +68,30 @@ jobs:
             echo "❌ No STEP file found. Cannot proceed."
             exit 1
           elif [ "$COUNT" -gt 1 ]; then
-            echo "❌ Multiple STEP files found. Expecting exactly one."
-            echo "$STEP_FILES"
-            exit 1
+            echo "⚠️ Multiple STEP files found. Checking for input.step to clean up..."
+
+            # Delete all input.step files
+            echo "$STEP_FILES" | grep "input.step" | while read INPUT_FILE; do
+              echo "🧹 Deleting redundant STEP file: $INPUT_FILE"
+              rm -f "$INPUT_FILE"
+            done
+
+            # Re-check the STEP file count after cleanup
+            STEP_FILES=$(find data/testing-input-output -maxdepth 1 -type f -name "*.step")
+            COUNT=$(echo "$STEP_FILES" | wc -l)
+
+            if [ "$COUNT" -eq 1 ]; then
+              STEP_FILE=$(echo "$STEP_FILES")
+              mv "$STEP_FILE" data/testing-input-output/input.step
+              echo "✅ Normalized STEP file: $STEP_FILE → input.step"
+            elif [ "$COUNT" -eq 0 ]; then
+              echo "❌ No STEP file found after cleanup."
+              exit 1
+            else
+              echo "❌ Still multiple STEP files found after input.step cleanup:"
+              echo "$STEP_FILES"
+              exit 1
+            fi
           else
             STEP_FILE=$(echo "$STEP_FILES")
             if [ "$STEP_FILE" != "data/testing-input-output/input.step" ]; then
