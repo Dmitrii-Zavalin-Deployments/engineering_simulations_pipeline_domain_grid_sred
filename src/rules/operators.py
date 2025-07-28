@@ -3,7 +3,7 @@
 import re
 
 class OperatorError(Exception):
-    """Raised when an unsupported operator is invoked."""
+    """Raised when an unsupported or malformed operator is invoked."""
     pass
 
 def op_eq(a, b): return a == b
@@ -21,7 +21,7 @@ def op_matches(a, b):
         raise TypeError("Regex pattern must be a string")
     return re.fullmatch(b, str(a)) is not None
 
-# 🔗 Operator registry
+# 🔗 Supported operator registry
 OPS = {
     "==": op_eq,
     "!=": op_ne,
@@ -36,12 +36,11 @@ OPS = {
 
 def normalize_operator(op: str) -> str:
     """
-    Normalize malformed or common alternative operators to supported ones.
+    Normalize malformed or legacy-style operators to supported ones.
 
     Examples:
-        '++' → '+'
         '===' → '=='
-        '%%' → '%'
+        '!==', '>>', '%%' → normalized alternatives
 
     Parameters:
         op (str): Operator string possibly needing normalization
@@ -56,28 +55,32 @@ def normalize_operator(op: str) -> str:
         "<<": "<",
         ">==": ">=",
         "<==": "<=",
-        "++": "+",  # Not supported, will still fail
-        "--": "-",  # Not supported, will still fail
-        "%%": "%",  # Not supported
+        "++": "+",
+        "--": "-",
+        "%%": "%",
     }
-    return alt_map.get(op, op.strip())
+    return alt_map.get(op.strip(), op.strip())
 
 def resolve_operator(op: str):
     """
-    Retrieve the comparison function associated with a given operator.
+    Retrieve the comparison function for a given operator.
 
     Parameters:
-        op (str): Symbolic or semantic operator string
+        op (str): Raw or normalized operator
 
     Returns:
-        function: Callable that accepts two arguments and returns a bool
+        function: Callable comparison function
 
     Raises:
-        OperatorError: If operator is not supported
+        OperatorError: If operator is malformed or unsupported
     """
-    normalized = normalize_operator(op)
+    original = op.strip()
+    normalized = normalize_operator(original)
+
     if normalized not in OPS:
-        raise OperatorError(f"Unsupported comparison operator: '{op}' → normalized as '{normalized}'")
+        raise OperatorError(
+            f"Unsupported comparison operator: '{original}' → normalized as '{normalized}'"
+        )
     return OPS[normalized]
 
 

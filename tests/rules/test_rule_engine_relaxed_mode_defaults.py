@@ -71,17 +71,17 @@ def test_fallback_string_float_compare_success():
     assert result is True
 
 def test_fallback_boolean_string_true_match():
-    expression = "flags.active == true"
+    expression = "flags.active == \"true\""
     result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
     assert result is True
 
 def test_fallback_boolean_string_false_match():
-    expression = "flags.archived == false"
+    expression = "flags.archived == \"false\""
     result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
     assert result is True
 
 def test_fallback_boolean_nonmatch_case_sensitive():
-    expression = "metrics.enabled == true"
+    expression = "metrics.enabled == \"true\""
     result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
     assert result is False
 

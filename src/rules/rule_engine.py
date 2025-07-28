@@ -40,31 +40,33 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     Raises:
         ValueError, KeyError, OperatorError
     """
-    parts = expression.strip().split(" ", 2)
+    parts = expression.strip().split(" ", 3)
     if len(parts) != 3:
         raise ValueError(f"Unsupported expression format: '{expression}'")
 
     lhs_path, operator_str, rhs_literal = parts
 
-    # Defensive literal misuse detection
-    if lhs_path.strip().lower() in ["true", "false"] or lhs_path.isdigit():
-        raise ValueError(f"Malformed expression: '{lhs_path}' cannot be used as a key path")
+    # 🔓 Relaxed literal guard: allow literal-only comparisons
+    if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
+        lhs_value = parse_literal(lhs_path)
+    else:
+        try:
+            lhs_value = _get_nested_value(payload, lhs_path)
+        except KeyError:
+            raise RuleEvaluationError(f"Missing key in expression: {lhs_path}")
 
     try:
         compare_fn = resolve_operator(operator_str)
     except OperatorError as err:
         raise ValueError(str(err))
 
-    lhs_value = _get_nested_value(payload, lhs_path)
     rhs_value = parse_literal(rhs_literal)
 
-    # 🛡️ Enhanced fallback coercion
+    # 🛡️ Fallback coercion logic
     if not strict_type_check and not relaxed_type_check:
         try:
-            if isinstance(rhs_value, int):
-                lhs_value = int(lhs_value)
-            elif isinstance(rhs_value, float):
-                lhs_value = float(lhs_value)
+            if isinstance(rhs_value, (int, float)):
+                lhs_value = type(rhs_value)(lhs_value)
             elif isinstance(rhs_value, bool):
                 if str(lhs_value).lower() in ["true", "false"]:
                     lhs_value = str(lhs_value).lower() == "true"
@@ -77,10 +79,8 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
 
     elif relaxed_type_check:
         try:
-            if isinstance(rhs_value, int):
-                lhs_value = int(lhs_value)
-            elif isinstance(rhs_value, float):
-                lhs_value = float(lhs_value)
+            if isinstance(rhs_value, (int, float)):
+                lhs_value = type(rhs_value)(lhs_value)
             elif isinstance(rhs_value, bool):
                 if str(lhs_value).lower() in ["true", "false"]:
                     lhs_value = str(lhs_value).lower() == "true"
@@ -124,10 +124,7 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
         return _evaluate_expression(expression, payload,
                                     strict_type_check=strict_type_check,
                                     relaxed_type_check=relaxed_type_check)
-    except KeyError as e:
-        logger.warning(f"Missing key path in rule expression: {e}")
-        raise RuleEvaluationError(f"Missing key in expression: {e}")
-    except (ValueError, OperatorError) as e:
+    except (ValueError, OperatorError, RuleEvaluationError) as e:
         logger.warning(f"Rule evaluation failed: {e}")
         raise RuleEvaluationError(f"Expression evaluation error: {e}")
     except Exception as e:

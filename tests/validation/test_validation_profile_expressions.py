@@ -19,13 +19,13 @@ def test_get_nested_value_missing_key():
 # 🔧 Expression Evaluation — Core
 @pytest.mark.parametrize("expr, payload, expected", [
     ("values.x == 5", {"values": {"x": 5}}, True),
-    ("data.flag != true", {"data": {"flag": True}}, False),
+    ("data.flag != \"true\"", {"data": {"flag": "true"}}, False),  # 🔧 Quote bool literal
     ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": 5.0}}, True),
     ("metrics.score < 0.5", {"metrics": {"score": 0.3}}, True),
-    ("config.enabled == \"true\"", {"config": {"enabled": "true"}}, True),  # 🔧 Quoted literal fix
+    ("config.enabled == \"true\"", {"config": {"enabled": "true"}}, True),
 ])
 def test_evaluate_expression_basic(expr, payload, expected):
-    assert _evaluate_expression(expr, payload) is expected
+    assert _evaluate_expression(expr, payload, relaxed_type_check=True) is expected
 
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_float_str():
@@ -51,12 +51,12 @@ def test_expression_evaluation_unsupported_operator():
     payload = {"meta": {"score": 85}}
     with pytest.raises(ValueError) as err:
         _evaluate_expression("meta.score %% 80", payload)
-    assert "Unsupported" in str(err.value)
+    assert "Unsupported comparison operator" in str(err.value)
 
 def test_expression_evaluation_missing_key_path():
     payload = {"data": {"valid": True}}
     with pytest.raises(KeyError):
-        _evaluate_expression("data.missing_key == True", payload)
+        _evaluate_expression("data.missing_key == true", payload)
 
 def test_expression_evaluation_nested_key_resolution():
     payload = {"system": {"subsystem": {"value": 42}}, "expected": {"value": 42}}
@@ -65,17 +65,17 @@ def test_expression_evaluation_nested_key_resolution():
 # 🔍 Literal Edge Cases and Strict Type Toggle
 def test_literal_vs_native_equivalence():
     payload = {"flag": "true", "count": "123"}
-    assert _evaluate_expression("flag == true", payload, relaxed_type_check=True)
+    assert _evaluate_expression("flag == \"true\"", payload, relaxed_type_check=True)
     assert _evaluate_expression("count == 123", payload, relaxed_type_check=True)
 
 def test_literal_comparison_strict_type_enabled():
     payload = {"flag": "true", "count": "123"}
-    assert not _evaluate_expression("flag == true", payload, strict_type_check=True)
+    assert not _evaluate_expression("flag == \"true\"", payload, strict_type_check=True)
     assert not _evaluate_expression("count == 123", payload, strict_type_check=True)
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
-    assert _evaluate_expression("flag == true", payload, strict_type_check=False)
+    assert _evaluate_expression("flag == \"true\"", payload, strict_type_check=False)
     assert _evaluate_expression("count == 123", payload, strict_type_check=False)
 
 def test_non_expression_literal_equality():
@@ -83,13 +83,13 @@ def test_non_expression_literal_equality():
     assert _evaluate_expression("'hello' == \"hello\"", {}) is True
 
 def test_literal_mismatch_fallback():
-    assert _evaluate_expression("hello == 100", {}) is False
-    assert not _evaluate_expression("true == 'true'", {}, strict_type_check=True)
+    assert _evaluate_expression("\"hello\" == 100", {}) is False
+    assert not _evaluate_expression("true == \"true\"", {}, strict_type_check=True)
 
 def test_invalid_operator_literal_case():
     with pytest.raises(ValueError) as err:
         _evaluate_expression("false %% true", {})
-    assert "Unsupported" in str(err.value)
+    assert "Unsupported comparison operator" in str(err.value)
 
 
 

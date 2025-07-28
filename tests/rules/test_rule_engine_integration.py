@@ -81,7 +81,7 @@ def test_invalid_string_comparison_relaxed():
     assert evaluate_rule(rule, payload) is False
 
 # 🔍 Literal expression fallback (no payload needed)
-def test_direct_literal_comparison_strict_pass():
+def test_direct_numeric_literal_comparison_strict_pass():
     rule = {
         "if": "123 == 123",
         "raise": "Should pass",
@@ -89,7 +89,15 @@ def test_direct_literal_comparison_strict_pass():
     }
     assert evaluate_rule(rule, {}) is True
 
-def test_direct_literal_comparison_strict_fail():
+def test_direct_boolean_literal_match_strict():
+    rule = {
+        "if": "true == true",
+        "raise": "Boolean literal match (strict)",
+        "type_check_mode": "strict"
+    }
+    assert evaluate_rule(rule, {}) is True
+
+def test_direct_boolean_literal_mismatch_strict():
     rule = {
         "if": "true == \"true\"",
         "raise": "Mismatch literal strict",
