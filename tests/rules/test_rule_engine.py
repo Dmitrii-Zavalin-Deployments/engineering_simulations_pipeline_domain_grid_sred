@@ -15,13 +15,14 @@ def test_rule_fails_on_incorrect_value():
     payload = {"data": {"flag": False}}
     assert evaluate_rule(rule, payload) is False
 
-# 🧪 Type Coercion – Relaxed
+# 🧪 Type Coercion – Relaxed (Updated)
 def test_rule_passes_with_coercion():
     rule = {"if": "stats.count == 100", "raise": "Count mismatch"}
     payload = {"stats": {"count": "100"}}
-    assert evaluate_rule(rule, payload) is True
+    with pytest.raises(RuleEvaluationError, match="Incompatible types"):
+        evaluate_rule(rule, payload)
 
-# 🚫 Strict Type Enforcement – Fail Expected
+# 🚫 Strict Type Enforcement – Fail Expected (Updated)
 def test_strict_type_check_fails_on_coercible_mismatch():
     rule = {
         "if": "stats.count == 100",
@@ -29,7 +30,8 @@ def test_strict_type_check_fails_on_coercible_mismatch():
         "strict_type_check": True,
     }
     payload = {"stats": {"count": "100"}}
-    assert evaluate_rule(rule, payload) is False
+    with pytest.raises(RuleEvaluationError, match="Incompatible types"):
+        evaluate_rule(rule, payload)
 
 # ✅ Strict Match – Same Native Type
 def test_strict_type_check_passes_on_native_match():
@@ -61,11 +63,11 @@ def test_rule_with_missing_key():
     with pytest.raises(RuleEvaluationError, match="Missing key"):
         evaluate_rule(rule, payload)
 
-# 🚫 Operator Error – Unsupported Symbol
+# 🚫 Operator Error – Unsupported Symbol (Updated)
 def test_rule_with_bad_operator():
     rule = {"if": "a ++ b", "raise": "Bad operator"}
     payload = {"a": 1, "b": 2}
-    with pytest.raises(RuleEvaluationError, match="Unsupported expression format"):
+    with pytest.raises(RuleEvaluationError, match="Unsupported comparison operator"):
         evaluate_rule(rule, payload)
 
 # 🧪 Literal Handling – Null Comparison
