@@ -31,12 +31,20 @@ def conditional_exit(code=0):
     else:
         sys.exit(code)
 
+def default_domain():
+    return {
+        "x": 0.0, "y": 0.0, "z": 0.0,
+        "width": 0.0, "height": 0.0, "depth": 0.0
+    }
+
 def sanitize_payload(metadata: dict) -> dict:
     """
     Normalize and clean domain metadata dictionary to ensure schema compliance.
-    This might include resolving nulls, coercing types, or removing extraneous fields.
+    This includes injecting defaults, resolving nulls, coercing types, and removing extraneous fields.
     """
-    domain = metadata.get("domain_definition", {})
+    metadata.setdefault("domain_definition", default_domain())
+    domain = metadata["domain_definition"]
+
     sanitized = {
         "domain_definition": {
             "x": float(domain.get("x", 0.0)),
@@ -53,7 +61,6 @@ def main(resolution=DEFAULT_RESOLUTION):
     log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
 
-    # ✅ Defensive type guard to prevent monkeypatch conflicts
     global IO_DIRECTORY
     if not isinstance(IO_DIRECTORY, Path):
         IO_DIRECTORY = Path(IO_DIRECTORY)
@@ -73,7 +80,6 @@ def main(resolution=DEFAULT_RESOLUTION):
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
-    # 🧠 Geometry extraction via Gmsh runner
     try:
         log_checkpoint("📂 Calling Gmsh geometry parser...")
         domain_definition = extract_bounding_box_with_gmsh(str(step_path), resolution)
@@ -82,7 +88,6 @@ def main(resolution=DEFAULT_RESOLUTION):
         log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
         conditional_exit(1)
 
-    # 🔐 Cross-field bounds check
     try:
         validate_domain_bounds(domain_definition)
         log_success("Domain bounds validated successfully")
@@ -107,7 +112,6 @@ def main(resolution=DEFAULT_RESOLUTION):
         json.dump(sanitized_metadata, f, indent=2)
     log_success(f"Metadata written to {OUTPUT_PATH}")
 
-    # 🧼 Explicit exit for CI flow
     log_checkpoint("🏁 Pipeline completed successfully")
     conditional_exit(0)
 

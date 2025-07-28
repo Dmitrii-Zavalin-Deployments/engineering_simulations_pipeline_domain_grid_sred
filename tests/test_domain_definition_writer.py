@@ -78,8 +78,9 @@ def test_non_numeric_values_are_invalid():
         "min_y": 0.0, "max_y": "five",
         "min_z": None, "max_z": 3.0
     }
-    with pytest.raises(DomainValidationError):
+    with pytest.raises(DomainValidationError) as exc:
         validate_domain_bounds(domain)
+    assert "Non-numeric bounds" in str(exc.value)
 
 def test_extremely_large_float_bounds():
     domain = {

@@ -32,6 +32,11 @@ def validate_domain_bounds(domain: Dict) -> None:
         max_val = domain.get(f"max_{axis}")
         if min_val is None or max_val is None:
             raise DomainValidationError(f"Missing domain bounds for axis '{axis}'")
+        try:
+            min_val = float(min_val)
+            max_val = float(max_val)
+        except (TypeError, ValueError):
+            raise DomainValidationError(f"Non-numeric bounds for axis '{axis}'")
         if max_val < min_val:
             raise DomainValidationError(
                 f"Invalid domain: max_{axis} ({max_val}) < min_{axis} ({min_val})"
@@ -43,7 +48,7 @@ if __name__ == "__main__":
     sample_domain = {
         "min_x": 0.0, "max_x": 10.0,
         "min_y": 0.0, "max_y": 5.0,
-        "min_z": 2.0, "max_z": 1.0  # <-- Invalid: triggers guard
+        "min_z": "2.0", "max_z": 1.0  # <-- Valid string cast, but will still fail logically
     }
 
     try:

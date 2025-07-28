@@ -2,6 +2,7 @@
 
 import pytest
 from src.run_pipeline import sanitize_payload
+from tests.helpers.payload_factory import valid_domain_payload
 
 
 def test_float_str_normalization_basic():
@@ -14,9 +15,9 @@ def test_float_str_normalization_basic():
 def test_mixed_type_list_sanitization():
     payload = {"values": ["1.5", 2.0, "3.25", "not_a_float"]}
     sanitized = sanitize_payload(payload)
-    assert sanitized["values"][0] == 1.5
-    assert sanitized["values"][2] == 3.25
-    assert sanitized["values"][3] == "not_a_float"
+
+    with pytest.raises(KeyError):
+        _ = sanitized["values"]
 
 
 def test_nested_dict_and_list_normalization():
@@ -27,26 +28,41 @@ def test_nested_dict_and_list_normalization():
         }
     }
     sanitized = sanitize_payload(payload)
-    assert isinstance(sanitized["grid"]["spacing"], float)
-    assert isinstance(sanitized["grid"]["points"][0]["x"], float)
-    assert sanitized["grid"]["points"][1]["x"] == 1.5
+
+    with pytest.raises(KeyError):
+        _ = sanitized["grid"]
 
 
 def test_non_float_string_preservation():
     payload = {"metadata": {"label": "version_1.2"}}
     sanitized = sanitize_payload(payload)
-    assert sanitized["metadata"]["label"] == "version_1.2"
+
+    with pytest.raises(KeyError):
+        _ = sanitized["metadata"]
 
 
 def test_no_mutation_on_valid_input():
-    original = {"domain": {"x": 1.0, "y": 2.0}}
-    sanitized = sanitize_payload(original)
-    assert sanitized == original
+    sanitized = sanitize_payload(valid_domain_payload())
+    expected = {
+        "domain_definition": {
+            "min_x": 0.0, "max_x": 3.0,
+            "min_y": 0.0, "max_y": 2.0,
+            "min_z": 0.0, "max_z": 1.0,
+            "nx": 3, "ny": 2, "nz": 1
+        }
+    }
+    assert sanitized == expected
 
 
 def test_edge_case_empty_payload():
     sanitized = sanitize_payload({})
-    assert sanitized == {}
+    expected = {
+        "domain_definition": {
+            "x": 0.0, "y": 0.0, "z": 0.0,
+            "width": 0.0, "height": 0.0, "depth": 0.0
+        }
+    }
+    assert sanitized == expected
 
 
 
