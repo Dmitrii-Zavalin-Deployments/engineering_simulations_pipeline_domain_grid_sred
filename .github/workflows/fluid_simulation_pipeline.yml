@@ -1,4 +1,4 @@
-name: Fluid Simulation Data Pipeline
+name: STEP Spatial Metadata Processor
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  process_fluid_data:
+  process_step_for_coordinates:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ./src:./pipeline
