@@ -1,4 +1,4 @@
-# 📄 src/rules/rule_engine.py
+# src/rules/rule_engine.py
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
@@ -46,6 +46,11 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
 
     lhs_path, operator_str, rhs_literal = parts
 
+    try:
+        compare_fn = resolve_operator(operator_str)
+    except OperatorError as err:
+        raise ValueError(str(err))  # Short-circuit evaluation if operator is invalid
+
     lhs_value = _get_nested_value(payload, lhs_path)
     rhs_value = parse_literal(rhs_literal)
 
@@ -64,11 +69,7 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
         except Exception as e:
             raise ValueError(f"Coercion failed: {e}")
 
-    try:
-        compare_fn = resolve_operator(operator_str)
-        return compare_fn(lhs_value, rhs_value)
-    except OperatorError as err:
-        raise ValueError(str(err))
+    return compare_fn(lhs_value, rhs_value)
 
 def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
     """
