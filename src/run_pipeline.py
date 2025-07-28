@@ -50,12 +50,15 @@ def main(resolution=DEFAULT_RESOLUTION):
 
     if not IO_DIRECTORY.exists():
         log_error(f"Input directory not found: {IO_DIRECTORY}", fatal=True)
+        sys.exit(1)  # ✅ Enforce early exit for stability
 
     step_files = list(IO_DIRECTORY.glob("*.step"))
     if len(step_files) == 0:
         log_error("No STEP files found", fatal=True)
+        sys.exit(1)  # ✅ Enforce early exit
     elif len(step_files) > 1:
         log_error("Multiple STEP files detected — provide exactly one", fatal=True)
+        sys.exit(1)  # ✅ Enforce early exit
 
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
@@ -67,6 +70,7 @@ def main(resolution=DEFAULT_RESOLUTION):
         log_checkpoint(f"📐 Domain extracted: {domain_definition}")
     except Exception as e:
         log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
+        sys.exit(1)  # ✅ Fail safely on error
 
     # 🔐 Cross-field bounds check
     try:
@@ -74,6 +78,7 @@ def main(resolution=DEFAULT_RESOLUTION):
         log_success("Domain bounds validated successfully")
     except DomainValidationError as err:
         log_error(f"Domain bounds validation failed:\n{err}", fatal=True)
+        sys.exit(1)  # ✅ Defensive exit
 
     metadata = {"domain_definition": domain_definition}
 
@@ -83,6 +88,7 @@ def main(resolution=DEFAULT_RESOLUTION):
         log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)
+        sys.exit(1)
 
     sanitized_metadata = sanitize_payload(metadata)
 
@@ -104,3 +110,5 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(resolution=args.resolution)
+
+
