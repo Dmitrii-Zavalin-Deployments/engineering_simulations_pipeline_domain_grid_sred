@@ -1,5 +1,8 @@
+# tests/helpers/test_assertions.py
+
 import pytest
 from tests.helpers.assertions import assert_error_contains
+from tests.helpers.constants import EXPECTED_ERROR_PREFIX
 
 class CustomError(Exception):
     pass
@@ -27,7 +30,7 @@ def test_error_missing_phrase_triggers_failure():
         # This phrase does not exist in the exception string
         assert_error_contains(raised, "Some unrelated error")
 
-    assert "Expected phrase" in str(exc.value)
+    assert EXPECTED_ERROR_PREFIX in str(exc.value)
 
 
 
