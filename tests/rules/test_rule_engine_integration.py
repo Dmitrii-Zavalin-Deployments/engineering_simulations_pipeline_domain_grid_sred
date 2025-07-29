@@ -25,7 +25,7 @@ def test_boolean_string_equals_true_relaxed():
 # 🚫 Strict Type Enforcement (Should Fail)
 def test_boolean_string_equals_true_strict():
     rule = {
-        "if": "flags.active == \"true\"",
+        "if": "flags.active == true",
         "raise": "Strict active flag mismatch",
         "type_check_mode": "strict"
     }
