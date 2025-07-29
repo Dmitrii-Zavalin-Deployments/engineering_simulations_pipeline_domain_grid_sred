@@ -1,4 +1,4 @@
-# 📄 src/rules/rule_engine.py
+# src/rules/rule_engine.py
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
@@ -14,13 +14,6 @@ class RuleEvaluationError(Exception):
 def get_nested_value(payload: dict, path: str):
     """
     Safely resolves a dotted key path into a nested value from the payload dictionary.
-
-    Example:
-        payload = {"a": {"b": {"c": 5}}}
-        path = "a.b.c" → returns 5
-
-    Raises:
-        RuleEvaluationError: If path is missing or value is None
     """
     keys = path.split(".")
     value = payload
@@ -34,17 +27,34 @@ def get_nested_value(payload: dict, path: str):
             raise RuleEvaluationError(f"Null value encountered at '{k}' in path '{path}'")
     return value
 
+def _coerce_types_for_comparison(left, right):
+    """
+    Attempts to coerce left/right values to compatible types for comparison in relaxed mode.
+    """
+    try:
+        if isinstance(left, bool) or isinstance(right, bool):
+            return bool(left), bool(right)
+        if isinstance(left, (int, float)) and isinstance(right, str):
+            right_coerced = type(left)(right)
+            return left, right_coerced
+        if isinstance(right, (int, float)) and isinstance(left, str):
+            left_coerced = type(right)(left)
+            return left_coerced, right
+        if isinstance(left, str) and isinstance(right, str):
+            for num_type in (int, float):
+                try:
+                    left_num = num_type(left)
+                    right_num = num_type(right)
+                    return left_num, right_num
+                except:
+                    continue
+        return left, right
+    except Exception as e:
+        raise RuleEvaluationError(f"Type coercion failed in relaxed mode: {e}")
+
 def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
     """
     Evaluates an expression like "a.b == 5" against the payload using parsed literals and operator resolution.
-
-    Supports:
-      - Comparison operators: ==, !=, >, <, >=, <=, in, not in, matches
-      - Literal parsing and type coercion
-      - Strict/Relaxed type enforcement toggle
-
-    Raises:
-        RuleEvaluationError: On malformed expression, operator errors, missing keys, or coercion failure
     """
     parts = expression.strip().split(" ", 2)
     if len(parts) != 3:
@@ -55,11 +65,17 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     if operator_str not in SUPPORTED_OPERATORS:
         raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
-    # 🔓 Relaxed literal guard: allow literal-only comparisons
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
     else:
-        lhs_value = get_nested_value(payload, lhs_path)
+        try:
+            lhs_value = get_nested_value(payload, lhs_path)
+        except RuleEvaluationError as e:
+            if relaxed_type_check:
+                lhs_value = None
+                logger.debug(f"Relaxed mode fallback for missing key '{lhs_path}': {e}")
+            else:
+                raise
 
     try:
         compare_fn = resolve_operator(operator_str)
@@ -73,18 +89,8 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
             if type(lhs_value) != type(rhs_value):
                 raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
-            if isinstance(rhs_value, bool):
-                if str(lhs_value).lower() in ["true", "false"]:
-                    lhs_value = str(lhs_value).lower() == "true"
-                else:
-                    raise RuleEvaluationError(f"Cannot coerce non-boolean string: {lhs_value}")
-            elif isinstance(rhs_value, (int, float)):
-                try:
-                    lhs_value = type(rhs_value)(lhs_value)
-                except Exception as e:
-                    raise RuleEvaluationError(f"Numeric coercion failed: {e}")
+            lhs_value, rhs_value = _coerce_types_for_comparison(lhs_value, rhs_value)
         else:
-            # default strict behavior if no mode specified
             if type(lhs_value) != type(rhs_value):
                 raise RuleEvaluationError(f"Type mismatch (default strict): {type(lhs_value)} vs {type(rhs_value)}")
     except Exception as e:
@@ -98,24 +104,11 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
 def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
     """
     Evaluates a validation rule expression against a payload.
-
-    Parameters:
-        rule (dict): Rule definition containing 'if' and optionally 'type_check_mode'
-        payload (dict): Input data structure for rule evaluation
-        strict_type_check (bool): If True, enforces exact type alignment in comparisons
-        relaxed_type_check (bool): If True, attempts type coercion where safe
-
-    Returns:
-        bool: True if the rule passes, False if it fails
-
-    Raises:
-        RuleEvaluationError: If rule evaluation fails due to invalid configuration or logic
     """
     expression = rule.get("if")
     if not expression or not isinstance(expression, str):
-        return True  # Consider blank or malformed rules safe to ignore
+        return True
 
-    # Explicit flags override config-derived mode
     if not (strict_type_check or relaxed_type_check):
         try:
             type_mode = get_type_check_mode(rule.get("type_check_mode"))
