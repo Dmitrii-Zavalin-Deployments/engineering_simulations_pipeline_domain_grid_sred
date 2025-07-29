@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 from src.run_pipeline import sanitize_payload, main, DEFAULT_RESOLUTION
-from src.rules.utils.coercion import coerce_numeric  # ✅ Added for type-assertion clarity
+from src.utils.coercion import coerce_numeric  # ✅ Added for type-assertion clarity
 
 class TestSanitizePayload(unittest.TestCase):
     def test_complete_domain(self):

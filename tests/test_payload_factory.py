@@ -8,7 +8,7 @@ from tests.helpers.payload_factory import (
     non_numeric_domain_payload,
     mixed_schema_payload
 )
-from src.rules.utils.coercion import coerce_numeric  # ✅ Existing Asset Update for clarity
+from src.utils.coercion import coerce_numeric  # ✅ Existing Asset Update for clarity
 
 EXPECTED_KEYS = ["x", "y", "z", "width", "height", "depth"]
 

@@ -2,7 +2,7 @@
 
 import pytest
 from src.run_pipeline import sanitize_payload
-from src.rules.utils.coercion import coerce_numeric  # ✅ Existing Asset Update
+from src.utils.coercion import coerce_numeric  # ✅ Existing Asset Update
 from tests.helpers.payload_factory import valid_domain_payload
 
 def test_float_str_normalization_basic():
