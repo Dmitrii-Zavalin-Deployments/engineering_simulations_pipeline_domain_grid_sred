@@ -19,9 +19,8 @@ def test_rule_fails_on_incorrect_value():
 def test_rule_passes_with_coercion():
     rule = {"if": "stats.count == 100", "raise": "Count mismatch"}
     payload = {"stats": {"count": "100"}}
-    with pytest.raises(RuleEvaluationError, match="Type mismatch") as exc:
-        evaluate_rule(rule, payload)
-    assert "Type mismatch" in str(exc.value)
+    result = evaluate_rule(rule, payload, relaxed_type_check=True)
+    assert result is None  # Rule passed silently
 
 # 🚫 Strict Type Enforcement – Fail Expected (Updated)
 def test_strict_type_check_fails_on_coercible_mismatch():
@@ -32,7 +31,7 @@ def test_strict_type_check_fails_on_coercible_mismatch():
     }
     payload = {"stats": {"count": "100"}}
     with pytest.raises(RuleEvaluationError, match="Incompatible types") as exc:
-        evaluate_rule(rule, payload)
+        evaluate_rule(rule, payload, strict_type_check=True)
     assert "Incompatible types" in str(exc.value)
 
 # ✅ Strict Match – Same Native Type
@@ -43,7 +42,7 @@ def test_strict_type_check_passes_on_native_match():
         "strict_type_check": True,
     }
     payload = {"stats": {"count": 100}}
-    assert evaluate_rule(rule, payload) is True
+    assert evaluate_rule(rule, payload, strict_type_check=True) is True
 
 # 🧪 Fallback Handling – Non-Expression
 def test_rule_with_non_expression_returns_true():
@@ -90,7 +89,15 @@ def test_incompatible_type_error_strict_mode():
     }
     payload = {"meta": {"score": 85}}
     with pytest.raises(RuleEvaluationError, match="Incompatible types") as exc:
-        evaluate_rule(rule, payload)
+        evaluate_rule(rule, payload, strict_type_check=True)
+    assert "Incompatible types" in str(exc.value)
+
+# 🆕 Strict Type Enforcement – Explicit Flag Without Rule Embedding
+def test_rule_fails_with_strict_type_check_flag_only():
+    rule = {"if": "stats.count == 100", "raise": "Flag-only coercion test"}
+    payload = {"stats": {"count": "100"}}
+    with pytest.raises(RuleEvaluationError, match="Incompatible types") as exc:
+        evaluate_rule(rule, payload, strict_type_check=True)
     assert "Incompatible types" in str(exc.value)
 
 

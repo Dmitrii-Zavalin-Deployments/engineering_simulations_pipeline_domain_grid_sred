@@ -115,14 +115,16 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
     if not expression or not isinstance(expression, str):
         return True  # Consider blank or malformed rules safe to ignore
 
-    try:
-        type_mode = get_type_check_mode(rule.get("type_check_mode"))
-    except Exception as config_error:
-        logger.warning(f"Invalid type check mode override: {config_error}")
-        type_mode = "strict"
+    # Explicit flags override config-derived mode
+    if not (strict_type_check or relaxed_type_check):
+        try:
+            type_mode = get_type_check_mode(rule.get("type_check_mode"))
+        except Exception as config_error:
+            logger.warning(f"Invalid type check mode override: {config_error}")
+            type_mode = "strict"
 
-    strict_type_check = type_mode == "strict"
-    relaxed_type_check = type_mode == "relaxed"
+        strict_type_check = type_mode == "strict"
+        relaxed_type_check = type_mode == "relaxed"
 
     return _evaluate_expression(
         expression,
