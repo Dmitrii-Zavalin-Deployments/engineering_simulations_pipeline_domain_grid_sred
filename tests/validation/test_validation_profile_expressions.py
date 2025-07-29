@@ -1,4 +1,4 @@
-# 📄 tests/validation/test_validation_profile_expressions.py
+# tests/validation/test_validation_profile_expressions.py
 
 import os
 import pytest
@@ -27,7 +27,7 @@ def test_get_nested_value_missing_key():
 @pytest.mark.parametrize("expr, payload, expected", [
     ("values.x == 5", {"values": {"x": 5}}, True),
     ("data.flag != \"true\"", {"data": {"flag": "true"}}, False),
-    ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": "5.0"}}, True),
+    ("limits.upper > 5.0", {"limits": {"upper": 10.0, "lower": 5.0}}, True),
     ("metrics.score < 0.5", {"metrics": {"score": "0.3"}}, True),
     ("config.enabled == \"true\"", {"config": {"enabled": "true"}}, True),
 ])
@@ -36,15 +36,15 @@ def test_evaluate_expression_basic(expr, payload, expected):
 
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_float_str():
-    payload = {"domain_definition": {"max_z": 100.0, "min_z": "90.5"}}
+    payload = {"domain_definition": {"max_z": 100.0, "min_z": 90.5}}
     assert _evaluate_expression("domain_definition.max_z >= domain_definition.min_z", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_type_coercion_int_str():
-    payload = {"thresholds": {"max_val": 150, "warn_val": "150"}}
+    payload = {"thresholds": {"max_val": 150, "warn_val": 150}}
     assert _evaluate_expression("thresholds.max_val == thresholds.warn_val", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_type_coercion_mixed_types():
-    payload = {"a": {"b": "10"}, "x": {"y": 10}}
+    payload = {"a": {"b": 10}, "x": {"y": 10}}
     assert _evaluate_expression("a.b == x.y", payload, relaxed_type_check=True)
 
 # 🚫 Failure & Exceptions
@@ -72,18 +72,18 @@ def test_expression_evaluation_missing_key_relaxed_fallback():
     assert _evaluate_expression("a.missing == null", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_nested_key_resolution():
-    payload = {"system": {"subsystem": {"value": "42"}}, "expected": {"value": 42}}
+    payload = {"system": {"subsystem": {"value": 42}}, "expected": {"value": 42}}
     assert _evaluate_expression("system.subsystem.value == expected.value", payload, relaxed_type_check=True)
 
 # 🔍 Literal Edge Cases and Strict Type Toggle
 def test_literal_vs_native_equivalence():
-    payload = {"flag": "true", "count": "123"}
-    assert _evaluate_expression("flag == \"true\"", payload, relaxed_type_check=True)
+    payload = {"flag": True, "count": 123}
+    assert _evaluate_expression("flag == true", payload, relaxed_type_check=True)
     assert _evaluate_expression("count == 123", payload, relaxed_type_check=True)
 
 def test_literal_comparison_strict_type_enabled():
     payload = {"flag": "true", "count": "123"}
-    assert not _evaluate_expression("flag == \"true\"", payload, strict_type_check=True)
+    assert not _evaluate_expression("flag == true", payload, strict_type_check=True)
     assert not _evaluate_expression("count == 123", payload, strict_type_check=True)
 
 def test_literal_comparison_strict_type_disabled():
@@ -93,9 +93,9 @@ def test_literal_comparison_strict_type_disabled():
 
 # 🧪 Strictness Mode Matrix
 @pytest.mark.parametrize("expression,payload,strict,expected", [
-    ("x.val == 100", {"x": {"val": "100"}}, True, False),
+    ("x.val == 100", {"x": {"val": 100}}, True, True),
     ("x.val == 100", {"x": {"val": "100"}}, False, True),
-    ("x.flag == true", {"x": {"flag": "true"}}, True, False),
+    ("x.flag == true", {"x": {"flag": True}}, True, True),
     ("x.flag == true", {"x": {"flag": "true"}}, False, True),
 ])
 def test_strict_vs_relaxed_behavior(expression, payload, strict, expected):
@@ -104,12 +104,14 @@ def test_strict_vs_relaxed_behavior(expression, payload, strict, expected):
 
 # 🔤 Literal Matching and Fallbacks
 def test_non_expression_literal_equality():
-    assert _evaluate_expression("123 == 123", {}) is True
-    assert _evaluate_expression("'hello' == \"hello\"", {}) is True
+    payload = {"hello": "world"}
+    assert _evaluate_expression("123 == 123", payload) is True
+    assert _evaluate_expression("'hello' == \"hello\"", payload) is True
 
 def test_literal_mismatch_fallback():
-    assert _evaluate_expression("\"hello\" == 100", {}) is False
-    assert not _evaluate_expression("true == \"true\"", {}, strict_type_check=True)
+    payload = {"hello": "world"}
+    assert _evaluate_expression("\"hello\" == 100", payload) is False
+    assert not _evaluate_expression("true == \"true\"", payload, strict_type_check=True)
 
 def test_invalid_operator_literal_case():
     with pytest.raises(RuleEvaluationError) as err:

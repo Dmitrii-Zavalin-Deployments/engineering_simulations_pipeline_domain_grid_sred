@@ -1,10 +1,10 @@
-# 📄 src/rules/rule_engine.py
+# src/rules/rule_engine.py
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
-from src.rules.config import debug_log  # ✅ Strategic Addition
+from src.rules.config import debug_log
 
 logger = logging.getLogger(__name__)
 
@@ -13,9 +13,6 @@ class RuleEvaluationError(Exception):
     pass
 
 def get_nested_value(payload: dict, path: str):
-    """
-    Safely resolves a dotted key path into a nested value from the payload dictionary.
-    """
     keys = path.split(".")
     value = payload
     for k in keys:
@@ -30,9 +27,6 @@ def get_nested_value(payload: dict, path: str):
     return value
 
 def _coerce_types_for_comparison(left, right):
-    """
-    Attempts to coerce left/right values to compatible types for comparison in relaxed mode.
-    """
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
         if isinstance(left, bool) or isinstance(right, bool):
@@ -62,9 +56,6 @@ def _coerce_types_for_comparison(left, right):
         raise RuleEvaluationError(f"Type coercion failed in relaxed mode: {e}")
 
 def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
-    """
-    Evaluates an expression like "a.b == 5" against the payload using parsed literals and operator resolution.
-    """
     debug_log(f"Evaluating expression: {expression}")
     parts = expression.strip().split(" ", 2)
     if len(parts) != 3:
@@ -96,8 +87,21 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
-    rhs_value = parse_literal(rhs_literal)
-    debug_log(f"Parsed rhs literal: {rhs_value}")
+    try:
+        rhs_value = parse_literal(rhs_literal)
+        debug_log(f"Parsed rhs literal: {rhs_value}")
+    except ValueError as rhs_error:
+        debug_log(f"Literal parsing failed for RHS: '{rhs_literal}' → {rhs_error}")
+        if relaxed_type_check:
+            try:
+                rhs_value = get_nested_value(payload, rhs_literal)
+                debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
+            except RuleEvaluationError as e:
+                logger.debug(f"Relaxed RHS fallback key resolution failed: {e}")
+                rhs_value = None
+                debug_log(f"Fallback: Using None for RHS '{rhs_literal}' due to resolution failure")
+        else:
+            raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
     try:
         if strict_type_check:
@@ -122,9 +126,6 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
         raise RuleEvaluationError(f"Comparison failed: {e}")
 
 def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
-    """
-    Evaluates a validation rule expression against a payload.
-    """
     expression = rule.get("if")
     if not expression or not isinstance(expression, str):
         debug_log("Empty or malformed rule expression; returning True")

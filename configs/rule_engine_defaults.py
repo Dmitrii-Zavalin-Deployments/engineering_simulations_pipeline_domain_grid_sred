@@ -18,6 +18,12 @@ COERCION_FAILURE_MODE = "raise"  # Options: "raise", "warn", "silent"
 # 🧪 Supported type modes
 SUPPORTED_TYPE_MODES = {"strict", "relaxed"}
 
+# ⚙️ Rule Engine Mode Settings — exposed flags for flexible configuration
+RULE_ENGINE_SETTINGS = {
+    "strict_type_check": False,
+    "relaxed_type_check": True
+}
+
 def get_type_check_mode(profile_override: str | None = None) -> str:
     """
     Returns the configured type check mode, allowing optional profile override.

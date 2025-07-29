@@ -27,4 +27,36 @@ def gmsh_session():
     gmsh.finalize()
 
 
+# 🧪 Utility: Expression Payload Factory
+def get_payload_with_defaults(overrides=None):
+    """
+    Generates a baseline payload structure with common default keys and values,
+    optionally overridden for edge-case expression tests.
+
+    Parameters:
+        overrides (dict): Dictionary of values to override or inject into the default payload.
+
+    Returns:
+        dict: Merged payload structure suitable for expression-based validation.
+    """
+    base = {
+        "hello": "world",
+        "flag": True,
+        "thresholds": {"warn_val": 42, "max_val": 100},
+        "limits": {"upper": 10.0, "lower": 5.0},
+        "metrics": {"score": 0.3},
+        "values": {"x": 5},
+        "system": {"subsystem": {"value": 42}},
+        "config": {"enabled": "true"},
+    }
+    if overrides:
+        # Deep merge logic if needed — otherwise shallow update
+        for key, value in overrides.items():
+            if isinstance(value, dict) and key in base and isinstance(base[key], dict):
+                base[key].update(value)
+            else:
+                base[key] = value
+    return base
+
+
 
