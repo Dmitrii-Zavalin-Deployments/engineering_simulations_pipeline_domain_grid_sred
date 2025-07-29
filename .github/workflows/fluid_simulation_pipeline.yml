@@ -12,7 +12,7 @@ jobs:
   process_step_for_coordinates:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/src/rules:${{ github.workspace }}/src/utils:${{ github.workspace }}/src/pipeline:${{ github.workspace }}/src/validation
+      PYTHONPATH: ${{ github.workspace }}/src
       ENABLE_RULE_DEBUG: true
 
     steps:
@@ -127,6 +127,8 @@ jobs:
         run: python -c "import sys; print('PYTHON sys.path:', sys.path)"
 
       - name: 🧪 Run Unit Tests
+        env:
+          PYTHONPATH: ${{ github.workspace }}/src
         run: |
           pytest -s tests/ --verbose -ra
           echo "✅ Unit tests completed."
