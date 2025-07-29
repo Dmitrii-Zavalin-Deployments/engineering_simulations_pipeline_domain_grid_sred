@@ -1,4 +1,4 @@
-# 📄 src/rules/utils/coercion.py
+# src/rules/utils/coercion.py
 
 """
 Type coercion helpers tailored for rule evaluation.
@@ -17,26 +17,21 @@ from typing import Any, Union, Optional
 from src.rules.config import debug_log
 
 
-def coerce_numeric(value: Any) -> Union[int, float, str]:
+def coerce_numeric(value: Any) -> Optional[float]:
     """
-    Attempt to coerce a value into int or float. Falls back to string on failure.
-    Used when comparing numeric payload fields with mixed representations.
+    Strict numeric coercion to float. Returns None on failure.
+    Used in arithmetic logic to guarantee safe operation.
     """
     if isinstance(value, (int, float)):
         debug_log(f"[numeric] Native numeric detected → {value}")
-        return value
+        return float(value)
     try:
-        str_value = str(value).strip()
-        if '.' in str_value:
-            result = float(str_value)
-        else:
-            result = int(str_value)
+        result = float(str(value).strip())
         debug_log(f"[numeric] Coerced '{value}' → {result}")
         return result
     except (ValueError, TypeError) as e:
-        fallback = str(value)
-        debug_log(f"[numeric] Coercion failed for '{value}' ({type(value).__name__}) → fallback: '{fallback}' | {e}")
-        return fallback
+        debug_log(f"[numeric] Coercion failed for '{value}' ({type(value).__name__}) → None | {e}")
+        return None
 
 
 def coerce_boolean(value: Any) -> Union[bool, str]:

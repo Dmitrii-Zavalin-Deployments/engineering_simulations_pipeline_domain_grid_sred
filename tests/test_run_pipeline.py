@@ -1,10 +1,9 @@
-# 📄 tests/test_run_pipeline.py
-
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 from src.run_pipeline import sanitize_payload, main, DEFAULT_RESOLUTION
-from src.utils.coercion import coerce_numeric  # ✅ Added for type-assertion clarity
+from src.utils.coercion import coerce_numeric
+
 
 class TestSanitizePayload(unittest.TestCase):
     def test_complete_domain(self):
@@ -46,6 +45,20 @@ class TestSanitizePayload(unittest.TestCase):
         self.assertIn("width", domain)
         self.assertIsInstance(coerce_numeric(domain["width"]), float)
         self.assertEqual(coerce_numeric(domain["width"]), 0.0)  # ✅ Clamped non-negative
+
+    def test_fallback_on_invalid_width(self):
+        raw = {"domain_definition": {"x": "1", "max_x": "5", "width": "invalid"}}
+        result = sanitize_payload(raw)
+        width = result["domain_definition"]["width"]
+        self.assertEqual(width, 4.0)  # fallback logic: max_x - x
+
+    @patch("src.run_pipeline.coerce_numeric", side_effect=lambda val: None if val == "invalid" else float(val))
+    def test_mocked_coercion_fallback(self, mock_coerce):
+        raw = {"domain_definition": {"x": "1", "width": "invalid", "max_x": "5"}}
+        result = sanitize_payload(raw)
+        self.assertEqual(result["domain_definition"]["width"], 4.0)
+        mock_coerce.assert_any_call("invalid")
+
 
 class TestPipelineMain(unittest.TestCase):
     @patch("pathlib.Path.glob", return_value=[MagicMock(name="mock.step", spec=Path)])

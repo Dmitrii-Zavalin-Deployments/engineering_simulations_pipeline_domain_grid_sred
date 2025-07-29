@@ -11,8 +11,8 @@ import json
 from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh
 from domain_definition_writer import validate_domain_bounds, DomainValidationError
-from logger_utils import log_checkpoint, log_error, log_success
-from src.utils.coercion import coerce_numeric  # ✅ Replaced invalid import
+from logger_utils import log_checkpoint, log_error, log_success, log_warning  # ✅ Add log_warning
+from src.utils.coercion import coerce_numeric
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
 from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
@@ -42,13 +42,27 @@ def sanitize_payload(metadata: dict) -> dict:
     metadata.setdefault("domain_definition", default_domain())
     domain = metadata["domain_definition"]
 
-    x = coerce_numeric(domain.get("x") or domain.get("min_x"))
-    y = coerce_numeric(domain.get("y") or domain.get("min_y"))
-    z = coerce_numeric(domain.get("z") or domain.get("min_z"))
+    x = coerce_numeric(domain.get("x") or domain.get("min_x")) or 0.0
+    y = coerce_numeric(domain.get("y") or domain.get("min_y")) or 0.0
+    z = coerce_numeric(domain.get("z") or domain.get("min_z")) or 0.0
 
-    width = max(0.0, coerce_numeric(domain.get("width")) or (coerce_numeric(domain.get("max_x")) - x))
-    height = max(0.0, coerce_numeric(domain.get("height")) or (coerce_numeric(domain.get("max_y")) - y))
-    depth = max(0.0, coerce_numeric(domain.get("depth")) or (coerce_numeric(domain.get("max_z")) - z))
+    width_val = coerce_numeric(domain.get("width"))
+    if width_val is None:
+        log_warning(f"Width coercion failed → fallback applied [raw: {domain.get('width')}]")
+    max_x_val = coerce_numeric(domain.get("max_x"))
+    width = max(0.0, width_val if width_val is not None else (max_x_val or 0.0) - x)
+
+    height_val = coerce_numeric(domain.get("height"))
+    if height_val is None:
+        log_warning(f"Height coercion failed → fallback applied [raw: {domain.get('height')}]")
+    max_y_val = coerce_numeric(domain.get("max_y"))
+    height = max(0.0, height_val if height_val is not None else (max_y_val or 0.0) - y)
+
+    depth_val = coerce_numeric(domain.get("depth"))
+    if depth_val is None:
+        log_warning(f"Depth coercion failed → fallback applied [raw: {domain.get('depth')}]")
+    max_z_val = coerce_numeric(domain.get("max_z"))
+    depth = max(0.0, depth_val if depth_val is not None else (max_z_val or 0.0) - z)
 
     return {
         "domain_definition": {
