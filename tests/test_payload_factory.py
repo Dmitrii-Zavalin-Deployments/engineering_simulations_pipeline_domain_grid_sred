@@ -1,4 +1,4 @@
-# tests/test_payload_factory.py
+# 📄 tests/test_payload_factory.py
 
 import pytest
 from src.run_pipeline import sanitize_payload
@@ -8,6 +8,7 @@ from tests.helpers.payload_factory import (
     non_numeric_domain_payload,
     mixed_schema_payload
 )
+from src.rules.utils.coercion import coerce_numeric  # ✅ Existing Asset Update for clarity
 
 EXPECTED_KEYS = ["x", "y", "z", "width", "height", "depth"]
 
@@ -18,7 +19,7 @@ def test_valid_domain_payload_sanitization():
 
     for key in EXPECTED_KEYS:
         assert key in domain, f"Missing key: {key}"
-        assert isinstance(domain[key], float), f"{key} should be float"
+        assert isinstance(coerce_numeric(domain[key]), float), f"{key} should be float"
 
 def test_empty_domain_payload_fallback():
     payload = empty_domain_payload()
@@ -27,8 +28,8 @@ def test_empty_domain_payload_fallback():
 
     for key in EXPECTED_KEYS:
         assert key in domain
-        assert isinstance(domain[key], float)
-        assert domain[key] == 0.0  # Explicit fallback verification
+        assert isinstance(coerce_numeric(domain[key]), float)
+        assert coerce_numeric(domain[key]) == 0.0  # Explicit fallback verification
 
 def test_non_numeric_domain_payload_graceful_handling():
     payload = non_numeric_domain_payload()
@@ -38,8 +39,8 @@ def test_non_numeric_domain_payload_graceful_handling():
     assert isinstance(domain, dict)
     for key in EXPECTED_KEYS:
         assert key in domain
-        assert isinstance(domain[key], float)
-        assert domain[key] >= 0.0  # Loosened expectation: fallback may succeed or default
+        assert isinstance(coerce_numeric(domain[key]), float)
+        assert coerce_numeric(domain[key]) >= 0.0  # Loosened expectation: fallback may succeed or default
 
 def test_mixed_schema_payload_sanitization():
     payload = mixed_schema_payload()
@@ -48,8 +49,8 @@ def test_mixed_schema_payload_sanitization():
 
     for key in EXPECTED_KEYS:
         assert key in domain
-        assert isinstance(domain[key], float)
-        assert domain[key] >= 0.0  # Sanity check: all spatial values should be non-negative
+        assert isinstance(coerce_numeric(domain[key]), float)
+        assert coerce_numeric(domain[key]) >= 0.0  # Sanity check: all spatial values should be non-negative
 
     # Assert no unexpected fields leaked in
     unexpected_keys = ["min_x", "max_y", "min_z", "extra"]

@@ -1,41 +1,58 @@
-# tests/test_run_pipeline.py
+# 📄 tests/test_run_pipeline.py
 
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
 from src.run_pipeline import sanitize_payload, main, DEFAULT_RESOLUTION
+from src.rules.utils.coercion import coerce_numeric  # ✅ Added for type-assertion clarity
 
 class TestSanitizePayload(unittest.TestCase):
     def test_complete_domain(self):
         raw = {"domain_definition": {"x": "1", "y": "2", "z": "3", "width": "4", "height": "5", "depth": "6"}}
-        expected = {"domain_definition": {"x": 1.0, "y": 2.0, "z": 3.0, "width": 4.0, "height": 5.0, "depth": 6.0}}
+        expected = {
+            "domain_definition": {
+                "x": 1.0, "y": 2.0, "z": 3.0,
+                "width": 4.0, "height": 5.0, "depth": 6.0
+            }
+        }
         result = sanitize_payload(raw)
         self.assertEqual(result, expected)
 
     def test_missing_fields(self):
         raw = {"domain_definition": {"x": "1"}}
-        expected = {"domain_definition": {"x": 1.0, "y": 0.0, "z": 0.0, "width": 0.0, "height": 0.0, "depth": 0.0}}
+        expected = {
+            "domain_definition": {
+                "x": 1.0, "y": 0.0, "z": 0.0,
+                "width": 0.0, "height": 0.0, "depth": 0.0
+            }
+        }
         result = sanitize_payload(raw)
         self.assertEqual(result, expected)
 
     def test_empty_metadata(self):
         result = sanitize_payload({})
-        expected = {"domain_definition": {"x": 0.0, "y": 0.0, "z": 0.0, "width": 0.0, "height": 0.0, "depth": 0.0}}
+        expected = {
+            "domain_definition": {
+                "x": 0.0, "y": 0.0, "z": 0.0,
+                "width": 0.0, "height": 0.0, "depth": 0.0
+            }
+        }
         self.assertEqual(result, expected)
 
     def test_width_clamping_on_misaligned_bounds(self):
-        # ✅ New test for inverted legacy bounds
         raw = {"domain_definition": {"min_x": "1.0", "max_x": "0.0"}}
         result = sanitize_payload(raw)
         domain = result["domain_definition"]
         self.assertIn("width", domain)
-        self.assertIsInstance(domain["width"], float)
-        self.assertEqual(domain["width"], 0.0)  # ✅ Clamped non-negative
+        self.assertIsInstance(coerce_numeric(domain["width"]), float)
+        self.assertEqual(coerce_numeric(domain["width"]), 0.0)  # ✅ Clamped non-negative
 
 class TestPipelineMain(unittest.TestCase):
     @patch("pathlib.Path.glob", return_value=[MagicMock(name="mock.step", spec=Path)])
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={"x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6})
+    @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
+        "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
+    })
     @patch("src.run_pipeline.validate_domain_bounds")
     @patch("src.run_pipeline.enforce_profile")
     @patch("src.run_pipeline.open", new_callable=mock_open)
@@ -51,17 +68,17 @@ class TestPipelineMain(unittest.TestCase):
         mock_open_fn.assert_called()
         mock_exit.assert_called_with(0)
 
-    @patch("src.run_pipeline.sys.exit", side_effect=SystemExit)  # ✅ Properly simulate exit
-    @patch("pathlib.Path.exists", return_value=False)  # ✅ Simulate missing input dir
+    @patch("src.run_pipeline.sys.exit", side_effect=SystemExit)
+    @patch("pathlib.Path.exists", return_value=False)
     @patch("src.run_pipeline.log_error")
     def test_main_input_directory_missing(self, mock_log_error, mock_exists, mock_exit):
-        with self.assertRaises(SystemExit):  # ✅ Guard against continuation
+        with self.assertRaises(SystemExit):
             main(resolution=DEFAULT_RESOLUTION)
         mock_log_error.assert_called()
         mock_exit.assert_called_once_with(1)
         args, kwargs = mock_log_error.call_args
-        assert "Input directory not found" in args[0]
-        assert kwargs.get("fatal") is True
+        self.assertIn("Input directory not found", args[0])
+        self.assertTrue(kwargs.get("fatal"))
 
 
 

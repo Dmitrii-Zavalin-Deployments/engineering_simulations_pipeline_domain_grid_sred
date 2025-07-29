@@ -12,10 +12,10 @@ from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh
 from domain_definition_writer import validate_domain_bounds, DomainValidationError
 from logger_utils import log_checkpoint, log_error, log_success
-from src.utils.coercion import safe_float
+from src.utils.coercion import coerce_numeric  # ✅ Replaced invalid import
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
-from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile  # ✅ Added missing method
+from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
 
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
@@ -42,13 +42,13 @@ def sanitize_payload(metadata: dict) -> dict:
     metadata.setdefault("domain_definition", default_domain())
     domain = metadata["domain_definition"]
 
-    x = safe_float(domain.get("x") or domain.get("min_x"))
-    y = safe_float(domain.get("y") or domain.get("min_y"))
-    z = safe_float(domain.get("z") or domain.get("min_z"))
+    x = coerce_numeric(domain.get("x") or domain.get("min_x"))
+    y = coerce_numeric(domain.get("y") or domain.get("min_y"))
+    z = coerce_numeric(domain.get("z") or domain.get("min_z"))
 
-    width = max(0.0, safe_float(domain.get("width")) or (safe_float(domain.get("max_x")) - x))
-    height = max(0.0, safe_float(domain.get("height")) or (safe_float(domain.get("max_y")) - y))
-    depth = max(0.0, safe_float(domain.get("depth")) or (safe_float(domain.get("max_z")) - z))
+    width = max(0.0, coerce_numeric(domain.get("width")) or (coerce_numeric(domain.get("max_x")) - x))
+    height = max(0.0, coerce_numeric(domain.get("height")) or (coerce_numeric(domain.get("max_y")) - y))
+    depth = max(0.0, coerce_numeric(domain.get("depth")) or (coerce_numeric(domain.get("max_z")) - z))
 
     return {
         "domain_definition": {
@@ -110,7 +110,7 @@ def main(resolution=DEFAULT_RESOLUTION):
 
     try:
         log_checkpoint("🔎 Enforcing validation rules on payload...")
-        enforce_profile(rule_list, payload)  # ✅ Replaced loop with centralized enforcement method
+        enforce_profile(rule_list, payload)
         log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)

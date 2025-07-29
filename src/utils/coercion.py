@@ -10,10 +10,11 @@ Available Methods:
 - coerce_numeric(value)
 - coerce_boolean(value)
 - coerce_string(value)
+- safe_float(value)  # ✅ Strategic Addition
 """
 
-from typing import Any, Union
-from src.rules.config import debug_log  # ✅ Strategic Addition
+from typing import Any, Union, Optional
+from src.rules.config import debug_log
 
 
 def coerce_numeric(value: Any) -> Union[int, float, str]:
@@ -74,6 +75,20 @@ def coerce_string(value: Any) -> str:
     except Exception as e:
         debug_log(f"[string] Failed to coerce '{value}' → fallback: '' | {e}")
         return ""
+
+
+def safe_float(value: Any) -> Optional[float]:
+    """
+    Attempts to coerce value to float. Returns None on failure.
+    Used for tolerant float parsing in pipeline and rule logic.
+    """
+    try:
+        result = float(value)
+        debug_log(f"[safe_float] Parsed '{value}' → {result}")
+        return result
+    except Exception as e:
+        debug_log(f"[safe_float] Failed to parse '{value}' → None | {e}")
+        return None
 
 
 

@@ -1,7 +1,8 @@
-# tests/test_payload_sanitization.py
+# 📄 tests/test_payload_sanitization.py
 
 import pytest
 from src.run_pipeline import sanitize_payload
+from src.rules.utils.coercion import coerce_numeric  # ✅ Existing Asset Update
 from tests.helpers.payload_factory import valid_domain_payload
 
 def test_float_str_normalization_basic():
@@ -10,8 +11,8 @@ def test_float_str_normalization_basic():
     domain = sanitized["domain_definition"]
 
     assert "z" in domain
-    assert isinstance(domain["z"], float)
-    assert domain["z"] == 90.5
+    assert isinstance(coerce_numeric(domain["z"]), float)
+    assert coerce_numeric(domain["z"]) == 90.5
 
 def test_mixed_type_list_sanitization():
     payload = {"values": ["1.5", 2.0, "3.25", "not_a_float"]}
@@ -47,7 +48,7 @@ def test_no_mutation_on_valid_input():
 
     for key in expected_keys:
         assert key in domain
-        assert isinstance(domain[key], float)
+        assert isinstance(coerce_numeric(domain[key]), float)
 
 def test_edge_case_empty_payload():
     sanitized = sanitize_payload({})

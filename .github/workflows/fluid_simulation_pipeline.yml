@@ -12,8 +12,8 @@ jobs:
   process_step_for_coordinates:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ./src:./pipeline
-      ENABLE_RULE_DEBUG: true  # ✅ Strategic Addition: CI-only debug mode
+      PYTHONPATH: ${{ github.workspace }}/src  # ✅ Revised path for test import reliability
+      ENABLE_RULE_DEBUG: true  # ✅ CI-only debug mode
 
     steps:
       - name: 🛎️ Checkout repository
@@ -127,8 +127,6 @@ jobs:
         run: python -c "import sys; print('PYTHON sys.path:', sys.path)"
 
       - name: 🧪 Run Unit Tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/src
         run: |
           pytest -s tests/ --verbose -ra
           echo "✅ Unit tests completed."
