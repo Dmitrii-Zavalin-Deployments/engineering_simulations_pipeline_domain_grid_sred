@@ -1,3 +1,5 @@
+# 📄 .github/workflows/STEP Spatial Metadata Processor.yml
+
 name: STEP Spatial Metadata Processor
 
 on:
@@ -11,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ./src:./pipeline
+      ENABLE_RULE_DEBUG: true  # ✅ Strategic Addition: CI-only debug mode
 
     steps:
       - name: 🛎️ Checkout repository
@@ -69,14 +72,10 @@ jobs:
             exit 1
           elif [ "$COUNT" -gt 1 ]; then
             echo "⚠️ Multiple STEP files found. Checking for input.step to clean up..."
-
-            # Delete all input.step files
             echo "$STEP_FILES" | grep "input.step" | while read INPUT_FILE; do
               echo "🧹 Deleting redundant STEP file: $INPUT_FILE"
               rm -f "$INPUT_FILE"
             done
-
-            # Re-check the STEP file count after cleanup
             STEP_FILES=$(find data/testing-input-output -maxdepth 1 -type f -name "*.step")
             COUNT=$(echo "$STEP_FILES" | wc -l)
 

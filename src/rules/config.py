@@ -1,4 +1,4 @@
-# src/rules/config.py
+# 📄 src/rules/config.py
 
 """
 Configuration flags and global toggles used throughout rule evaluation modules.
@@ -10,8 +10,8 @@ Includes:
 
 import os
 
-# ✅ Debug logging toggle (can be set via env variable or manually)
-ENABLE_RULE_DEBUG = os.getenv("ENABLE_RULE_DEBUG", "false").lower() == "true"
+# ✅ Debug logging toggle (CI-driven only, no .env required)
+ENABLE_RULE_DEBUG = os.getenv("ENABLE_RULE_DEBUG") == "true"
 
 def debug_log(message: str):
     """

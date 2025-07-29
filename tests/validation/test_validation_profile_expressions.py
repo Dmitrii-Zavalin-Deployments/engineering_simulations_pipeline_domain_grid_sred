@@ -1,6 +1,11 @@
 # 📄 tests/validation/test_validation_profile_expressions.py
 
+import os
 import pytest
+
+# ✅ Test Enhancement: Enable debug mode globally during expression tests
+os.environ["ENABLE_RULE_DEBUG"] = "true"
+
 from src.rules.rule_engine import (
     get_nested_value,
     _evaluate_expression,
