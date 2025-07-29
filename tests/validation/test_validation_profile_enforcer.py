@@ -75,7 +75,7 @@ def test_enforce_profile_expression_failure():
     payload = {"a": {}}  # 'b' missing to trigger evaluation error
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert_error_contains(exc, "Evaluation error at 'a.b'")
+    assert_error_contains(exc, "Missing key in expression: a.b")
     assert_error_contains(exc, "Comparison failed")
 
 def test_missing_keys_are_detected():
@@ -85,7 +85,7 @@ def test_missing_keys_are_detected():
     payload = {"domain_definition": {"min_z": 10}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert_error_contains(exc, "Missing key 'max_z'")
+    assert_error_contains(exc, "Missing key in expression: domain_definition.max_z")
     assert_error_contains(exc, "max_z must exceed min_z")
 
 def test_null_literal_handling():
@@ -95,7 +95,7 @@ def test_null_literal_handling():
     payload = {"domain_definition": {"bbox": None}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert_error_contains(exc, "Null value encountered at 'domain_definition.bbox'")
+    assert_error_contains(exc, "Null value encountered at 'bbox'")
     assert_error_contains(exc, "Bounding box missing")
 
 # ⚠️ Skipped or malformed

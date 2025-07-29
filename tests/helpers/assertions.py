@@ -1,22 +1,24 @@
 # tests/helpers/assertions.py
 
-def assert_error_contains(exc, expected_phrase):
+def assert_error_contains(exc, *expected_fragments):
     """
-    Assert that the provided exception message contains the expected substring.
+    Assert that the provided exception message contains the expected substring(s).
 
     Parameters:
         exc (ExceptionInfo): Exception object from pytest.raises context
-        expected_phrase (str): Substring expected to be in the exception message
+        expected_fragments (str): One or more substrings expected to appear in the exception message
 
     Raises:
-        AssertionError: If expected_phrase is not found in the exception message
+        AssertionError: If any expected fragment is not found in the exception message
     """
     actual_message = str(exc.value)
-    segments = actual_message.split(":", maxsplit=2)
-    simplified_message = segments[-1] if len(segments) >= 2 else actual_message
-    assert expected_phrase in actual_message or expected_phrase in simplified_message, (
-        f"Expected phrase '{expected_phrase}' not found in error: {actual_message}"
-    )
+    simplified_message = actual_message.split(":", maxsplit=2)[-1] if ":" in actual_message else actual_message
+
+    for fragment in expected_fragments:
+        if fragment not in actual_message and fragment not in simplified_message:
+            raise AssertionError(
+                f"Expected fragment '{fragment}' not found in error: {actual_message}"
+            )
 
 
 
