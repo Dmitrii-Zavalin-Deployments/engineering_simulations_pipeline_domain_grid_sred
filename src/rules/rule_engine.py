@@ -103,9 +103,6 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
 
     Returns:
         bool: True if the rule passes, False if it fails
-
-    Raises:
-        RuleEvaluationError: If the rule expression is malformed or cannot be resolved
     """
     expression = rule.get("if")
     if not expression or not isinstance(expression, str):
@@ -126,10 +123,10 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
                                     relaxed_type_check=relaxed_type_check)
     except (ValueError, OperatorError, RuleEvaluationError) as e:
         logger.warning(f"Rule evaluation failed: {e}")
-        raise RuleEvaluationError(f"Expression evaluation error: {e}")
+        return False  # ✅ Updated to gracefully fail instead of raising
     except Exception as e:
         logger.error(f"Unexpected evaluation failure: {e}")
-        raise RuleEvaluationError(f"Unexpected evaluation failure: {e}")
+        return False  # ✅ Defensive fallback
 
 
 
