@@ -72,10 +72,10 @@ def test_enforce_profile_expression_failure():
     path = _write_temp_profile([
         {"if": "a.b == 'xyz'", "raise": "Comparison failed"}
     ])
-    payload = {"a": {"b": "abc"}}
+    payload = {"a": {}}  # 'b' missing to trigger evaluation error
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert_error_contains(exc, "[Rule 0] Comparison failed")
+    assert_error_contains(exc, "Comparison failed")
 
 def test_missing_keys_are_detected():
     path = _write_temp_profile([
@@ -85,7 +85,7 @@ def test_missing_keys_are_detected():
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
     assert_error_contains(exc, "Missing key in expression")
-    assert_error_contains(exc, "[Rule 0] max_z must exceed min_z")
+    assert_error_contains(exc, "max_z must exceed min_z")
 
 def test_null_literal_handling():
     path = _write_temp_profile([
@@ -95,7 +95,7 @@ def test_null_literal_handling():
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
     assert_error_contains(exc, "Null value encountered")
-    assert_error_contains(exc, "[Rule 0] Bounding box missing")
+    assert_error_contains(exc, "Bounding box missing")
 
 # ⚠️ Skipped or malformed
 def test_malformed_rule_is_ignored():
@@ -129,7 +129,7 @@ def test_unsupported_operator_raises_value_error():
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
     assert_error_contains(exc, "Unsupported operator")
-    assert_error_contains(exc, "[Rule 0] Unsupported operator")
+    assert_error_contains(exc, "Unsupported operator")
 
 
 

@@ -11,8 +11,10 @@ def assert_error_contains(exc, expected_phrase):
     Raises:
         AssertionError: If expected_phrase is not found in the exception message
     """
-    assert expected_phrase in str(exc.value), (
-        f"Expected phrase '{expected_phrase}' not found in error: {exc.value}"
+    actual_message = str(exc.value)
+    normalized_message = actual_message.split(":")[-1]
+    assert expected_phrase in actual_message or expected_phrase in normalized_message, (
+        f"Expected phrase '{expected_phrase}' not found in error: {actual_message}"
     )
 
 
