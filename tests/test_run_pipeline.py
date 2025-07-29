@@ -1,3 +1,5 @@
+# tests/test_run_pipeline.py
+
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
@@ -52,9 +54,15 @@ class TestSanitizePayload(unittest.TestCase):
         width = result["domain_definition"]["width"]
         self.assertEqual(width, 4.0)  # fallback logic: max_x - x
 
-    @patch("src.run_pipeline.coerce_numeric", side_effect=lambda val: None if val == "invalid" else float(val))
+    @patch("src.run_pipeline.coerce_numeric", side_effect=lambda val: None if val is None or val == "invalid" else float(val))
     def test_mocked_coercion_fallback(self, mock_coerce):
-        raw = {"domain_definition": {"x": "1", "width": "invalid", "max_x": "5"}}
+        raw = {
+            "domain_definition": {
+                "x": "1", "y": "0", "z": "0",
+                "width": "invalid", "max_x": "5",
+                "height": "0", "depth": "0"
+            }
+        }
         result = sanitize_payload(raw)
         self.assertEqual(result["domain_definition"]["width"], 4.0)
         mock_coerce.assert_any_call("invalid")
