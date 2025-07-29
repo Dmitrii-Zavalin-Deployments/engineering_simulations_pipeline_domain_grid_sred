@@ -40,7 +40,7 @@ def enforce_profile(profile_path: str, payload: dict):
             triggered = evaluate_rule(rule, payload)
         except RuleEvaluationError as err:
             raise ValidationProfileError(
-                f"[Rule {i}] Evaluation error for '{condition}': {err}"
+                f"[Rule {i}] {message} — Evaluation error for '{condition}': {err}"
             )
 
         if triggered:
