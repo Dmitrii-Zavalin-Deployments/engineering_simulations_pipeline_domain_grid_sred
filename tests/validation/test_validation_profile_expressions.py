@@ -2,24 +2,26 @@
 
 import pytest
 from src.rules.rule_engine import (
-    _get_nested_value,
-    _evaluate_expression
+    get_nested_value,
+    _evaluate_expression,
+    RuleEvaluationError
 )
 
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
     payload = {"a": {"b": {"c": 42}}}
-    assert _get_nested_value(payload, "a.b.c") == 42
+    assert get_nested_value(payload, "a.b.c") == 42
 
 def test_get_nested_value_missing_key():
     payload = {"a": {"b": {"c": 42}}}
-    with pytest.raises(KeyError):
-        _get_nested_value(payload, "a.x.c")
+    with pytest.raises(RuleEvaluationError) as e:
+        get_nested_value(payload, "a.x.c")
+    assert "Missing key" in str(e.value)
 
 # 🔧 Expression Evaluation — Core
 @pytest.mark.parametrize("expr, payload, expected", [
     ("values.x == 5", {"values": {"x": 5}}, True),
-    ("data.flag != \"true\"", {"data": {"flag": "true"}}, False),  # 🔧 Quote bool literal
+    ("data.flag != \"true\"", {"data": {"flag": "true"}}, False),
     ("limits.upper > limits.lower", {"limits": {"upper": 10.0, "lower": 5.0}}, True),
     ("metrics.score < 0.5", {"metrics": {"score": 0.3}}, True),
     ("config.enabled == \"true\"", {"config": {"enabled": "true"}}, True),
@@ -43,20 +45,21 @@ def test_expression_evaluation_type_coercion_mixed_types():
 # 🚫 Failure & Exceptions
 def test_expression_evaluation_incompatible_types():
     payload = {"rules": {"status_code": "not_a_number", "expected_code": 200}}
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("rules.status_code == rules.expected_code", payload, strict_type_check=True)
     assert "Incompatible types" in str(err.value)
 
 def test_expression_evaluation_unsupported_operator():
     payload = {"meta": {"score": 85}}
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("meta.score %% 80", payload)
     assert "Unsupported comparison operator" in str(err.value)
 
 def test_expression_evaluation_missing_key_path():
     payload = {"data": {"valid": True}}
-    with pytest.raises(KeyError):
+    with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("data.missing_key == true", payload)
+    assert "Missing key" in str(err.value)
 
 def test_expression_evaluation_nested_key_resolution():
     payload = {"system": {"subsystem": {"value": 42}}, "expected": {"value": 42}}
@@ -87,7 +90,7 @@ def test_literal_mismatch_fallback():
     assert not _evaluate_expression("true == \"true\"", {}, strict_type_check=True)
 
 def test_invalid_operator_literal_case():
-    with pytest.raises(ValueError) as err:
+    with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("false %% true", {})
     assert "Unsupported comparison operator" in str(err.value)
 
