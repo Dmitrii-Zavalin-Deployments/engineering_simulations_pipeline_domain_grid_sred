@@ -12,8 +12,8 @@ jobs:
   process_step_for_coordinates:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ${{ github.workspace }}/src  # ✅ Revised path for test import reliability
-      ENABLE_RULE_DEBUG: true  # ✅ CI-only debug mode
+      PYTHONPATH: ${{ github.workspace }}/src:${{ github.workspace }}/src/rules:${{ github.workspace }}/src/utils:${{ github.workspace }}/src/pipeline:${{ github.workspace }}/src/validation
+      ENABLE_RULE_DEBUG: true
 
     steps:
       - name: 🛎️ Checkout repository
