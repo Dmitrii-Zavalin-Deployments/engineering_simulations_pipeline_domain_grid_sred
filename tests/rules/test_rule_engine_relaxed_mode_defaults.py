@@ -55,7 +55,24 @@ def test_missing_type_check_mode_uses_default_and_raises():
     }
     with pytest.raises(RuleEvaluationError) as exc:
         evaluate_rule(rule, sample_payload)
-    assert "Incompatible types" in str(exc.value)
+    assert "Type mismatch (default strict)" in str(exc.value)
+
+def test_missing_type_check_mode_triggers_strict_mode_and_blocks_coercion():
+    rule = {
+        "if": "metrics.status == true"
+        # no explicit type_check_mode
+    }
+    with pytest.raises(RuleEvaluationError) as exc:
+        evaluate_rule(rule, sample_payload)
+    assert "Type mismatch (default strict)" in str(exc.value)
+
+def test_missing_type_check_mode_allows_literal_only_comparison():
+    rule = {
+        "if": "true == true"
+        # no type_check_mode
+    }
+    result = evaluate_rule(rule, sample_payload)
+    assert result is True
 
 def test_implicit_fallback_coercion_when_type_check_flags_false():
     # This manually bypasses type enforcement to test fallback

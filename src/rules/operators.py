@@ -6,6 +6,7 @@ class OperatorError(Exception):
     """Raised when an unsupported or malformed operator is invoked."""
     pass
 
+# 🔗 Centralized operator function definitions
 def op_eq(a, b): return a == b
 def op_ne(a, b): return a != b
 def op_lt(a, b): return a < b
@@ -21,8 +22,8 @@ def op_matches(a, b):
         raise TypeError("Regex pattern must be a string")
     return re.fullmatch(b, str(a)) is not None
 
-# 🔗 Supported operator registry
-OPS = {
+# 📦 Central registry of supported comparison operators
+SUPPORTED_OPERATORS = {
     "==": op_eq,
     "!=": op_ne,
     "<": op_lt,
@@ -77,11 +78,11 @@ def resolve_operator(op: str):
     original = op.strip()
     normalized = normalize_operator(original)
 
-    if normalized not in OPS:
+    if normalized not in SUPPORTED_OPERATORS:
         raise OperatorError(
             f"Unsupported comparison operator: '{original}' → normalized as '{normalized}'"
         )
-    return OPS[normalized]
+    return SUPPORTED_OPERATORS[normalized]
 
 
 

@@ -3,7 +3,7 @@
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal
-from src.rules.operators import resolve_operator, OperatorError
+from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
 
 logger = logging.getLogger(__name__)
 
@@ -11,21 +11,27 @@ class RuleEvaluationError(Exception):
     """Raised when a rule evaluation fails due to missing keys or invalid logic."""
     pass
 
-def _get_nested_value(payload: dict, key_path: str):
+def get_nested_value(payload: dict, path: str):
     """
-    Resolves a dotted key path into a nested value from the payload dictionary.
+    Safely resolves a dotted key path into a nested value from the payload dictionary.
 
     Example:
         payload = {"a": {"b": {"c": 5}}}
-        key_path = "a.b.c" → returns 5
+        path = "a.b.c" → returns 5
 
     Raises:
-        KeyError: If any key along the path is missing
+        RuleEvaluationError: If path is missing or value is None
     """
-    keys = key_path.split(".")
+    keys = path.split(".")
     value = payload
     for k in keys:
+        if not isinstance(value, dict):
+            raise RuleEvaluationError(f"Expected dict at '{k}' in path '{path}', but got {type(value)}")
+        if k not in value:
+            raise RuleEvaluationError(f"Missing key in expression: {path}")
         value = value[k]
+        if value is None:
+            raise RuleEvaluationError(f"Null value encountered at '{k}' in path '{path}'")
     return value
 
 def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
@@ -38,58 +44,56 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
       - Strict/Relaxed type enforcement toggle
 
     Raises:
-        ValueError, KeyError, OperatorError
+        RuleEvaluationError: On malformed expression, operator errors, missing keys, or coercion failure
     """
-    parts = expression.strip().split(" ", 3)
+    parts = expression.strip().split(" ", 2)
     if len(parts) != 3:
-        raise ValueError(f"Unsupported expression format: '{expression}'")
+        raise RuleEvaluationError(f"Unsupported expression format: '{expression}'")
 
     lhs_path, operator_str, rhs_literal = parts
+
+    if operator_str not in SUPPORTED_OPERATORS:
+        raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
     # 🔓 Relaxed literal guard: allow literal-only comparisons
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
     else:
-        try:
-            lhs_value = _get_nested_value(payload, lhs_path)
-        except KeyError:
-            raise RuleEvaluationError(f"Missing key in expression: {lhs_path}")
+        lhs_value = get_nested_value(payload, lhs_path)
 
     try:
         compare_fn = resolve_operator(operator_str)
-    except OperatorError as err:
-        raise ValueError(str(err))
+    except OperatorError:
+        raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
     rhs_value = parse_literal(rhs_literal)
 
-    # 🛡️ Fallback coercion logic
-    if not strict_type_check and not relaxed_type_check:
-        try:
-            if isinstance(rhs_value, (int, float)):
-                lhs_value = type(rhs_value)(lhs_value)
-            elif isinstance(rhs_value, bool):
-                if str(lhs_value).lower() in ["true", "false"]:
-                    lhs_value = str(lhs_value).lower() == "true"
-        except Exception:
-            pass  # Silently ignore unsafe fallback attempts
-
-    elif strict_type_check:
-        if type(lhs_value) != type(rhs_value):
-            raise ValueError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
-
-    elif relaxed_type_check:
-        try:
-            if isinstance(rhs_value, (int, float)):
-                lhs_value = type(rhs_value)(lhs_value)
-            elif isinstance(rhs_value, bool):
+    try:
+        if strict_type_check:
+            if type(lhs_value) != type(rhs_value):
+                raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
+        elif relaxed_type_check:
+            if isinstance(rhs_value, bool):
                 if str(lhs_value).lower() in ["true", "false"]:
                     lhs_value = str(lhs_value).lower() == "true"
                 else:
-                    raise ValueError(f"Cannot coerce non-boolean string: {lhs_value}")
-        except Exception as e:
-            raise ValueError(f"Coercion failed: {e}")
+                    raise RuleEvaluationError(f"Cannot coerce non-boolean string: {lhs_value}")
+            elif isinstance(rhs_value, (int, float)):
+                try:
+                    lhs_value = type(rhs_value)(lhs_value)
+                except Exception as e:
+                    raise RuleEvaluationError(f"Numeric coercion failed: {e}")
+        else:
+            # default strict behavior if no mode specified
+            if type(lhs_value) != type(rhs_value):
+                raise RuleEvaluationError(f"Type mismatch (default strict): {type(lhs_value)} vs {type(rhs_value)}")
+    except Exception as e:
+        raise RuleEvaluationError(f"Coercion error: {e}")
 
-    return compare_fn(lhs_value, rhs_value)
+    try:
+        return compare_fn(lhs_value, rhs_value)
+    except Exception as e:
+        raise RuleEvaluationError(f"Comparison failed: {e}")
 
 def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
     """
@@ -103,6 +107,9 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
 
     Returns:
         bool: True if the rule passes, False if it fails
+
+    Raises:
+        RuleEvaluationError: If rule evaluation fails due to invalid configuration or logic
     """
     expression = rule.get("if")
     if not expression or not isinstance(expression, str):
@@ -117,16 +124,12 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
     strict_type_check = type_mode == "strict"
     relaxed_type_check = type_mode == "relaxed"
 
-    try:
-        return _evaluate_expression(expression, payload,
-                                    strict_type_check=strict_type_check,
-                                    relaxed_type_check=relaxed_type_check)
-    except (ValueError, OperatorError, RuleEvaluationError) as e:
-        logger.warning(f"Rule evaluation failed: {e}")
-        return False  # ✅ Updated to gracefully fail instead of raising
-    except Exception as e:
-        logger.error(f"Unexpected evaluation failure: {e}")
-        return False  # ✅ Defensive fallback
+    return _evaluate_expression(
+        expression,
+        payload,
+        strict_type_check=strict_type_check,
+        relaxed_type_check=relaxed_type_check
+    )
 
 
 

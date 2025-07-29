@@ -57,7 +57,7 @@ def test_invalid_payload_triggers_validation():
     payload = {"domain_definition": {"nx": 0}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert str(exc.value).startswith("Grid resolution nx must be nonzero")
+    assert "[Rule 0] Grid resolution nx must be nonzero" in str(exc.value)
 
 def test_enforce_profile_triggered_error():
     path = _write_temp_profile([
@@ -66,7 +66,7 @@ def test_enforce_profile_triggered_error():
     payload = {"metrics": {"accuracy": 0.7}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert str(exc.value).startswith("Accuracy too low")
+    assert "[Rule 0] Accuracy too low" in str(exc.value)
 
 def test_enforce_profile_expression_failure():
     path = _write_temp_profile([
@@ -75,7 +75,7 @@ def test_enforce_profile_expression_failure():
     payload = {"a": {"b": "abc"}}  # ✅ Literal string comparison to ensure failure
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert str(exc.value).startswith("Comparison failed")
+    assert "[Rule 0] Comparison failed" in str(exc.value)
 
 def test_missing_keys_are_detected():
     path = _write_temp_profile([
@@ -86,6 +86,7 @@ def test_missing_keys_are_detected():
         enforce_profile(path, payload)
     assert "Expression evaluation error" in str(exc.value)
     assert "Missing key in expression" in str(exc.value)
+    assert "[Rule 0] max_z must exceed min_z" in str(exc.value)
 
 def test_null_literal_handling():
     path = _write_temp_profile([
@@ -94,7 +95,7 @@ def test_null_literal_handling():
     payload = {"domain_definition": {"bbox": None}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert str(exc.value).startswith("Bounding box missing")
+    assert "[Rule 0] Bounding box missing" in str(exc.value)
 
 # ⚠️ Skipped or malformed
 def test_malformed_rule_is_ignored():
@@ -113,11 +114,12 @@ def test_multiple_rules_trigger_only_first():
     payload = {"domain_definition": {"nx": 0, "max_z": 0, "min_z": 10}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert str(exc.value).startswith("nx must be > 0")
+    assert "[Rule 0] nx must be > 0" in str(exc.value)
 
 def test_enforce_profile_missing_file():
-    with pytest.raises(RuntimeError):
+    with pytest.raises(RuntimeError) as exc:
         enforce_profile("nonexistent.yaml", {})
+    assert "Failed to load validation profile" in str(exc.value)
 
 def test_unsupported_operator_raises_value_error():
     path = _write_temp_profile([
@@ -128,6 +130,7 @@ def test_unsupported_operator_raises_value_error():
         enforce_profile(path, payload)
     assert "Expression evaluation error" in str(exc.value)
     assert "Unsupported comparison operator" in str(exc.value)
+    assert "[Rule 0] Unsupported operator" in str(exc.value)
 
 
 
