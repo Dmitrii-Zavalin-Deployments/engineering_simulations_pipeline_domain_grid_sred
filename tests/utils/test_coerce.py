@@ -1,5 +1,5 @@
 import unittest
-from src.rules.utils.coercion import coerce_numeric
+from src.utils.coercion import coerce_numeric
 
 
 class TestCoerceNumeric(unittest.TestCase):
