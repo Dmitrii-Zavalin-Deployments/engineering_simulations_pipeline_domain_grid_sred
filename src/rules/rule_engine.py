@@ -2,7 +2,7 @@
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
-from src.validation.expression_utils import parse_literal
+from src.validation.expression_utils import parse_literal, is_literal  # ✅ Added is_literal
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
 from src.rules.config import debug_log
 
@@ -73,6 +73,17 @@ def _evaluate_expression(
     if operator_str not in SUPPORTED_OPERATORS:
         raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
+    # ✅ Early fallback for literal-only comparison with empty payload
+    if not payload and all(is_literal(x) for x in [lhs_path, rhs_literal]):
+        lhs_val = parse_literal(lhs_path)
+        rhs_val = parse_literal(rhs_literal)
+        try:
+            compare_fn = resolve_operator(operator_str)
+            debug_log(f"Literal-only fast-path → {lhs_val} {operator_str} {rhs_val}")
+            return compare_fn(lhs_val, rhs_val)
+        except Exception as e:
+            raise RuleEvaluationError(f"Literal comparison failed: {e}")
+
     # Evaluate LHS
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
@@ -88,16 +99,14 @@ def _evaluate_expression(
             else:
                 raise
 
-    # Resolve operator function
     try:
         compare_fn = resolve_operator(operator_str)
         debug_log(f"Resolved operator '{operator_str}' → {compare_fn}")
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
-    rhs_resolved_from_payload = False  # ✅ New safeguard
+    rhs_resolved_from_payload = False
 
-    # Evaluate RHS
     try:
         rhs_value = parse_literal(rhs_literal)
         debug_log(f"Parsed rhs literal: {rhs_value}")
@@ -107,7 +116,7 @@ def _evaluate_expression(
             debug_log(f"Attempting to resolve RHS path: {rhs_literal}")
             try:
                 rhs_value = get_nested_value(payload, rhs_literal)
-                rhs_resolved_from_payload = True  # ✅ Set flag
+                rhs_resolved_from_payload = True
                 debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
             except RuleEvaluationError as e:
                 logger.debug(f"Relaxed RHS fallback key resolution failed: {e}")
@@ -116,26 +125,24 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    # Type checking and coercion
     try:
         if strict_type_check:
-            debug_log(f"Strict type check enabled")
+            debug_log("Strict type check enabled")
             if type(lhs_value) != type(rhs_value):
                 raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
-            debug_log(f"Relaxed type check enabled")
+            debug_log("Relaxed type check enabled")
             if not rhs_resolved_from_payload:
                 lhs_value, rhs_value = _coerce_types_for_comparison(lhs_value, rhs_value)
             else:
                 debug_log("RHS was resolved from payload — skipping coercion on original string")
         else:
-            debug_log(f"Default strict check")
+            debug_log("Default strict check")
             if type(lhs_value) != type(rhs_value):
                 raise RuleEvaluationError(f"Type mismatch (default strict): {type(lhs_value)} vs {type(rhs_value)}")
     except Exception as e:
         raise RuleEvaluationError(f"Coercion error: {e}")
 
-    # Final comparison
     try:
         result = compare_fn(lhs_value, rhs_value)
         debug_log(f"Comparison result: {lhs_value} {operator_str} {rhs_value} → {result}")
@@ -156,7 +163,7 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
         except Exception as config_error:
             logger.warning(f"Invalid type check mode override: {config_error}")
             type_mode = "strict"
-            debug_log(f"Fallback type check mode: strict")
+            debug_log("Fallback type check mode: strict")
 
         strict_type_check = type_mode == "strict"
         relaxed_type_check = type_mode == "relaxed"

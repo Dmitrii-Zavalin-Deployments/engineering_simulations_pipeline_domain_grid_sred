@@ -10,7 +10,8 @@ Available Methods:
 - coerce_numeric(value)
 - coerce_boolean(value)
 - coerce_string(value)
-- safe_float(value)  # ✅ Strategic Addition
+- safe_float(value)
+- relaxed_cast(value, target_type)  # ✅ Strategic Addition
 """
 
 from typing import Any, Union, Optional
@@ -18,10 +19,6 @@ from src.rules.config import debug_log
 
 
 def coerce_numeric(value: Any) -> Optional[float]:
-    """
-    Strict numeric coercion to float. Returns None on failure.
-    Used in arithmetic logic to guarantee safe operation.
-    """
     if isinstance(value, (int, float)):
         debug_log(f"[numeric] Native numeric detected → {value}")
         return float(value)
@@ -35,11 +32,6 @@ def coerce_numeric(value: Any) -> Optional[float]:
 
 
 def coerce_boolean(value: Any) -> Union[bool, str]:
-    """
-    Normalize common truthy and falsy string representations.
-    e.g. "true", "1", "false", "0" → True/False
-    Falls back to string if unrecognized.
-    """
     if isinstance(value, bool):
         debug_log(f"[boolean] Native bool detected → {value}")
         return value
@@ -60,9 +52,6 @@ def coerce_boolean(value: Any) -> Union[bool, str]:
 
 
 def coerce_string(value: Any) -> str:
-    """
-    Coerces value to a trimmed string representation.
-    """
     try:
         result = value.strip() if isinstance(value, str) else str(value)
         debug_log(f"[string] Coerced '{value}' → '{result}'")
@@ -73,16 +62,53 @@ def coerce_string(value: Any) -> str:
 
 
 def safe_float(value: Any) -> Optional[float]:
-    """
-    Attempts to coerce value to float. Returns None on failure.
-    Used for tolerant float parsing in pipeline and rule logic.
-    """
     try:
         result = float(value)
         debug_log(f"[safe_float] Parsed '{value}' → {result}")
         return result
     except Exception as e:
         debug_log(f"[safe_float] Failed to parse '{value}' → None | {e}")
+        return None
+
+
+def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
+    """
+    Defensive relaxed-mode type casting.
+    Handles common encodings like "true", "123", etc. without raising.
+    Returns None for unsafe or unrecognized cases.
+    """
+    try:
+        if isinstance(value, target_type):
+            debug_log(f"[relaxed_cast] Native {target_type.__name__} detected → {value}")
+            return value
+
+        if isinstance(value, str):
+            stripped = value.strip().lower()
+            if target_type == bool:
+                if stripped in ("true", "1"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → True")
+                    return True
+                elif stripped in ("false", "0"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → False")
+                    return False
+            elif target_type == int and stripped.isdigit():
+                result = int(stripped)
+                debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                return result
+            elif target_type == float:
+                try:
+                    result = float(stripped)
+                    debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                    return result
+                except ValueError:
+                    pass
+
+        # Fallback for generic casting attempt
+        result = target_type(value)
+        debug_log(f"[relaxed_cast] Fallback cast '{value}' → {result}")
+        return result
+    except Exception as e:
+        debug_log(f"[relaxed_cast] Failed to cast '{value}' to {target_type.__name__} → None | {e}")
         return None
 
 
