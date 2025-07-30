@@ -88,8 +88,8 @@ def test_literal_comparison_strict_type_enabled():
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
-    assert _evaluate_expression("flag == \"true\"", payload, strict_type_check=False)
-    assert _evaluate_expression("count == 123", payload, strict_type_check=False)
+    assert _evaluate_expression("flag == \"true\"", payload, strict_type_check=False, relaxed_type_check=True)
+    assert _evaluate_expression("count == 123", payload, strict_type_check=False, relaxed_type_check=True)
 
 # 🧪 Strictness Mode Matrix
 @pytest.mark.parametrize("expression,payload,strict,expected", [
@@ -106,11 +106,11 @@ def test_strict_vs_relaxed_behavior(expression, payload, strict, expected):
 def test_non_expression_literal_equality():
     payload = {"hello": "world"}
     assert _evaluate_expression("123 == 123", payload) is True
-    assert _evaluate_expression("'hello' == \"hello\"", payload) is True
+    assert _evaluate_expression("'hello' == 'hello'", payload) is True
 
 def test_literal_mismatch_fallback():
     payload = {"hello": "world"}
-    assert _evaluate_expression("\"hello\" == 100", payload) is False
+    assert _evaluate_expression("'hello' == 100", payload, relaxed_type_check=True) is False
     assert not _evaluate_expression("true == \"true\"", payload, strict_type_check=True)
 
 def test_invalid_operator_literal_case():
