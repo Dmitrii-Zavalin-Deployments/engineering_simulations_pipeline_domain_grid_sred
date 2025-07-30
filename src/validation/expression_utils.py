@@ -1,4 +1,8 @@
+# src/validation/expression_utils.py
+
 import ast
+
+__all__ = ["parse_literal", "is_literal"]
 
 def normalize_quotes(expr: str) -> str:
     """
@@ -65,6 +69,31 @@ def parse_literal(value: str):
         return ast.literal_eval(val)
     except Exception:
         return val  # Fallback to raw string
+
+def is_literal(token: str) -> bool:
+    """
+    Determines whether the token represents a primitive literal.
+
+    Supported types:
+    - Boolean strings: 'true', 'false'
+    - Null representations: 'null', 'none'
+    - Numeric literals
+    - Quoted string literals
+
+    Examples:
+        is_literal("true") ➝ True
+        is_literal("'abc'") ➝ True
+        is_literal("123") ➝ True
+        is_literal("not_a_literal") ➝ False
+    """
+    token = token.strip().lower()
+    if token in {"true", "false", "null", "none"}:
+        return True
+    if token.isnumeric():
+        return True
+    if (token.startswith("'") and token.endswith("'")) or (token.startswith('"') and token.endswith('"')):
+        return True
+    return False
 
 
 

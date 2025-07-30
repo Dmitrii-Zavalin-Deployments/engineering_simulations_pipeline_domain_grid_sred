@@ -126,6 +126,12 @@ jobs:
       - name: 🔍 Print sys.path for module discovery insight
         run: python -c "import sys; print('PYTHON sys.path:', sys.path)"
 
+      - name: 🧪 Sanity check: validate 'is_literal' import
+        run: |
+          echo "🔎 Verifying that 'is_literal' is discoverable and functional..."
+          python -c "from src.validation.expression_utils import is_literal; print('Sample result:', is_literal('123'))"
+          echo "✅ Import check passed. Proceeding to full test suite."
+
       - name: 🧪 Run Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src
