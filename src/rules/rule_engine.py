@@ -114,6 +114,13 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
+    # ✅ Defensive bypass: skip coercion if unresolved values present in relaxed mode
+    if relaxed_type_check and (lhs_value is None or rhs_value is None):
+        debug_log("Skipping coercion: unresolved key in relaxed mode")
+        result = lhs_value == rhs_value
+        debug_log(f"Relaxed comparison: {lhs_value} == {rhs_value} → {result}")
+        return result
+
     try:
         if strict_type_check:
             debug_log("Strict type check enabled")
