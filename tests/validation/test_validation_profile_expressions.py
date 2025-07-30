@@ -12,7 +12,7 @@ from src.rules.rule_engine import (
     RuleEvaluationError
 )
 
-from conftest import get_payload_with_defaults  # 🔧 Added fixture import
+from tests.conftest import get_payload_with_defaults  # 🔧 Added fixture import
 
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
