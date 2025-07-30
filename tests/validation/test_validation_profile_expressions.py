@@ -95,6 +95,8 @@ def test_expression_evaluation_nested_key_resolution():
         "system": {"subsystem": {"value": 42}}
     })
     flags = get_type_check_flags("relaxed")
+    # This test case specifically failed due to RHS resolution and coercion issues.
+    # It should pass once src/rules/rule_engine.py is updated.
     assert _evaluate_expression("system.subsystem.value == expected.value", payload, **flags)
 
 # 🔍 Literal Edge Cases and Strict Type Toggle
@@ -134,6 +136,9 @@ def test_strict_vs_relaxed_behavior(expression, payload, mode, expected):
 def test_non_expression_literal_equality():
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("123 == 123", {}, **flags)
+    # This test case specifically failed due to incorrect string literal parsing.
+    # It should pass once src/rules/rule_engine.py is updated to prioritize parse_literal
+    # and src/validation/expression_utils.py's parse_literal correctly handles quoted strings.
     assert _evaluate_expression("'hello' == 'hello'", {}, **flags)
     payload = {"hello": "world"}
     assert _evaluate_expression("hello == 'world'", payload, **flags)
