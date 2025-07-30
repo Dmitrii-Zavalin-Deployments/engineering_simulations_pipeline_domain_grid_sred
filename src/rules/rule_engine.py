@@ -13,10 +13,6 @@ class RuleEvaluationError(Exception):
     pass
 
 def get_nested_value(payload: dict, path: str):
-    """
-    Retrieves a nested value from a dictionary payload using a dot-separated path.
-    Raises RuleEvaluationError if the path is invalid, a key is missing, or a null value is encountered.
-    """
     keys = path.split(".")
     value = payload
     for k in keys:
@@ -31,10 +27,6 @@ def get_nested_value(payload: dict, path: str):
     return value
 
 def _coerce_types_for_comparison(left, right):
-    """
-    Coerces types for comparison in relaxed mode. Attempts to convert strings to numbers
-    if one of the operands is numeric. Handles boolean coercion.
-    """
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
         if isinstance(left, bool) or isinstance(right, bool):
@@ -42,17 +34,14 @@ def _coerce_types_for_comparison(left, right):
             debug_log(f"Coerced to boolean: {coerced}")
             return coerced
         if isinstance(left, (int, float)) and isinstance(right, str):
-            # Attempt to coerce string 'right' to the type of 'left'
             right_coerced = type(left)(right)
             debug_log(f"Coerced right str to numeric: {right_coerced}")
             return left, right_coerced
         if isinstance(right, (int, float)) and isinstance(left, str):
-            # Attempt to coerce string 'left' to the type of 'right'
             left_coerced = type(right)(left)
             debug_log(f"Coerced left str to numeric: {left_coerced}")
             return left_coerced, right
         if isinstance(left, str) and isinstance(right, str):
-            # If both are strings, try to coerce both to int, then float
             for num_type in (int, float):
                 try:
                     left_num = num_type(left)
@@ -60,20 +49,13 @@ def _coerce_types_for_comparison(left, right):
                     debug_log(f"Coerced both strings to {num_type}: {left_num}, {right_num}")
                     return left_num, right_num
                 except Exception:
-                    # If coercion to current num_type fails, try next or fall through
                     continue
         debug_log("Coercion fallback: using original values")
         return left, right
     except Exception as e:
-        # Catch any coercion errors and re-raise as RuleEvaluationError
         raise RuleEvaluationError(f"Type coercion failed in relaxed mode: {e}")
 
 def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
-    """
-    Evaluates a single expression string against a given payload.
-    Supports basic comparisons (e.g., 'path.to.value == literal').
-    Handles strict and relaxed type checking modes.
-    """
     debug_log(f"Evaluating expression: {expression}")
     parts = expression.strip().split(" ", 2)
     if len(parts) != 3:
@@ -85,56 +67,43 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     if operator_str not in SUPPORTED_OPERATORS:
         raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
-    # --- Determine LHS Value ---
-    # Prioritize parsing as a literal, then fallback to payload path resolution
-    lhs_value = None # Initialize to ensure scope
-    try:
+    if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
         debug_log(f"Parsed literal lhs: {lhs_value}")
-    except ValueError: # If it's not a simple literal, try to resolve as a path
+    else:
         try:
             lhs_value = get_nested_value(payload, lhs_path)
-            debug_log(f"Resolved lhs from payload key path '{lhs_path}' → {lhs_value}")
         except RuleEvaluationError as e:
             if relaxed_type_check:
                 lhs_value = None
                 logger.debug(f"Relaxed mode fallback for missing key '{lhs_path}': {e}")
                 debug_log(f"Relaxed fallback: missing key '{lhs_path}', using None")
             else:
-                # Re-raise if not in relaxed mode and path resolution fails
-                raise RuleEvaluationError(f"Invalid LHS: '{lhs_path}' - not a literal and not a valid payload path: {e}")
+                raise
 
-    # --- Resolve Operator ---
     try:
         compare_fn = resolve_operator(operator_str)
         debug_log(f"Resolved operator '{operator_str}' → {compare_fn}")
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
-    # --- Determine RHS Value ---
-    # Prioritize parsing as a literal, then fallback to payload path resolution
-    _temp_rhs_value = None # Use a temporary variable to ensure clear assignment
     try:
-        _temp_rhs_value = parse_literal(rhs_literal)
-        debug_log(f"Parsed rhs literal: {_temp_rhs_value}")
-    except ValueError: # If not a simple literal, try to resolve as a path
+        rhs_value = parse_literal(rhs_literal)
+        debug_log(f"Parsed rhs literal: {rhs_value}")
+    except ValueError as rhs_error:
         debug_log(f"Literal parsing failed for RHS: '{rhs_literal}' → {rhs_error}")
         if relaxed_type_check:
-            debug_log(f"Attempting to resolve RHS path: {rhs_literal}")
+            debug_log(f"Attempting to resolve RHS path: {rhs_literal}")  # 🆕 Diagnostic enhancement
             try:
-                _temp_rhs_value = get_nested_value(payload, rhs_literal)
-                debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {_temp_rhs_value}")
+                rhs_value = get_nested_value(payload, rhs_literal)
+                debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
             except RuleEvaluationError as e:
                 logger.debug(f"Relaxed RHS fallback key resolution failed: {e}")
-                _temp_rhs_value = None # Fallback to None if resolution fails
+                rhs_value = None
                 debug_log(f"Fallback: Using None for RHS '{rhs_literal}' due to resolution failure")
         else:
-            # Re-raise if not in relaxed mode and path resolution fails
-            raise RuleEvaluationError(f"Invalid RHS: '{rhs_literal}' - not a literal and not a valid payload path: {e}")
+            raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    rhs_value = _temp_rhs_value # Ensure rhs_value is definitively set here for subsequent use
-
-    # --- Type Checking and Coercion ---
     try:
         if strict_type_check:
             debug_log(f"Strict type check enabled")
@@ -142,43 +111,34 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
                 raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
             debug_log(f"Relaxed type check enabled")
-            # This call now receives the correctly resolved rhs_value (e.g., 42)
             lhs_value, rhs_value = _coerce_types_for_comparison(lhs_value, rhs_value)
         else:
             debug_log(f"Default strict check")
             if type(lhs_value) != type(rhs_value):
                 raise RuleEvaluationError(f"Type mismatch (default strict): {type(lhs_value)} vs {type(rhs_value)}")
     except Exception as e:
-        # Catch any errors during type checking/coercion
         raise RuleEvaluationError(f"Coercion error: {e}")
 
-    # --- Perform Comparison ---
     try:
         result = compare_fn(lhs_value, rhs_value)
         debug_log(f"Comparison result: {lhs_value} {operator_str} {rhs_value} → {result}")
         return result
     except Exception as e:
-        # Catch any errors during the final comparison
         raise RuleEvaluationError(f"Comparison failed: {e}")
 
 def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
-    """
-    Evaluates a single rule dictionary against a given payload.
-    Determines type checking mode based on rule configuration or defaults.
-    """
     expression = rule.get("if")
     if not expression or not isinstance(expression, str):
         debug_log("Empty or malformed rule expression; returning True")
         return True
 
-    # If type check flags are not explicitly provided, determine from rule config or default
     if not (strict_type_check or relaxed_type_check):
         try:
             type_mode = get_type_check_mode(rule.get("type_check_mode"))
             debug_log(f"Resolved type check mode: {type_mode}")
         except Exception as config_error:
             logger.warning(f"Invalid type check mode override: {config_error}")
-            type_mode = "strict" # Fallback to strict if config is invalid
+            type_mode = "strict"
             debug_log(f"Fallback type check mode: strict")
 
         strict_type_check = type_mode == "strict"

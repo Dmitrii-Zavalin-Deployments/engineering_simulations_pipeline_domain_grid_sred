@@ -45,13 +45,10 @@ def parse_literal(value: str):
         return int(val)
 
     # ✅ Attempt literal evaluation (floats, quoted strings, etc.)
-    # ast.literal_eval correctly handles quoted strings like "'hello'" or '"world"'
     try:
         return ast.literal_eval(val)
     except Exception:
-        # If ast.literal_eval fails (e.g., for non-literal strings like "some.path"),
-        # fall back to returning the raw string.
-        return val
+        return val  # Fallback to raw string
 
 
 
