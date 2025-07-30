@@ -42,7 +42,10 @@ def test_evaluate_expression_basic(expr, payload, expected):
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_float_str():
     payload = get_payload_with_defaults({
-        "domain_definition": {"min_z": 90.5}
+        "domain_definition": {
+            "max_z": 100.0,
+            "min_z": 90.5
+        }
     })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("domain_definition.max_z >= domain_definition.min_z", payload, **flags)
@@ -107,7 +110,7 @@ def test_literal_comparison_strict_type_enabled():
     assert _evaluate_expression("flag == true", payload, **flags)
     assert _evaluate_expression("count == 123", payload, **flags)
     with pytest.raises(RuleEvaluationError):
-        _evaluate_expression("flag == 1", payload, **flags)  # ❗ Type mismatch: bool vs int
+        _evaluate_expression("flag == 1", payload, **flags)
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
@@ -129,10 +132,10 @@ def test_strict_vs_relaxed_behavior(expression, payload, mode, expected):
 
 # 🔤 Literal Matching and Fallbacks
 def test_non_expression_literal_equality():
-    payload = {"hello": "world"}
     flags = get_type_check_flags("relaxed")
-    assert _evaluate_expression("123 == 123", payload, **flags)
-    assert _evaluate_expression("'hello' == 'hello'", payload, **flags)  # ✅ Fixed quoting for literal string match
+    assert _evaluate_expression("123 == 123", {}, **flags)
+    assert _evaluate_expression("'hello' == 'hello'", {}, **flags)
+    payload = {"hello": "world"}
     assert _evaluate_expression("hello == 'world'", payload, **flags)
 
 def test_literal_mismatch_fallback():
