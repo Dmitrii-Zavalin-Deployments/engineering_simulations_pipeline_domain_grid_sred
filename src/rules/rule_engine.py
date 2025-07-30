@@ -17,6 +17,11 @@ def _coerce_types_for_comparison(left, right):
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
 
+        # 🛡️ Defensive bypass for unresolved operands (e.g., due to missing keys in relaxed mode)
+        if left is None or right is None:
+            debug_log("Skipping coercion due to unresolved operand")
+            return left, right
+
         if is_symbolic_reference(right):
             raise RuleEvaluationError(f"Cannot coerce unresolved reference: {right}")
 
@@ -24,14 +29,17 @@ def _coerce_types_for_comparison(left, right):
             coerced = bool(left), bool(right)
             debug_log(f"Coerced to boolean: {coerced}")
             return coerced
+
         if isinstance(left, (int, float)) and isinstance(right, str):
             right_coerced = type(left)(right)
             debug_log(f"Coerced right str to numeric: {right_coerced}")
             return left, right_coerced
+
         if isinstance(right, (int, float)) and isinstance(left, str):
             left_coerced = type(right)(left)
             debug_log(f"Coerced left str to numeric: {left_coerced}")
             return left_coerced, right
+
         if isinstance(left, str) and isinstance(right, str):
             for num_type in (int, float):
                 try:
@@ -41,8 +49,10 @@ def _coerce_types_for_comparison(left, right):
                     return left_num, right_num
                 except Exception:
                     continue
+
         debug_log("Coercion fallback: using original values")
         return left, right
+
     except Exception as e:
         raise RuleEvaluationError(f"Type coercion failed in relaxed mode: {e}")
 
@@ -74,6 +84,7 @@ def _evaluate_expression(
         except Exception as e:
             raise RuleEvaluationError(f"Literal comparison failed: {e}")
 
+    # ➤ Resolve LHS
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
         debug_log(f"Parsed literal lhs: {lhs_value}")
@@ -88,14 +99,15 @@ def _evaluate_expression(
             else:
                 raise
 
+    # ➤ Resolve operator
     try:
         compare_fn = resolve_operator(operator_str)
         debug_log(f"Resolved operator '{operator_str}' → {compare_fn}")
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
+    # ➤ Resolve RHS
     rhs_resolved_from_payload = False
-
     try:
         rhs_value = parse_literal(rhs_literal)
         debug_log(f"Parsed rhs literal: {rhs_value}")
@@ -121,6 +133,7 @@ def _evaluate_expression(
         debug_log(f"Relaxed comparison: {lhs_value} == {rhs_value} → {result}")
         return result
 
+    # ➤ Coercion logic
     try:
         if strict_type_check:
             debug_log("Strict type check enabled")
@@ -139,6 +152,7 @@ def _evaluate_expression(
     except Exception as e:
         raise RuleEvaluationError(f"Coercion error: {e}")
 
+    # ➤ Final comparison
     try:
         result = compare_fn(lhs_value, rhs_value)
         debug_log(f"Comparison result: {lhs_value} {operator_str} {rhs_value} → {result}")
