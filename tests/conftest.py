@@ -42,12 +42,17 @@ def get_payload_with_defaults(overrides=None):
     base = {
         "hello": "world",
         "flag": True,
-        "thresholds": {"warn_val": 42, "max_val": 100},
+        "thresholds": {"warn_val": 150, "max_val": 150},
         "limits": {"upper": 10.0, "lower": 5.0},
         "metrics": {"score": 0.3},
         "values": {"x": 5},
         "system": {"subsystem": {"value": 42}},
+        "expected": {"value": 42},
         "config": {"enabled": "true"},
+        "domain_definition": {"max_z": 100.0, "min_z": 90.5},
+        "a": {"b": 10},
+        "x": {"y": 10},
+        "rules": {"status_code": "not_a_number", "expected_code": 200},
     }
     if overrides:
         # Deep merge logic if needed — otherwise shallow update
