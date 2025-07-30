@@ -8,6 +8,23 @@ They intentionally include legacy keys (e.g. min_x, nx) and malformed values
 to validate sanitizer robustness and fallback logic.
 """
 
+# 🧪 Expression Payload Support (Strategic Addition)
+from tests.conftest import get_payload_with_defaults
+
+def payload_for_expression_tests(overrides=None):
+    """
+    Provides reusable fallback payloads for rule evaluation and expression tests,
+    with optional injection of key-specific overrides.
+
+    Parameters:
+        overrides (dict): Optional dictionary to override defaults.
+
+    Returns:
+        dict: Composite payload suitable for relaxed or strict rule tests.
+    """
+    return get_payload_with_defaults(overrides)
+
+
 def valid_domain_payload():
     """Structured geometry definition using legacy keys, before sanitization."""
     return {

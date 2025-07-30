@@ -40,4 +40,21 @@ def get_type_check_mode(profile_override: str | None = None) -> str:
     return mode
 
 
+def get_type_check_flags(mode: str | None = None) -> dict:
+    """
+    Returns strict/relaxed rule engine flags based on supplied mode.
+
+    Parameters:
+        mode (str): Optional "strict" or "relaxed". Defaults to configured mode.
+
+    Returns:
+        dict: Dictionary with strict_type_check and relaxed_type_check values
+    """
+    resolved = get_type_check_mode(mode)
+    return {
+        "strict_type_check": resolved == "strict",
+        "relaxed_type_check": resolved == "relaxed"
+    }
+
+
 
