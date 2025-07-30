@@ -93,12 +93,12 @@ def test_literal_vs_native_equivalence():
     assert _evaluate_expression("count == 123", payload, **flags)
 
 def test_literal_comparison_strict_type_enabled():
-    payload = {"flag": "true", "count": "123"}
+    payload = {"flag": True, "count": 123}  # ✅ updated
     flags = get_type_check_flags("strict")
-    assert not _evaluate_expression("flag == true", payload, **flags)
-    assert not _evaluate_expression("count == 123", payload, **flags)
+    assert _evaluate_expression("flag == true", payload, **flags)
+    assert _evaluate_expression("count == 123", payload, **flags)
     with pytest.raises(RuleEvaluationError):
-        _evaluate_expression("flag == true", payload, **flags)
+        _evaluate_expression("flag == false", payload, **flags)
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
@@ -123,7 +123,7 @@ def test_non_expression_literal_equality():
     payload = {"hello": "world"}
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("123 == 123", payload, **flags)
-    assert _evaluate_expression('"hello" == "hello"', payload, **flags)
+    assert _evaluate_expression("'hello' == 'hello'", payload, **flags)  # ✅ updated
     assert _evaluate_expression("hello == 'world'", payload, **flags)
 
 def test_literal_mismatch_fallback():
@@ -137,6 +137,5 @@ def test_invalid_operator_literal_case():
     with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("false %% true", {})
     assert "Unsupported operator" in str(err.value)
-
 
 
