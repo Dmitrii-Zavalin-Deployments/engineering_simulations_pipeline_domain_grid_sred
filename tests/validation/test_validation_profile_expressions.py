@@ -12,7 +12,8 @@ from src.rules.rule_engine import (
     RuleEvaluationError
 )
 
-from tests.conftest import get_payload_with_defaults  # 🔧 Added fixture import
+# 🧪 Added centralized fixture import
+from tests.conftest import get_payload_with_defaults
 
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
@@ -46,12 +47,17 @@ def test_expression_evaluation_type_coercion_int_str():
     assert _evaluate_expression("thresholds.max_val == thresholds.warn_val", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_type_coercion_mixed_types():
-    payload = get_payload_with_defaults()
+    payload = {
+        "a": {"b": 10},
+        "x": {"y": 10}
+    }
     assert _evaluate_expression("a.b == x.y", payload, relaxed_type_check=True)
 
 # 🚫 Failure & Exceptions
 def test_expression_evaluation_incompatible_types():
-    payload = get_payload_with_defaults()
+    payload = {
+        "rules": {"status_code": "not_a_number", "expected_code": 200}
+    }
     with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("rules.status_code == rules.expected_code", payload, strict_type_check=True)
     assert "Incompatible types" in str(err.value)
@@ -74,7 +80,10 @@ def test_expression_evaluation_missing_key_relaxed_fallback():
     assert _evaluate_expression("a.missing == null", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_nested_key_resolution():
-    payload = get_payload_with_defaults()
+    payload = {
+        "system": {"subsystem": {"value": 42}},
+        "expected": {"value": 42}
+    }
     assert _evaluate_expression("system.subsystem.value == expected.value", payload, relaxed_type_check=True)
 
 # 🔍 Literal Edge Cases and Strict Type Toggle
@@ -87,6 +96,8 @@ def test_literal_comparison_strict_type_enabled():
     payload = {"flag": "true", "count": "123"}
     assert not _evaluate_expression("flag == true", payload, strict_type_check=True)
     assert not _evaluate_expression("count == 123", payload, strict_type_check=True)
+    with pytest.raises(RuleEvaluationError):
+        _evaluate_expression("flag == true", payload, strict_type_check=True)
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
@@ -106,12 +117,13 @@ def test_strict_vs_relaxed_behavior(expression, payload, strict, expected):
 
 # 🔤 Literal Matching and Fallbacks
 def test_non_expression_literal_equality():
-    payload = get_payload_with_defaults()
+    payload = {"hello": "world"}
     assert _evaluate_expression("123 == 123", payload) is True
     assert _evaluate_expression("'hello' == 'hello'", payload) is True
+    assert _evaluate_expression("hello == 'world'", payload) is True
 
 def test_literal_mismatch_fallback():
-    payload = get_payload_with_defaults()
+    payload = {"hello": "world"}
     assert _evaluate_expression("'hello' == 100", payload, relaxed_type_check=True) is False
     with pytest.raises(RuleEvaluationError):
         _evaluate_expression("true == \"true\"", payload, strict_type_check=True)
