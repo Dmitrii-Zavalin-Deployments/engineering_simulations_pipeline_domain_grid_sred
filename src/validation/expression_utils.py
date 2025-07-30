@@ -6,6 +6,7 @@ def parse_literal(value: str):
 
     Uses layered logic:
       - Handles canonical JSON-style literals explicitly
+      - Detects quoted string literals
       - Attempts safe literal evaluation with ast.literal_eval
       - Falls back to raw string if evaluation fails
 
@@ -40,15 +41,16 @@ def parse_literal(value: str):
     if val_lower in {"null", "none"}:
         return None
 
+    # ✅ Handle quoted string literals before coercion
+    if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
+        return val[1:-1]
+
     # ✅ Leading-zero-safe integer fallback
     if val.isdigit():
         return int(val)
 
-    # ✅ Attempt literal evaluation (floats, quoted strings, etc.)
+    # ✅ Attempt literal evaluation (floats, objects, etc.)
     try:
         return ast.literal_eval(val)
     except Exception:
         return val  # Fallback to raw string
-
-
-

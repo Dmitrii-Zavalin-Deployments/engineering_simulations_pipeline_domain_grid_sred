@@ -55,9 +55,15 @@ def _coerce_types_for_comparison(left, right):
     except Exception as e:
         raise RuleEvaluationError(f"Type coercion failed in relaxed mode: {e}")
 
-def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: bool = False, relaxed_type_check: bool = False) -> bool:
+def _evaluate_expression(
+    expression: str,
+    payload: dict,
+    *,
+    strict_type_check: bool = False,
+    relaxed_type_check: bool = False
+) -> bool:
     debug_log(f"Evaluating expression: {expression}")
-    parts = expression.strip().split(" ", 2)
+    parts = expression.strip().split(" ", 3)
     if len(parts) != 3:
         raise RuleEvaluationError(f"Unsupported expression format: '{expression}'")
 
@@ -67,6 +73,7 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     if operator_str not in SUPPORTED_OPERATORS:
         raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
+    # Evaluate LHS
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
         debug_log(f"Parsed literal lhs: {lhs_value}")
@@ -81,21 +88,26 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
             else:
                 raise
 
+    # Resolve operator function
     try:
         compare_fn = resolve_operator(operator_str)
         debug_log(f"Resolved operator '{operator_str}' → {compare_fn}")
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
+    rhs_resolved_from_payload = False  # ✅ New safeguard
+
+    # Evaluate RHS
     try:
         rhs_value = parse_literal(rhs_literal)
         debug_log(f"Parsed rhs literal: {rhs_value}")
     except ValueError as rhs_error:
         debug_log(f"Literal parsing failed for RHS: '{rhs_literal}' → {rhs_error}")
         if relaxed_type_check:
-            debug_log(f"Attempting to resolve RHS path: {rhs_literal}")  # 🆕 Diagnostic enhancement
+            debug_log(f"Attempting to resolve RHS path: {rhs_literal}")
             try:
                 rhs_value = get_nested_value(payload, rhs_literal)
+                rhs_resolved_from_payload = True  # ✅ Set flag
                 debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
             except RuleEvaluationError as e:
                 logger.debug(f"Relaxed RHS fallback key resolution failed: {e}")
@@ -104,6 +116,7 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
+    # Type checking and coercion
     try:
         if strict_type_check:
             debug_log(f"Strict type check enabled")
@@ -111,7 +124,10 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
                 raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
             debug_log(f"Relaxed type check enabled")
-            lhs_value, rhs_value = _coerce_types_for_comparison(lhs_value, rhs_value)
+            if not rhs_resolved_from_payload:
+                lhs_value, rhs_value = _coerce_types_for_comparison(lhs_value, rhs_value)
+            else:
+                debug_log("RHS was resolved from payload — skipping coercion on original string")
         else:
             debug_log(f"Default strict check")
             if type(lhs_value) != type(rhs_value):
@@ -119,6 +135,7 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     except Exception as e:
         raise RuleEvaluationError(f"Coercion error: {e}")
 
+    # Final comparison
     try:
         result = compare_fn(lhs_value, rhs_value)
         debug_log(f"Comparison result: {lhs_value} {operator_str} {rhs_value} → {result}")

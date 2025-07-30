@@ -52,13 +52,17 @@ def test_expression_evaluation_type_coercion_float_str():
 
 def test_expression_evaluation_type_coercion_int_str():
     payload = get_payload_with_defaults({
-        "thresholds": {"warn_val": 150}
+        "thresholds": {
+            "max_val": 150,
+            "warn_val": 150
+        }
     })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("thresholds.max_val == thresholds.warn_val", payload, **flags)
 
 def test_expression_evaluation_type_coercion_mixed_types():
     payload = get_payload_with_defaults({
+        "a": {"b": 10},
         "x": {"y": 10}
     })
     flags = get_type_check_flags("relaxed")
