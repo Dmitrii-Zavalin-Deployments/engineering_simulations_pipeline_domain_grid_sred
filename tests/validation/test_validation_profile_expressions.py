@@ -41,17 +41,23 @@ def test_evaluate_expression_basic(expr, payload, expected):
 
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_float_str():
-    payload = get_payload_with_defaults({"domain_definition": {"min_z": 90.5}})
+    payload = get_payload_with_defaults({
+        "domain_definition": {"min_z": 90.5}
+    })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("domain_definition.max_z >= domain_definition.min_z", payload, **flags)
 
 def test_expression_evaluation_type_coercion_int_str():
-    payload = get_payload_with_defaults({"thresholds": {"warn_val": 150}})
+    payload = get_payload_with_defaults({
+        "thresholds": {"warn_val": 150}
+    })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("thresholds.max_val == thresholds.warn_val", payload, **flags)
 
 def test_expression_evaluation_type_coercion_mixed_types():
-    payload = get_payload_with_defaults({"x": {"y": 10}})
+    payload = get_payload_with_defaults({
+        "x": {"y": 10}
+    })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("a.b == x.y", payload, **flags)
 
@@ -81,7 +87,10 @@ def test_expression_evaluation_missing_key_relaxed_fallback():
     assert _evaluate_expression("a.missing == null", payload, **flags)
 
 def test_expression_evaluation_nested_key_resolution():
-    payload = get_payload_with_defaults({"expected": {"value": 42}})
+    payload = get_payload_with_defaults({
+        "expected": {"value": 42},
+        "system": {"subsystem": {"value": 42}}
+    })
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("system.subsystem.value == expected.value", payload, **flags)
 
@@ -93,12 +102,12 @@ def test_literal_vs_native_equivalence():
     assert _evaluate_expression("count == 123", payload, **flags)
 
 def test_literal_comparison_strict_type_enabled():
-    payload = {"flag": True, "count": 123}  # ✅ updated
+    payload = {"flag": True, "count": 123}
     flags = get_type_check_flags("strict")
     assert _evaluate_expression("flag == true", payload, **flags)
     assert _evaluate_expression("count == 123", payload, **flags)
     with pytest.raises(RuleEvaluationError):
-        _evaluate_expression("flag == false", payload, **flags)
+        _evaluate_expression("flag == 1", payload, **flags)  # ❗ Type mismatch: bool vs int
 
 def test_literal_comparison_strict_type_disabled():
     payload = {"flag": "true", "count": "123"}
@@ -123,7 +132,7 @@ def test_non_expression_literal_equality():
     payload = {"hello": "world"}
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("123 == 123", payload, **flags)
-    assert _evaluate_expression("'hello' == 'hello'", payload, **flags)  # ✅ updated
+    assert _evaluate_expression('"hello" == "hello"', payload, **flags)  # ✅ Updated to double quotes
     assert _evaluate_expression("hello == 'world'", payload, **flags)
 
 def test_literal_mismatch_fallback():
@@ -137,5 +146,6 @@ def test_invalid_operator_literal_case():
     with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("false %% true", {})
     assert "Unsupported operator" in str(err.value)
+
 
 

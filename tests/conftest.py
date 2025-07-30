@@ -54,11 +54,15 @@ def get_payload_with_defaults(overrides=None):
         "x": {"y": 10},
         "rules": {"status_code": "not_a_number", "expected_code": 200},
     }
+
     if overrides:
-        # Deep merge logic if needed — otherwise shallow update
         for key, value in overrides.items():
-            if isinstance(value, dict) and key in base and isinstance(base[key], dict):
-                base[key].update(value)
+            # ✅ Defensive check: ensure override types match expected dict structure
+            if key in base and isinstance(base[key], dict):
+                if isinstance(value, dict):
+                    base[key].update(value)
+                else:
+                    raise TypeError(f"Override for '{key}' must be a dict, got {type(value)}")
             else:
                 base[key] = value
     return base
