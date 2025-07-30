@@ -9,10 +9,10 @@ def normalize_quotes(expr: str) -> str:
     Cleans up deeply nested or redundant quote tokens.
 
     Examples:
-        normalize_quotes("'''hello'''") ➝ "'hello'"
-        normalize_quotes('"""world"""') ➝ '"world"'
-        normalize_quotes("''string''") ➝ "'string'"
-        normalize_quotes('""data""') ➝ '"data"'
+        normalize_quotes("'''hello'''") returns "'hello'"
+        normalize_quotes('"""world"""') returns '"world"'
+        normalize_quotes("''string''") returns "'string'"
+        normalize_quotes('""data""') returns '"data"'
     """
     expr = expr.strip()
     expr = expr.replace("'''", "'").replace('"""', '"')
@@ -30,30 +30,29 @@ def parse_literal(value: str):
       - Falls back to raw string if evaluation fails
 
     Supported conversions:
-    - 'null', 'None' ➝ None
-    - 'true', 'false' ➝ bool
-    - Padded integers ➝ int
-    - Floats ➝ float
-    - Quoted strings ➝ str
-    - All other values ➝ raw str (fallback)
+    - 'null', 'None' are converted to None
+    - 'true', 'false' are converted to boolean
+    - Padded integers are converted to int
+    - Floats are converted to float
+    - Quoted strings are converted to str
+    - All other values are returned as raw str
 
     Examples:
-        parse_literal("42") ➝ 42
-        parse_literal("3.14") ➝ 3.14
-        parse_literal("'hello'") ➝ "hello"
-        parse_literal('"world"') ➝ "world"
-        parse_literal("true") ➝ True
-        parse_literal("null") ➝ None
-        parse_literal("00123") ➝ 123
+        parse_literal("42") returns 42
+        parse_literal("3.14") returns 3.14
+        parse_literal("'hello'") returns "hello"
+        parse_literal('"world"') returns "world"
+        parse_literal("true") returns True
+        parse_literal("null") returns None
+        parse_literal("00123") returns 123
     """
     if not isinstance(value, str):
         return value  # Already parsed
 
-    val = normalize_quotes(value)  # ✅ Safety wrapper applied
+    val = normalize_quotes(value)
     val = val.strip()
     val_lower = val.lower()
 
-    # ✅ Explicit JSON-style literal handling
     if val_lower == "true":
         return True
     if val_lower == "false":
@@ -61,35 +60,32 @@ def parse_literal(value: str):
     if val_lower in {"null", "none"}:
         return None
 
-    # ✅ Handle quoted string literals before coercion
     if (val.startswith("'") and val.endswith("'")) or (val.startswith('"') and val.endswith('"')):
         return val[1:-1]
 
-    # ✅ Leading-zero-safe integer fallback
     if val.isdigit():
         return int(val)
 
-    # ✅ Attempt literal evaluation (floats, objects, etc.)
     try:
         return ast.literal_eval(val)
     except Exception:
-        return val  # Fallback to raw string
+        return val
 
 def is_literal(token: str) -> bool:
     """
     Determines whether the token represents a primitive literal.
 
     Supported types:
-    - Boolean strings: 'true', 'false'
-    - Null representations: 'null', 'none'
+    - Boolean strings like 'true', 'false'
+    - Null representations like 'null', 'none'
     - Numeric literals
     - Quoted string literals
 
     Examples:
-        is_literal("true") ➝ True
-        is_literal("'abc'") ➝ True
-        is_literal("123") ➝ True
-        is_literal("not_a_literal") ➝ False
+        is_literal("true") returns True
+        is_literal("'abc'") returns True
+        is_literal("123") returns True
+        is_literal("not_a_literal") returns False
     """
     token = token.strip().lower()
     if token in {"true", "false", "null", "none"}:
