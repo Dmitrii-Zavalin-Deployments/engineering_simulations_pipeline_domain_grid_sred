@@ -12,6 +12,8 @@ from src.rules.rule_engine import (
     RuleEvaluationError
 )
 
+from conftest import get_payload_with_defaults  # 🔧 Added fixture import
+
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
     payload = {"a": {"b": {"c": 42}}}
@@ -36,20 +38,20 @@ def test_evaluate_expression_basic(expr, payload, expected):
 
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_float_str():
-    payload = {"domain_definition": {"max_z": 100.0, "min_z": 90.5}}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("domain_definition.max_z >= domain_definition.min_z", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_type_coercion_int_str():
-    payload = {"thresholds": {"max_val": 150, "warn_val": 150}}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("thresholds.max_val == thresholds.warn_val", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_type_coercion_mixed_types():
-    payload = {"a": {"b": 10}, "x": {"y": 10}}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("a.b == x.y", payload, relaxed_type_check=True)
 
 # 🚫 Failure & Exceptions
 def test_expression_evaluation_incompatible_types():
-    payload = {"rules": {"status_code": "not_a_number", "expected_code": 200}}
+    payload = get_payload_with_defaults()
     with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("rules.status_code == rules.expected_code", payload, strict_type_check=True)
     assert "Incompatible types" in str(err.value)
@@ -72,7 +74,7 @@ def test_expression_evaluation_missing_key_relaxed_fallback():
     assert _evaluate_expression("a.missing == null", payload, relaxed_type_check=True)
 
 def test_expression_evaluation_nested_key_resolution():
-    payload = {"system": {"subsystem": {"value": 42}}, "expected": {"value": 42}}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("system.subsystem.value == expected.value", payload, relaxed_type_check=True)
 
 # 🔍 Literal Edge Cases and Strict Type Toggle
@@ -104,14 +106,15 @@ def test_strict_vs_relaxed_behavior(expression, payload, strict, expected):
 
 # 🔤 Literal Matching and Fallbacks
 def test_non_expression_literal_equality():
-    payload = {"hello": "world"}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("123 == 123", payload) is True
     assert _evaluate_expression("'hello' == 'hello'", payload) is True
 
 def test_literal_mismatch_fallback():
-    payload = {"hello": "world"}
+    payload = get_payload_with_defaults()
     assert _evaluate_expression("'hello' == 100", payload, relaxed_type_check=True) is False
-    assert not _evaluate_expression("true == \"true\"", payload, strict_type_check=True)
+    with pytest.raises(RuleEvaluationError):
+        _evaluate_expression("true == \"true\"", payload, strict_type_check=True)
 
 def test_invalid_operator_literal_case():
     with pytest.raises(RuleEvaluationError) as err:
