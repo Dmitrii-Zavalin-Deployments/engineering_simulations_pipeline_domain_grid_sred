@@ -10,7 +10,6 @@ def normalize_quotes(expr: str) -> str:
 
     Examples:
         normalize_quotes("'''hello'''") returns "'hello'"
-        normalize_quotes('"""world"""') returns '"world"'
         normalize_quotes("''string''") returns "'string'"
         normalize_quotes('""data""') returns '"data"'
     """
