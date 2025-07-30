@@ -24,6 +24,13 @@ RULE_ENGINE_SETTINGS = {
     "relaxed_type_check": True
 }
 
+# 🧪 Precomputed relaxed-mode flags for reuse
+RELAXED_TYPE_FLAGS = {
+    "strict_type_check": False,
+    "relaxed_type_check": True
+}
+
+
 def get_type_check_mode(profile_override: str | None = None) -> str:
     """
     Returns the configured type check mode, allowing optional profile override.

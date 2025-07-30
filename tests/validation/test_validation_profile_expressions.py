@@ -132,7 +132,7 @@ def test_non_expression_literal_equality():
     payload = {"hello": "world"}
     flags = get_type_check_flags("relaxed")
     assert _evaluate_expression("123 == 123", payload, **flags)
-    assert _evaluate_expression('"hello" == "hello"', payload, **flags)  # ✅ Updated to double quotes
+    assert _evaluate_expression("'hello' == 'hello'", payload, **flags)  # ✅ Fixed quoting for literal string match
     assert _evaluate_expression("hello == 'world'", payload, **flags)
 
 def test_literal_mismatch_fallback():

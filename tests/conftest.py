@@ -58,11 +58,10 @@ def get_payload_with_defaults(overrides=None):
     if overrides:
         for key, value in overrides.items():
             # ✅ Defensive check: ensure override types match expected dict structure
-            if key in base and isinstance(base[key], dict):
-                if isinstance(value, dict):
-                    base[key].update(value)
-                else:
-                    raise TypeError(f"Override for '{key}' must be a dict, got {type(value)}")
+            if isinstance(base.get(key), dict) and not isinstance(value, dict):
+                raise TypeError(f"Cannot override structured key '{key}' with scalar value: {value}")
+            elif isinstance(base.get(key), dict) and isinstance(value, dict):
+                base[key].update(value)
             else:
                 base[key] = value
     return base

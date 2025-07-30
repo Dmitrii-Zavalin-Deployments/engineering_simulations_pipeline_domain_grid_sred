@@ -93,6 +93,7 @@ def _evaluate_expression(expression: str, payload: dict, *, strict_type_check: b
     except ValueError as rhs_error:
         debug_log(f"Literal parsing failed for RHS: '{rhs_literal}' → {rhs_error}")
         if relaxed_type_check:
+            debug_log(f"Attempting to resolve RHS path: {rhs_literal}")  # 🆕 Diagnostic enhancement
             try:
                 rhs_value = get_nested_value(payload, rhs_literal)
                 debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
