@@ -1,5 +1,15 @@
 import ast
 
+def normalize_quotes(expr: str) -> str:
+    """
+    Cleans up deeply nested or redundant quote tokens.
+
+    Examples:
+        normalize_quotes("'''hello'''") ➝ "'hello'"
+        normalize_quotes("''world''") ➝ "'world'"
+    """
+    return expr.strip().replace("'''", "'").replace("''", "'")
+
 def parse_literal(value: str):
     """
     Safely converts a string representation into its Python literal equivalent.
@@ -30,7 +40,8 @@ def parse_literal(value: str):
     if not isinstance(value, str):
         return value  # Already parsed
 
-    val = value.strip()
+    val = normalize_quotes(value)  # ✅ Safety wrapper applied
+    val = val.strip()
     val_lower = val.lower()
 
     # ✅ Explicit JSON-style literal handling
@@ -54,3 +65,6 @@ def parse_literal(value: str):
         return ast.literal_eval(val)
     except Exception:
         return val  # Fallback to raw string
+
+
+
