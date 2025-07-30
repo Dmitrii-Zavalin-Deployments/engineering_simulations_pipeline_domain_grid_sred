@@ -31,10 +31,22 @@ def assert_expression(expr: str, payload: dict, flags: dict):
         flags (dict): Evaluation flags (e.g., relaxed/strict type check)
 
     Raises:
-        AssertionError: If the expression evaluates to False
+        AssertionError: If the expression evaluates to False or throws unexpectedly
     """
-    from src.rules.rule_engine import _evaluate_expression  # Lazy import to avoid cycles
-    result = _evaluate_expression(expr, payload, **flags)
+    from src.rules.rule_engine import _evaluate_expression, RuleEvaluationError
+    try:
+        result = _evaluate_expression(expr, payload, **flags)
+    except RuleEvaluationError as e:
+        # ✅ Defensive fallback: raise with richer diagnostics
+        raise AssertionError(
+            f"Expression raised RuleEvaluationError: {expr}\nPayload: {payload}\nFlags: {flags}\nError: {str(e)}"
+        )
+
+    if result is None:
+        raise AssertionError(
+            f"Expression result was None — likely unresolved RHS fallback: {expr}\nPayload: {payload}\nFlags: {flags}"
+        )
+
     if not result:
         raise AssertionError(
             f"Expression failed: {expr}\nPayload: {payload}\nFlags: {flags}"
