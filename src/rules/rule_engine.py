@@ -2,33 +2,24 @@
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
-from src.validation.expression_utils import parse_literal, is_literal  # ✅ Added is_literal
+from src.validation.expression_utils import parse_literal, is_literal
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
 from src.rules.config import debug_log
+from src.rules.rule_engine_utils import (
+    RuleEvaluationError,
+    is_symbolic_reference,
+    get_nested_value
+)
 
 logger = logging.getLogger(__name__)
-
-class RuleEvaluationError(Exception):
-    """Raised when a rule evaluation fails due to missing keys or invalid logic."""
-    pass
-
-def get_nested_value(payload: dict, path: str):
-    keys = path.split(".")
-    value = payload
-    for k in keys:
-        if not isinstance(value, dict):
-            raise RuleEvaluationError(f"Expected dict at '{k}' in path '{path}', but got {type(value)}")
-        if k not in value:
-            raise RuleEvaluationError(f"Missing key in expression: {path}")
-        value = value[k]
-        if value is None:
-            raise RuleEvaluationError(f"Null value encountered at '{k}' in path '{path}'")
-        debug_log(f"Resolved key '{k}' → {value}")
-    return value
 
 def _coerce_types_for_comparison(left, right):
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
+
+        if is_symbolic_reference(right):
+            raise RuleEvaluationError(f"Cannot coerce unresolved reference: {right}")
+
         if isinstance(left, bool) or isinstance(right, bool):
             coerced = bool(left), bool(right)
             debug_log(f"Coerced to boolean: {coerced}")
@@ -73,7 +64,6 @@ def _evaluate_expression(
     if operator_str not in SUPPORTED_OPERATORS:
         raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
 
-    # ✅ Early fallback for literal-only comparison with empty payload
     if not payload and all(is_literal(x) for x in [lhs_path, rhs_literal]):
         lhs_val = parse_literal(lhs_path)
         rhs_val = parse_literal(rhs_literal)
@@ -84,7 +74,6 @@ def _evaluate_expression(
         except Exception as e:
             raise RuleEvaluationError(f"Literal comparison failed: {e}")
 
-    # Evaluate LHS
     if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
         lhs_value = parse_literal(lhs_path)
         debug_log(f"Parsed literal lhs: {lhs_value}")

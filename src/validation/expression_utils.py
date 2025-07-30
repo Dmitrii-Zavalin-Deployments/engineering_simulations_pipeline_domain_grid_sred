@@ -1,8 +1,12 @@
-# src/validation/expression_utils.py
-
 import ast
 
-__all__ = ["parse_literal", "is_literal"]
+__all__ = [
+    "parse_literal",
+    "is_literal",
+    "normalize_quotes",
+    "is_symbolic_reference",
+    "is_valid_numeric_literal"
+]
 
 def normalize_quotes(expr: str) -> str:
     """
@@ -94,6 +98,32 @@ def is_literal(token: str) -> bool:
     if (token.startswith("'") and token.endswith("'")) or (token.startswith('"') and token.endswith('"')):
         return True
     return False
+
+def is_symbolic_reference(val: str) -> bool:
+    """
+    Detects whether a string is a symbolic reference (e.g. 'x.y') rather than a literal.
+
+    Examples:
+        is_symbolic_reference("x.y") returns True
+        is_symbolic_reference("42") returns False
+        is_symbolic_reference("abc") returns False
+    """
+    return isinstance(val, str) and '.' in val and not val.strip().replace('.', '', 1).isdigit()
+
+def is_valid_numeric_literal(val: str) -> bool:
+    """
+    Determines if a string can safely be coerced into a numeric literal.
+
+    Examples:
+        is_valid_numeric_literal("42") returns True
+        is_valid_numeric_literal("3.14") returns True
+        is_valid_numeric_literal("not_a_number") returns False
+    """
+    try:
+        float(val)
+        return True
+    except Exception:
+        return False
 
 
 
