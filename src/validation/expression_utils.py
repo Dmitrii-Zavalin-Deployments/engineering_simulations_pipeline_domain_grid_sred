@@ -10,9 +10,14 @@ def normalize_quotes(expr: str) -> str:
 
     Examples:
         normalize_quotes("'''hello'''") ➝ "'hello'"
-        normalize_quotes("''world''") ➝ "'world'"
+        normalize_quotes('"""world"""') ➝ '"world"'
+        normalize_quotes("''string''") ➝ "'string'"
+        normalize_quotes('""data""') ➝ '"data"'
     """
-    return expr.strip().replace("'''", "'").replace("''", "'")
+    expr = expr.strip()
+    expr = expr.replace("'''", "'").replace('"""', '"')
+    expr = expr.replace("''", "'").replace('""', '"')
+    return expr
 
 def parse_literal(value: str):
     """

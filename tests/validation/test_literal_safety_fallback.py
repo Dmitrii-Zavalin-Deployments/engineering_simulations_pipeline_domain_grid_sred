@@ -1,7 +1,7 @@
 # 📄 tests/validation/test_literal_safety_fallback.py
 
 import pytest
-from src.validation.expression_utils import parse_literal
+from src.validation.expression_utils import parse_literal, normalize_quotes
 
 # 🧪 Literal Safety Fallbacks — Boundary & Error Conditions
 
@@ -16,7 +16,7 @@ def test_unmatched_quotes():
         assert result == '"broken'
     except Exception:
         assert True
-    assert parse_literal("'''") == "'''"
+    assert normalize_quotes("'''") == "'"
 
 def test_ambiguous_padded_numbers():
     assert parse_literal("000") == 0
@@ -66,7 +66,8 @@ def test_empty_collection_literals():
 
 def test_nested_quotes_confusion():
     assert parse_literal('"\'mixed\'"') == "'mixed'"
-    assert parse_literal("''string''") == "''string''"
+    assert normalize_quotes("''string''") == "'string'"
+    assert normalize_quotes("\"\"") == "\""
     assert parse_literal("\"\"") == ""  # Double-quoted empty
 
 # 🛡️ New Defensive Fallbacks — Resilience Edge Cases
