@@ -63,8 +63,8 @@ def test_unicode_numeric_string():
 # 📌 Mixed-type safety: bool vs string
 def test_string_vs_boolean_relaxed():
     left, right = "true", True
-    result = coerce_relaxed_type_if_needed(left, right, relaxed_mode=True)
-    assert result == ("true", True)
+    with pytest.raises(RuleEvaluationError, match=r"Incompatible coercion: 'true'"):
+        coerce_relaxed_type_if_needed(left, right, relaxed_mode=True)
 
 def test_boolean_vs_string_strict():
     left, right = True, "false"
