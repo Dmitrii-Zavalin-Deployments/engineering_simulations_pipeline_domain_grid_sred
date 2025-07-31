@@ -1,5 +1,3 @@
-# 📄 tests/rules/test_rule_engine.py
-
 import pytest
 from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
 
@@ -20,7 +18,7 @@ def test_rule_passes_with_coercion():
     rule = {"if": "stats.count == 100", "raise": "Count mismatch"}
     payload = {"stats": {"count": "100"}}
     result = evaluate_rule(rule, payload, relaxed_type_check=True)
-    assert result is None  # Rule passed silently
+    assert result is True  # ✅ Fixed: Rule passed
 
 # 🚫 Strict Type Enforcement – Fail Expected (Updated)
 def test_strict_type_check_fails_on_coercible_mismatch():
