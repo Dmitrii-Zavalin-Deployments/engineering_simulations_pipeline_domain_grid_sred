@@ -16,6 +16,7 @@ from src.utils.coercion import coerce_numeric
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
 from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
+from src.utils.input_validation import validate_step_file  # ✅ ADDED: Path/type guard
 
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
@@ -94,6 +95,9 @@ def main(resolution=DEFAULT_RESOLUTION):
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
+    # ✅ Defensive path/type check before parsing
+    validate_step_file(step_path)
+
     try:
         log_checkpoint("📂 Calling Gmsh geometry parser...")
         domain_definition = extract_bounding_box_with_gmsh(str(step_path), resolution)
@@ -111,7 +115,6 @@ def main(resolution=DEFAULT_RESOLUTION):
 
     metadata = {"domain_definition": domain_definition}
 
-    # 🔍 Load and enforce validation profile with strict type checking support
     try:
         log_checkpoint("📖 Parsing validation profile...")
         rule_list = load_rule_profile(PROFILE_PATH)
