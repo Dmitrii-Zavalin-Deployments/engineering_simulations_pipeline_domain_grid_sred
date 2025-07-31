@@ -25,7 +25,7 @@ def test_boolean_string_equals_true_relaxed():
 # 🚫 Strict Type Enforcement (Should Fail)
 def test_boolean_string_equals_true_strict():
     rule = {
-        "if": "flags.active == true",
+        "if": "flags.active == true",  # true is literal, "true" is string in payload
         "raise": "Strict active flag mismatch",
         "type_check_mode": "strict"
     }
@@ -34,12 +34,13 @@ def test_boolean_string_equals_true_strict():
 
 def test_int_string_strict_comparison_failure():
     rule = {
-        "if": "metrics.score == 85",
+        "if": "metrics.score == 85",  # compares int to str
         "raise": "Score mismatch",
         "type_check_mode": "strict"
     }
     payload = {"metrics": {"score": "85"}}
-    assert evaluate_rule(rule, payload) is False
+    result = evaluate_rule(rule, payload)
+    assert result is False, f"Expected False due to type mismatch, got {result}"
 
 # ✅ Matching Native Types
 def test_native_int_match_strict():
@@ -77,8 +78,9 @@ def test_invalid_string_comparison_relaxed():
         "raise": "Invalid fallback mismatch",
         "type_check_mode": "relaxed"
     }
-    payload = {"values": {"status": "not_found"}}
-    assert evaluate_rule(rule, payload) is False
+    payload = {"values": {"status": "not_found"}}  # 'not_found' is not numeric
+    result = evaluate_rule(rule, payload)
+    assert result is False, f"Expected False for incompatible relaxed comparison, got {result}"
 
 # 🔍 Literal expression fallback (no payload needed)
 def test_direct_numeric_literal_comparison_strict_pass():

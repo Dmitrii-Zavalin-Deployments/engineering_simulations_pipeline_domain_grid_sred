@@ -10,7 +10,8 @@ from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
-from src.rules.rule_engine_coercion import _coerce_types_for_comparison  # ✅ Moved logic
+from src.rules.rule_engine_coercion import _coerce_types_for_comparison
+from src.rules.type_compatibility_utils import are_types_comparable  # ✅ Added module
 from src.utils.coercion import relaxed_equals
 
 logger = logging.getLogger(__name__)
@@ -20,7 +21,8 @@ def _evaluate_expression(
     payload: dict,
     *,
     strict_type_check: bool = False,
-    relaxed_type_check: bool = False
+    relaxed_type_check: bool = False,
+    mode: str = "strict"  # ✅ Added explicit mode passthrough
 ) -> bool:
     debug_log(f"Evaluating expression: {expression}")
     parts = expression.strip().split(" ", 3)
@@ -78,6 +80,10 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
+    # ✅ Semantic compatibility check before coercion
+    if relaxed_type_check and not are_types_comparable(lhs_value, rhs_value, mode):
+        raise RuleEvaluationError(f"Incompatible types under '{mode}' mode: {type(lhs_value)} vs {type(rhs_value)}")
+
     if relaxed_type_check and (
         lhs_value is None or rhs_value is None or
         is_symbolic_reference(lhs_path) or is_symbolic_reference(rhs_literal)
@@ -90,7 +96,7 @@ def _evaluate_expression(
     try:
         if strict_type_check:
             debug_log("Strict type check enabled")
-            if type(lhs_value) != type(rhs_value):
+            if not are_types_comparable(lhs_value, rhs_value, mode):
                 raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
             debug_log("Relaxed type check enabled")
@@ -100,7 +106,7 @@ def _evaluate_expression(
                 debug_log("RHS was resolved from payload — skipping coercion on original string")
         else:
             debug_log("Default strict check")
-            if type(lhs_value) != type(rhs_value):
+            if not are_types_comparable(lhs_value, rhs_value, mode):
                 raise RuleEvaluationError(f"Type mismatch (default strict): {type(lhs_value)} vs {type(rhs_value)}")
     except Exception as e:
         raise RuleEvaluationError(f"Coercion error: {e}")
@@ -123,23 +129,23 @@ def evaluate_rule(rule: dict, payload: dict, *, strict_type_check: bool = False,
         debug_log("Empty or malformed rule expression; returning True")
         return True
 
-    if not (strict_type_check or relaxed_type_check):
-        try:
-            type_mode = get_type_check_mode(rule.get("type_check_mode"))
-            debug_log(f"Resolved type check mode: {type_mode}")
-        except Exception as config_error:
-            logger.warning(f"Invalid type check mode override: {config_error}")
-            type_mode = "strict"
-            debug_log("Fallback type check mode: strict")
+    try:
+        type_mode = get_type_check_mode(rule.get("type_check_mode"))
+        debug_log(f"Resolved type check mode: {type_mode}")
+    except Exception as config_error:
+        logger.warning(f"Invalid type check mode override: {config_error}")
+        type_mode = "strict"
+        debug_log("Fallback type check mode: strict")
 
-        strict_type_check = type_mode == "strict"
-        relaxed_type_check = type_mode == "relaxed"
+    strict_type_check = type_mode == "strict"
+    relaxed_type_check = type_mode == "relaxed"
 
     return _evaluate_expression(
         expression,
         payload,
         strict_type_check=strict_type_check,
-        relaxed_type_check=relaxed_type_check
+        relaxed_type_check=relaxed_type_check,
+        mode=type_mode  # ✅ Propagate mode for compatibility checks
     )
 
 
