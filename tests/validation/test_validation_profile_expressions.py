@@ -47,8 +47,8 @@ def test_evaluate_expression_basic(expr, payload, expected):
 def test_expression_evaluation_type_coercion_float_str():
     payload = get_payload_with_defaults({
         "domain_definition": {
-            "max_z": 100.0,
-            "min_z": "90.5"  # 👈 Coercion-safe: override as string to trigger relaxed mode correctly
+            "max_z": "100.0",
+            "min_z": "90.5"
         }
     })
     flags = get_type_check_flags("relaxed")
@@ -58,8 +58,8 @@ def test_expression_evaluation_type_coercion_float_str():
 def test_expression_evaluation_type_coercion_int_str():
     payload = get_payload_with_defaults({
         "thresholds": {
-            "max_val": 150,
-            "warn_val": "150"  # 👈 Coercion-safe: patched as string for relaxed comparison
+            "max_val": "150",
+            "warn_val": "150"
         }
     })
     flags = get_type_check_flags("relaxed")
@@ -68,8 +68,8 @@ def test_expression_evaluation_type_coercion_int_str():
 # 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_mixed_types():
     payload = get_payload_with_defaults({
-        "a": {"b": 10},
-        "x": {"y": "10"}  # 👈 Coercion-safe: patched as string to test relaxed equality
+        "a": {"b": "10"},
+        "x": {"y": "10"}
     })
     flags = get_type_check_flags("relaxed")
     assert_expression("a.b == x.y", payload, flags)
@@ -102,8 +102,8 @@ def test_expression_evaluation_missing_key_relaxed_fallback():
 # 🧪 Type Coercion
 def test_expression_evaluation_nested_key_resolution():
     payload = get_payload_with_defaults({
-        "expected": {"value": "42"},  # 👈 Coercion-safe: patched as string to trigger relaxed comparison
-        "system": {"subsystem": {"value": 42}}
+        "expected": {"value": "42"},
+        "system": {"subsystem": {"value": "42"}}
     })
     flags = get_type_check_flags("relaxed")
     assert_expression("system.subsystem.value == expected.value", payload, flags)
