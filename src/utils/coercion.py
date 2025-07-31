@@ -1,4 +1,4 @@
-# src/rules/utils/coercion.py
+# src/utils/coercion.py
 
 """
 Type coercion helpers tailored for rule evaluation.
@@ -11,26 +11,29 @@ Available Methods:
 - coerce_boolean(value)
 - coerce_string(value)
 - safe_float(value)
-- relaxed_cast(value, target_type)  # ✅ Strategic Addition
-- relaxed_equals(lhs, rhs)         # ✅ Strategic Addition
+- relaxed_cast(value, target_type)
+- relaxed_equals(lhs, rhs)
 """
 
 import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
-
+from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
 
 def coerce_numeric(value: Any) -> Optional[float]:
     if isinstance(value, (int, float)):
         debug_log(f"[numeric] Native numeric detected → {value}")
         return float(value)
-    try:
-        result = float(str(value).strip())
-        debug_log(f"[numeric] Coerced '{value}' → {result}")
-        return result
-    except (ValueError, TypeError) as e:
-        debug_log(f"[numeric] Coercion failed for '{value}' ({type(value).__name__}) → None | {e}")
-        return None
+    if is_valid_numeric_string(value):  # ✅ Defensive check
+        try:
+            result = float(str(value).strip())
+            debug_log(f"[numeric] Coerced '{value}' → {result}")
+            return result
+        except Exception as e:
+            debug_log(f"[numeric] Coercion fallback failed for '{value}' → None | {e}")
+            return None
+    debug_log(f"[numeric] Rejected invalid numeric string: '{value}'")
+    return None
 
 
 def coerce_boolean(value: Any) -> Union[bool, str]:
@@ -121,6 +124,15 @@ def relaxed_equals(lhs: Any, rhs: Any) -> bool:
     Centralized relaxed comparison logic.
     Attempts to cast both values to a common type and compares the result.
     """
+    # Defensive guard: prevent unsafe coercion for malformed numeric strings
+    for unsafe in ("nan", "not_a_number"):
+        if isinstance(lhs, str) and lhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe lhs input detected → '{lhs}' → rejecting comparison")
+            return False
+        if isinstance(rhs, str) and rhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe rhs input detected → '{rhs}' → rejecting comparison")
+            return False
+
     for target_type in (bool, int, float, str):
         lhs_cast = relaxed_cast(lhs, target_type)
         rhs_cast = relaxed_cast(rhs, target_type)

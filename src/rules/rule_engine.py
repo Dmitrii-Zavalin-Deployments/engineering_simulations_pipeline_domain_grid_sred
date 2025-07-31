@@ -1,5 +1,7 @@
 # src/rules/rule_engine.py
 
+# src/rules/rule_engine.py
+
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal, is_literal
@@ -11,6 +13,7 @@ from src.rules.rule_engine_utils import (
     get_nested_value
 )
 from src.utils.coercion import relaxed_equals
+from src.utils.validation_helpers import is_valid_numeric_string  # ✅ NEW import
 
 logger = logging.getLogger(__name__)
 
@@ -33,24 +36,27 @@ def _coerce_types_for_comparison(left, right):
             return coerced
 
         if isinstance(left, (int, float)) and isinstance(right, str):
-            right_coerced = type(left)(right)
-            debug_log(f"Coerced right str to numeric: {right_coerced}")
-            return left, right_coerced
+            if is_valid_numeric_string(right):  # ✅ Guarded conversion
+                right_coerced = type(left)(right)
+                debug_log(f"Coerced right str to numeric: {right_coerced}")
+                return left, right_coerced
 
         if isinstance(right, (int, float)) and isinstance(left, str):
-            left_coerced = type(right)(left)
-            debug_log(f"Coerced left str to numeric: {left_coerced}")
-            return left_coerced, right
+            if is_valid_numeric_string(left):  # ✅ Guarded conversion
+                left_coerced = type(right)(left)
+                debug_log(f"Coerced left str to numeric: {left_coerced}")
+                return left_coerced, right
 
         if isinstance(left, str) and isinstance(right, str):
             for num_type in (int, float):
-                try:
-                    left_num = num_type(left)
-                    right_num = num_type(right)
-                    debug_log(f"Coerced both strings to {num_type}: {left_num}, {right_num}")
-                    return left_num, right_num
-                except Exception:
-                    continue
+                if is_valid_numeric_string(left) and is_valid_numeric_string(right):  # ✅ Guarded pairwise
+                    try:
+                        left_num = num_type(left)
+                        right_num = num_type(right)
+                        debug_log(f"Coerced both strings to {num_type}: {left_num}, {right_num}")
+                        return left_num, right_num
+                    except Exception:
+                        continue
 
         debug_log("Coercion fallback: using original values")
         return left, right
