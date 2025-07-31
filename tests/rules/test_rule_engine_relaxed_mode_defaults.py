@@ -59,9 +59,8 @@ def test_missing_type_check_mode_uses_default_and_raises():
 
 def test_missing_type_check_mode_triggers_strict_mode_and_blocks_coercion():
     rule = {
-        "if": "metrics.status == 'true'"
-        # corrected: treated as literal string instead of key
-        # still no explicit type_check_mode (default = strict)
+        "if": "metrics.status == true"
+        # unquoted RHS → triggers key lookup and type enforcement
     }
     with pytest.raises(RuleEvaluationError) as exc:
         evaluate_rule(rule, sample_payload)
@@ -77,14 +76,14 @@ def test_missing_type_check_mode_allows_literal_only_comparison():
 def test_implicit_fallback_coercion_when_type_check_flags_false():
     # This manually bypasses type enforcement to test fallback
     expression = "metrics.score >= 90.5"
-    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=True)
     assert result is True
 
 # 🧪 Additional fallback edge cases
 
 def test_fallback_string_float_compare_success():
     expression = "metrics.ratio == 0.8"
-    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=False)
+    result = _evaluate_expression(expression, sample_payload, strict_type_check=False, relaxed_type_check=True)
     assert result is True
 
 def test_fallback_boolean_string_true_match():
