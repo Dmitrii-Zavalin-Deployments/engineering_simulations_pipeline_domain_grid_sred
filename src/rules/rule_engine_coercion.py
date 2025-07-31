@@ -6,6 +6,11 @@ from src.validation.expression_utils import is_symbolic_reference
 from src.utils.validation_helpers import is_valid_numeric_string
 
 def _coerce_types_for_comparison(left, right):
+    """
+    Coerces comparable values for relaxed rule evaluation.
+    Applies defensive guards against symbolic references and non-numeric strings.
+    Blocks unsafe coercion when operand types mismatch or values are unresolved.
+    """
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
 
@@ -23,11 +28,10 @@ def _coerce_types_for_comparison(left, right):
             debug_log(f"Coerced to boolean: {coerced}")
             return coerced
 
-        # Avoid numeric coercion for non-numeric strings in relaxed comparison
+        # ⛔ Avoid invalid string-to-numeric coercion in relaxed mode
         if isinstance(left, str) and isinstance(right, (int, float)) and not is_valid_numeric_string(left):
             debug_log("Blocked invalid string-to-numeric coercion (left)")
             return left, right
-        # Avoid numeric coercion for non-numeric strings in relaxed comparison
         if isinstance(right, str) and isinstance(left, (int, float)) and not is_valid_numeric_string(right):
             debug_log("Blocked invalid string-to-numeric coercion (right)")
             return left, right
