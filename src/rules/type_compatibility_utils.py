@@ -1,6 +1,7 @@
 # src/rules/type_compatibility_utils.py
 
 from typing import Any
+import math
 
 # Supported comparison modes
 STRICT_MODE = "strict"
@@ -24,6 +25,9 @@ def are_types_comparable(lhs: Any, rhs: Any, mode: str) -> bool:
     Returns:
         bool: True if values are comparable under mode rules, False otherwise.
     """
+
+    if lhs is None or rhs is None:
+        return False
 
     if mode == STRICT_MODE:
         return type(lhs) == type(rhs)
@@ -70,11 +74,12 @@ def _relaxed_type_match(lhs: Any, rhs: Any) -> bool:
     return lhs_type == rhs_type
 
 
-def _is_numeric_str(s: str) -> bool:
+def _is_numeric_str(s: Any) -> bool:
+    if not isinstance(s, str):
+        return False
     try:
-        float(s)
-        return True
-    except ValueError:
+        return math.isfinite(float(s))
+    except (ValueError, OverflowError):
         return False
 
 
