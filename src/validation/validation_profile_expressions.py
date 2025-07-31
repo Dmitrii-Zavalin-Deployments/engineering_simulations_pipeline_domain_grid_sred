@@ -17,7 +17,6 @@ def _evaluate_expression(lhs, rhs, operator: str, *, strict_type_check: bool = F
         _evaluate_expression("123", 123, '==') ➝ True
         _evaluate_expression("hello", 100, '<') ➝ False
     """
-    # Define supported operators
     ops = {
         "==": lambda a, b: a == b,
         "!=": lambda a, b: a != b,
@@ -27,14 +26,12 @@ def _evaluate_expression(lhs, rhs, operator: str, *, strict_type_check: bool = F
         ">=": lambda a, b: a >= b,
     }
 
-    # Optional strict type enforcement
     if strict_type_check and type(lhs) != type(rhs):
         return False
 
-    # Attempt coercion if types mismatch and not strict
-    if type(lhs) != type(rhs and not strict_type_check):
+    # ✅ Fixed precedence bug for non-strict type mismatch
+    if not strict_type_check and type(lhs) != type(rhs):
         try:
-            # Prefer numeric coercion
             if isinstance(lhs, (int, float)) or isinstance(rhs, (int, float)):
                 lhs = float(lhs)
                 rhs = float(rhs)
@@ -42,13 +39,12 @@ def _evaluate_expression(lhs, rhs, operator: str, *, strict_type_check: bool = F
                 lhs = str(lhs)
                 rhs = str(rhs)
         except Exception:
-            return False  # Coercion failed
+            return False
 
-    # Perform comparison with fallback
     try:
         comparison_func = ops.get(operator)
         if not comparison_func:
-            return False  # Unsupported operator
+            return False
         return comparison_func(lhs, rhs)
     except Exception:
         return False

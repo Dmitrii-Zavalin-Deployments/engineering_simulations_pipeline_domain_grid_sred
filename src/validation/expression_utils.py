@@ -1,3 +1,5 @@
+# src/validation/expression_utils.py
+
 import ast
 
 __all__ = [
@@ -26,21 +28,7 @@ def parse_literal(value: str):
     """
     Safely converts a string representation into its Python literal equivalent.
 
-    Uses layered logic:
-      - Handles canonical JSON-style literals explicitly
-      - Detects quoted string literals
-      - Attempts safe literal evaluation with ast.literal_eval
-      - Falls back to raw string if evaluation fails
-
     Supported conversions:
-    - 'null', 'None' are converted to None
-    - 'true', 'false' are converted to boolean
-    - Padded integers are converted to int
-    - Floats are converted to float
-    - Quoted strings are converted to str
-    - All other values are returned as raw str
-
-    Examples:
         parse_literal("42") returns 42
         parse_literal("3.14") returns 3.14
         parse_literal("'hello'") returns "hello"
@@ -50,10 +38,9 @@ def parse_literal(value: str):
         parse_literal("00123") returns 123
     """
     if not isinstance(value, str):
-        return value  # Already parsed
+        return value
 
-    val = normalize_quotes(value)
-    val = val.strip()
+    val = normalize_quotes(value).strip()
     val_lower = val.lower()
 
     if val_lower == "true":
@@ -77,18 +64,6 @@ def parse_literal(value: str):
 def is_literal(token: str) -> bool:
     """
     Determines whether the token represents a primitive literal.
-
-    Supported types:
-    - Boolean strings like 'true', 'false'
-    - Null representations like 'null', 'none'
-    - Numeric literals
-    - Quoted string literals
-
-    Examples:
-        is_literal("true") returns True
-        is_literal("'abc'") returns True
-        is_literal("123") returns True
-        is_literal("not_a_literal") returns False
     """
     token = token.strip().lower()
     if token in {"true", "false", "null", "none"}:
@@ -103,21 +78,31 @@ def is_symbolic_reference(val: str) -> bool:
     """
     Detects whether a string is a symbolic reference (e.g. 'x.y') rather than a literal.
 
+    Enhanced to exclude numeric-like strings mistakenly classified as symbolic.
+
     Examples:
-        is_symbolic_reference("x.y") returns True
-        is_symbolic_reference("42") returns False
-        is_symbolic_reference("abc") returns False
+        is_symbolic_reference("x.y") → True
+        is_symbolic_reference("42") → False
+        is_symbolic_reference("150") → False
+        is_symbolic_reference("system.status.code") → True
+        is_symbolic_reference("true") → False
     """
-    return isinstance(val, str) and '.' in val and not val.strip().replace('.', '', 1).isdigit()
+    if not isinstance(val, str):
+        return False
+
+    val = val.strip()
+    if val.lower() in {"true", "false", "null", "none"}:
+        return False
+
+    try:
+        float(val)
+        return False
+    except ValueError:
+        return "." in val or "[" in val or "]" in val
 
 def is_valid_numeric_literal(val: str) -> bool:
     """
     Determines if a string can safely be coerced into a numeric literal.
-
-    Examples:
-        is_valid_numeric_literal("42") returns True
-        is_valid_numeric_literal("3.14") returns True
-        is_valid_numeric_literal("not_a_number") returns False
     """
     try:
         float(val)

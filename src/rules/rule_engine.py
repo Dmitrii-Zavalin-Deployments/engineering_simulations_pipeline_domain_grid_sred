@@ -1,15 +1,13 @@
 # src/rules/rule_engine.py
 
 import logging
-from src.validation.expression_utils import is_symbolic_reference
-from src.validation.expression_utils import is_symbolic_reference
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal, is_literal
+from src.validation.expression_utils import is_symbolic_reference  # ✅ kept only once
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
 from src.rules.config import debug_log
 from src.rules.rule_engine_utils import (
     RuleEvaluationError,
-    is_symbolic_reference,
     get_nested_value
 )
 
@@ -19,12 +17,10 @@ def _coerce_types_for_comparison(left, right):
     try:
         debug_log(f"Attempting type coercion: left={left} ({type(left)}), right={right} ({type(right)})")
 
-        # 🛡️ Defensive bypass for unresolved operands (e.g., due to missing keys in relaxed mode)
         if left is None or right is None:
             debug_log("Skipping coercion due to unresolved operand")
             return left, right
 
-        # 🧠 Symbolic reference guard (both sides)
         if isinstance(left, str) and is_symbolic_reference(left):
             raise RuleEvaluationError(f"Cannot coerce unresolved reference: {left}")
         if isinstance(right, str) and is_symbolic_reference(right):
@@ -90,19 +86,15 @@ def _evaluate_expression(
             raise RuleEvaluationError(f"Literal comparison failed: {e}")
 
     # ➤ Resolve LHS
-    if not "." in lhs_path and lhs_path.strip().lower() in ["true", "false", "null"] or lhs_path.isnumeric():
-        lhs_value = parse_literal(lhs_path)
-        debug_log(f"Parsed literal lhs: {lhs_value}")
-    else:
-        try:
-            lhs_value = get_nested_value(payload, lhs_path)
-        except RuleEvaluationError as e:
-            if relaxed_type_check:
-                lhs_value = None
-                logger.debug(f"Relaxed mode fallback for missing key '{lhs_path}': {e}")
-                debug_log(f"Relaxed fallback: missing key '{lhs_path}', using None")
-            else:
-                raise
+    try:
+        lhs_value = get_nested_value(payload, lhs_path)
+    except RuleEvaluationError as e:
+        if relaxed_type_check:
+            lhs_value = None
+            logger.debug(f"Relaxed mode fallback for missing key '{lhs_path}': {e}")
+            debug_log(f"Relaxed fallback: missing key '{lhs_path}', using None")
+        else:
+            raise
 
     # ➤ Resolve operator
     try:
@@ -131,13 +123,12 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    # ✅ Enhanced coercion bypass: skip unresolved or symbolic operands in relaxed mode
+    # ✅ UPDATED: Coercion bypass should rely on symbolic status of the paths, not values
     if relaxed_type_check and (
         lhs_value is None or rhs_value is None or
-        (isinstance(lhs_value, str) and is_symbolic_reference(lhs_value)) or
-        (isinstance(rhs_value, str) and is_symbolic_reference(rhs_value))
+        is_symbolic_reference(lhs_path) or is_symbolic_reference(rhs_literal)
     ):
-        debug_log("Skipping coercion: unresolved or symbolic operand in relaxed mode")
+        debug_log("Skipping coercion: unresolved or symbolic path in relaxed mode")
         result = lhs_value == rhs_value
         debug_log(f"Relaxed comparison → {lhs_value} == {rhs_value} → {result}")
         return result
