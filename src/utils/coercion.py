@@ -18,13 +18,13 @@ Available Methods:
 import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
-from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
+from src.rules.type_compatibility_utils import _is_numeric_str  # ✅ Injected
 
 def coerce_numeric(value: Any) -> Optional[float]:
     if isinstance(value, (int, float)):
         debug_log(f"[numeric] Native numeric detected → {value}")
         return float(value)
-    if is_valid_numeric_string(value):  # ✅ Defensive check
+    if _is_numeric_str(value):  # ✅ Defensive check
         try:
             result = float(str(value).strip())
             debug_log(f"[numeric] Coerced '{value}' → {result}")

@@ -8,11 +8,11 @@ Use these to avoid runtime errors and enforce reliable type handling across the 
 """
 
 # NOTE:
-# The function `is_valid_numeric_string()` was deprecated in favor of `_is_numeric_str`
+# The function `_is_numeric_str()` was deprecated in favor of `_is_numeric_str`
 # in `src.rules.type_compatibility_utils`. Please update references accordingly.
 # If still required elsewhere (e.g., external validation flows), move it to a local utility file.
 
-# def is_valid_numeric_string(s: Any) -> bool:
+# def _is_numeric_str(s: Any) -> bool:
 #     """
 #     Deprecated. Use _is_numeric_str in type_compatibility_utils instead.
 #     """
