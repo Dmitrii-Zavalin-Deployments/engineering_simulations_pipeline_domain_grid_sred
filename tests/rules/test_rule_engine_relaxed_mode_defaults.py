@@ -68,7 +68,7 @@ def test_missing_type_check_mode_triggers_strict_mode_and_blocks_coercion():
 
 def test_missing_type_check_mode_allows_literal_only_comparison():
     rule = {
-        "if": "'true' == 'true'"
+        "if": "metrics.status == 'true'"
     }
     result = evaluate_rule(rule, sample_payload)
     assert result is True
