@@ -1,6 +1,8 @@
 # src/rules/rule_engine.py
 
 import logging
+from src.validation.expression_utils import is_symbolic_reference
+from src.validation.expression_utils import is_symbolic_reference
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal, is_literal
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
@@ -22,7 +24,10 @@ def _coerce_types_for_comparison(left, right):
             debug_log("Skipping coercion due to unresolved operand")
             return left, right
 
-        if is_symbolic_reference(right):
+        # 🧠 Symbolic reference guard (both sides)
+        if isinstance(left, str) and is_symbolic_reference(left):
+            raise RuleEvaluationError(f"Cannot coerce unresolved reference: {left}")
+        if isinstance(right, str) and is_symbolic_reference(right):
             raise RuleEvaluationError(f"Cannot coerce unresolved reference: {right}")
 
         if isinstance(left, bool) or isinstance(right, bool):
@@ -126,11 +131,15 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    # ✅ Defensive bypass: skip coercion if unresolved values present in relaxed mode
-    if relaxed_type_check and (lhs_value is None or rhs_value is None):
-        debug_log("Skipping coercion: unresolved key in relaxed mode")
+    # ✅ Enhanced coercion bypass: skip unresolved or symbolic operands in relaxed mode
+    if relaxed_type_check and (
+        lhs_value is None or rhs_value is None or
+        (isinstance(lhs_value, str) and is_symbolic_reference(lhs_value)) or
+        (isinstance(rhs_value, str) and is_symbolic_reference(rhs_value))
+    ):
+        debug_log("Skipping coercion: unresolved or symbolic operand in relaxed mode")
         result = lhs_value == rhs_value
-        debug_log(f"Relaxed comparison: {lhs_value} == {rhs_value} → {result}")
+        debug_log(f"Relaxed comparison → {lhs_value} == {rhs_value} → {result}")
         return result
 
     # ➤ Coercion logic
