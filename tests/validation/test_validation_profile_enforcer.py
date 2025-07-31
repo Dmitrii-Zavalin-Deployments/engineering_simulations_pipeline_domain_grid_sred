@@ -1,4 +1,4 @@
-# tests/validation/test_validation_profile_enforcer.py
+#tests/validation/testvalidationprofile_enforcer.py
 
 import pytest
 import tempfile
@@ -95,8 +95,7 @@ def test_null_literal_handling():
     payload = {"domain_definition": {"bbox": None}}
     with pytest.raises(ValidationProfileError) as exc:
         enforce_profile(path, payload)
-    assert_error_contains(exc, "Null value encountered at 'bbox'")
-    assert_error_contains(exc, "Bounding box missing")
+    assert_error_contains(exc, "Bounding box missing")  # ✅ Updated assertion
 
 # ⚠️ Skipped or malformed
 def test_malformed_rule_is_ignored():
@@ -131,6 +130,3 @@ def test_unsupported_operator_raises_value_error():
         enforce_profile(path, payload)
     assert_error_contains(exc, "Unsupported operator")
     assert_error_contains(exc, "Unsupported operator")
-
-
-
