@@ -1,11 +1,17 @@
 # 📄 src/validation/validation_profile_enforcer.py
 
+import os
+
 try:
     import yaml
 except ImportError:
     raise ImportError("Missing PyYAML. Install with: pip install PyYAML")
 
 from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
+
+
+# Strategic addition: runtime flag for test mocking or profile enforcement toggle
+profile_check_enabled = os.getenv("PROFILE_CHECK_ENABLED", "false").lower() == "true"
 
 
 class ValidationProfileError(Exception):
@@ -45,6 +51,3 @@ def enforce_profile(profile_path: str, payload: dict):
 
         if triggered:
             raise ValidationProfileError(f"[Rule {i}] {message}")
-
-
-
