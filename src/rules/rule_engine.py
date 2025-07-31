@@ -10,7 +10,7 @@ from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
-from src.rules.utils.coercion import relaxed_equals  # ✅ NEW: Added comparison logic
+from src.utils.coercion import relaxed_equals  # ✅ NEW: Added comparison logic
 
 logger = logging.getLogger(__name__)
 

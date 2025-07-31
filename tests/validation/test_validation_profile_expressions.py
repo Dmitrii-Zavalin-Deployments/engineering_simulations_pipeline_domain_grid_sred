@@ -18,7 +18,7 @@ from configs.rule_engine_defaults import get_type_check_flags
 
 # 🧪 Assertion Wrapper
 from tests.helpers.assertions import assert_expression
-from src.rules.utils.coercion import relaxed_equals  # ✅ NEW: Added for direct logic test
+from src.utils.coercion import relaxed_equals  # ✅ NEW: Added for direct logic test
 
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
