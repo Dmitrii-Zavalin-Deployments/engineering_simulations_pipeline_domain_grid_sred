@@ -78,7 +78,7 @@ def test_invalid_string_comparison_relaxed():
         "type_check_mode": "relaxed"
     }
     payload = {"values": {"status": "not_found"}}
-    assert evaluate_rule(rule, payload) is False
+    assert evaluate_rule(rule, payload) is False, "Expected relaxed comparison to fail for non-numeric string vs int"
 
 # 🔍 Literal expression fallback (no payload needed)
 def test_direct_numeric_literal_comparison_strict_pass():

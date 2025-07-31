@@ -132,6 +132,18 @@ jobs:
           python -c "from src.validation.expression_utils import is_literal; print('Sample result:', is_literal('123'))"
           echo "✅ Import check passed. Proceeding to full test suite."
 
+      - name: 🧹 Purge stale compiled Python artifacts
+        run: |
+          echo "🧹 Removing __pycache__ and *.pyc files across workspace..."
+          find $GITHUB_WORKSPACE -type d -name "__pycache__" -exec rm -rf {} +
+          find $GITHUB_WORKSPACE -type f -name "*.pyc" -delete
+          echo "✅ Cleared cached Python artifacts"
+
+      - name: 🚀 Print relaxed-mode test confirmation
+        run: |
+          echo "🧪 Ensuring relaxed-mode rule tests are captured..."
+          grep -r "type_check_mode.*relaxed" tests/rules/test_rule_engine_integration.py || echo "⚠️ No relaxed-mode tests found"
+
       - name: 🧪 Run Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src
