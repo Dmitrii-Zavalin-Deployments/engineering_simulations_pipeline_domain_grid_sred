@@ -18,6 +18,7 @@ from configs.rule_engine_defaults import get_type_check_flags
 
 # 🧪 Assertion Wrapper
 from tests.helpers.assertions import assert_expression
+from src.rules.utils.coercion import relaxed_equals  # ✅ NEW: Added for direct logic test
 
 # 🔍 Nested Key Access
 def test_get_nested_value_success():
@@ -54,7 +55,6 @@ def test_expression_evaluation_type_coercion_float_str():
     flags = get_type_check_flags("relaxed")
     assert_expression("domain_definition.max_z >= domain_definition.min_z", payload, flags)
 
-# 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_int_str():
     payload = get_payload_with_defaults({
         "thresholds": {
@@ -65,7 +65,6 @@ def test_expression_evaluation_type_coercion_int_str():
     flags = get_type_check_flags("relaxed")
     assert_expression("thresholds.max_val == thresholds.warn_val", payload, flags)
 
-# 🧪 Type Coercion
 def test_expression_evaluation_type_coercion_mixed_types():
     payload = get_payload_with_defaults({
         "a": {"b": "10"},
@@ -93,13 +92,11 @@ def test_expression_evaluation_missing_key_path():
         _evaluate_expression("data.missing_key == true", payload)
     assert "Missing key" in str(err.value)
 
-# 🧪 Mixed Mode Fallbacks and Missing Keys
 def test_expression_evaluation_missing_key_relaxed_fallback():
     payload = {"a": {"x": "value"}}
     flags = get_type_check_flags("relaxed")
     assert_expression("a.missing == null", payload, flags)
 
-# 🧪 Type Coercion
 def test_expression_evaluation_nested_key_resolution():
     payload = get_payload_with_defaults({
         "expected": {"value": "42"},
@@ -108,7 +105,6 @@ def test_expression_evaluation_nested_key_resolution():
     flags = get_type_check_flags("relaxed")
     assert_expression("system.subsystem.value == expected.value", payload, flags)
 
-# 🔍 Literal Edge Cases and Strict Type Toggle
 def test_literal_vs_native_equivalence():
     payload = {"flag": True, "count": 123}
     flags = get_type_check_flags("relaxed")
@@ -129,7 +125,6 @@ def test_literal_comparison_strict_type_disabled():
     assert_expression("flag == \"true\"", payload, flags)
     assert_expression("count == 123", payload, flags)
 
-# 🧪 Strictness Mode Matrix
 @pytest.mark.parametrize("expression,payload,mode,expected", [
     ("x.val == 100", {"x": {"val": 100}}, "strict", True),
     ("x.val == 100", {"x": {"val": "100"}}, "relaxed", True),
@@ -141,7 +136,6 @@ def test_strict_vs_relaxed_behavior(expression, payload, mode, expected):
     result = _evaluate_expression(expression, payload, **flags)
     assert result is expected
 
-# 🔤 Literal Matching and Fallbacks
 def test_non_expression_literal_equality():
     flags = get_type_check_flags("relaxed")
     assert_expression("123 == 123", {}, flags)
@@ -161,6 +155,14 @@ def test_invalid_operator_literal_case():
     with pytest.raises(RuleEvaluationError) as err:
         _evaluate_expression("false %% true", {})
     assert "Unsupported operator" in str(err.value)
+
+# ✅ NEW: Direct unit test for relaxed_equals coercion logic
+def test_relaxed_equals_coercion():
+    assert relaxed_equals("42", 42)
+    assert relaxed_equals("true", True)
+    assert relaxed_equals("90.5", 90.5)
+    assert relaxed_equals("010", 10)
+    assert not relaxed_equals("not_a_number", 200)
 
 
 

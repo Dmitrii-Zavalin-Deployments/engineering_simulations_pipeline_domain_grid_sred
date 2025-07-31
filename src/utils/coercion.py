@@ -12,6 +12,7 @@ Available Methods:
 - coerce_string(value)
 - safe_float(value)
 - relaxed_cast(value, target_type)  # ✅ Strategic Addition
+- relaxed_equals(lhs, rhs)         # ✅ Strategic Addition
 """
 
 from typing import Any, Union, Optional
@@ -110,6 +111,21 @@ def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
     except Exception as e:
         debug_log(f"[relaxed_cast] Failed to cast '{value}' to {target_type.__name__} → None | {e}")
         return None
+
+
+def relaxed_equals(lhs: Any, rhs: Any) -> bool:
+    """
+    Centralized relaxed comparison logic.
+    Attempts to cast both values to a common type and compares the result.
+    """
+    for target_type in (bool, int, float, str):
+        lhs_cast = relaxed_cast(lhs, target_type)
+        rhs_cast = relaxed_cast(rhs, target_type)
+        if lhs_cast is not None and rhs_cast is not None and lhs_cast == rhs_cast:
+            debug_log(f"[relaxed_equals] Matched via {target_type.__name__} → {lhs_cast} == {rhs_cast}")
+            return True
+    debug_log(f"[relaxed_equals] No match: {lhs} != {rhs}")
+    return False
 
 
 

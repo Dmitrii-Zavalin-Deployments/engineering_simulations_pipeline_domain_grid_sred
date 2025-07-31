@@ -10,6 +10,7 @@ from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
+from src.rules.utils.coercion import relaxed_equals  # ✅ NEW: Added comparison logic
 
 logger = logging.getLogger(__name__)
 
@@ -123,14 +124,14 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    # ✅ UPDATED: Coercion bypass should rely on symbolic status of the paths, not values
+    # ✅ UPDATED: Replace raw equality with relaxed_equals
     if relaxed_type_check and (
         lhs_value is None or rhs_value is None or
         is_symbolic_reference(lhs_path) or is_symbolic_reference(rhs_literal)
     ):
         debug_log("Skipping coercion: unresolved or symbolic path in relaxed mode")
-        result = lhs_value == rhs_value
-        debug_log(f"Relaxed comparison → {lhs_value} == {rhs_value} → {result}")
+        result = relaxed_equals(lhs_value, rhs_value)
+        debug_log(f"Relaxed comparison → {lhs_value} ~ {rhs_value} → {result}")
         return result
 
     # ➤ Coercion logic
