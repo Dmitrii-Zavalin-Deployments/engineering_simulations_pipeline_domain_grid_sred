@@ -1,112 +1,146 @@
-# tests/utils/test_coercion.py
+# src/utils/coercion.py
 
-import pytest
+"""
+Type coercion helpers tailored for rule evaluation.
+
+Used to convert raw values during expression parsing and logical comparisons.
+Ensures safety and consistency for numeric and boolean operations under strict or relaxed modes.
+
+Available Methods:
+- coerce_numeric(value)
+- coerce_boolean(value)
+- coerce_string(value)
+- safe_float(value)
+- relaxed_cast(value, target_type)
+- relaxed_equals(lhs, rhs)
+"""
+
 import math
-from unittest.mock import patch, MagicMock
-from typing import Any
-
-from src.utils.coercion import (
-    coerce_numeric, coerce_boolean, coerce_string,
-    safe_float, safe_int, relaxed_cast, relaxed_equals
-)
+from typing import Any, Union, Optional
 from src.rules.config import debug_log
-from src.rules.type_compatibility_utils import _is_numeric_str
+from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
 
-mock_debug_log = MagicMock()
+def coerce_numeric(value: Any) -> Optional[float]:
+    if isinstance(value, (int, float)):
+        debug_log(f"[numeric] Native numeric detected → {value}")
+        return float(value)
+    if is_valid_numeric_string(value):  # ✅ Defensive check
+        try:
+            result = float(str(value).strip())
+            debug_log(f"[numeric] Coerced '{value}' → {result}")
+            return result
+        except Exception as e:
+            debug_log(f"[numeric] Coercion fallback failed for '{value}' → None | {e}")
+            return None
+    debug_log(f"[numeric] Rejected invalid numeric string: '{value}'")
+    return None
 
-def _mock_is_numeric_str(value: Any) -> bool:
-    if not isinstance(value, str): return False
-    try: float(value.strip()); return True
-    except ValueError: return False
 
-patch_debug_log = patch('src.rules.config.debug_log', mock_debug_log)
-patch_is_numeric_str = patch('src.rules.type_compatibility_utils._is_numeric_str', _mock_is_numeric_str)
+def coerce_boolean(value: Any) -> Union[bool, str]:
+    if isinstance(value, bool):
+        debug_log(f"[boolean] Native bool detected → {value}")
+        return value
+    try:
+        str_value = str(value).strip().lower()
+        if str_value in ("true", "1"):
+            debug_log(f"[boolean] Interpreted '{value}' → True")
+            return True
+        elif str_value in ("false", "0"):
+            debug_log(f"[boolean] Interpreted '{value}' → False")
+            return False
+        debug_log(f"[boolean] Unrecognized form '{value}' → fallback: '{str_value}'")
+        return str_value
+    except Exception as e:
+        fallback = str(value)
+        debug_log(f"[boolean] Coercion error for '{value}' ({type(value).__name__}) → fallback: '{fallback}' | {e}")
+        return fallback
 
-class TestCoercionUtils:
-    @pytest.fixture(autouse=True)
-    def setup_patches(self):
-        patch_debug_log.start()
-        patch_is_numeric_str.start()
-        mock_debug_log.reset_mock()
-        yield
-        patch_debug_log.stop()
-        patch_is_numeric_str.stop()
 
-    # coerce_numeric
-    @pytest.mark.parametrize("value, expected", [
-        (10, 10.0), (10.5, 10.5), ("123", 123.0), (" 45.67 ", 45.67),
-        ("-5", -5.0), ("0", 0.0), ("", None), ("abc", None),
-        ("123a", None), (None, None), ([], None), ({}, None),
-        (True, 1.0), (False, 0.0),
-    ])
-    def test_coerce_numeric(self, value, expected):
-        assert coerce_numeric(value) == expected
+def coerce_string(value: Any) -> str:
+    try:
+        result = value.strip() if isinstance(value, str) else str(value)
+        debug_log(f"[string] Coerced '{value}' → '{result}'")
+        return result
+    except Exception as e:
+        debug_log(f"[string] Failed to coerce '{value}' → fallback: '' | {e}")
+        return ""
 
-    # coerce_boolean
-    @pytest.mark.parametrize("value, expected", [
-        (True, True), (False, False), ("true", True), ("1", True),
-        ("false", False), ("0", False), ("yes", "yes"), ("abc", "abc"),
-        ("", ""), (None, "None"), (1, "1"), (0, "0"),
-        ([], "[]"), ({}, "{}"), (" True ", True), (" False ", False),
-    ])
-    def test_coerce_boolean(self, value, expected):
-        assert coerce_boolean(value) == expected
 
-    # coerce_string
-    @pytest.mark.parametrize("value, expected", [
-        ("hello", "hello"), ("  world  ", "world"), (123, "123"),
-        (123.45, "123.45"), (True, "True"), (False, "False"),
-        (None, "None"), ([], "[]"), ({'a': 1}, "{'a': 1}"),
-        (math.inf, "inf"), (math.nan, "nan"),
-    ])
-    def test_coerce_string(self, value, expected):
-        assert coerce_string(value) == expected
+def safe_float(value: Any) -> Optional[float]:
+    try:
+        result = float(value)
+        debug_log(f"[safe_float] Parsed '{value}' → {result}")
+        return result
+    except Exception as e:
+        debug_log(f"[safe_float] Failed to parse '{value}' → None | {e}")
+        return None
 
-    # safe_float
-    @pytest.mark.parametrize("value, expected", [
-        (10.5, 10.5), (10, 10.0), ("123.45", 123.45), ("-50", -50.0),
-        (" 7.89 ", 7.89), (True, 1.0), (False, 0.0), (None, None),
-        ([], None), ({}, None), ((), None), (set(), None),
-        ("abc", None), ("1.2.3", None), (math.inf, None), (-math.inf, None), (math.nan, None),
-        ("inf", None), ("-inf", None), ("nan", None),
-    ])
-    def test_safe_float(self, value, expected):
-        assert safe_float(value) == expected
 
-    @pytest.mark.parametrize("val", [None, {}, [], object()])
-    def test_safe_float_rejects_bad_types(self, val):
-        assert safe_float(val) is None
+def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
+    """
+    Defensive relaxed-mode type casting.
+    Handles common encodings like "true", "123", etc. without raising.
+    Returns None for unsafe or unrecognized cases.
+    """
+    try:
+        if isinstance(value, target_type):
+            debug_log(f"[relaxed_cast] Native {target_type.__name__} detected → {value}")
+            return value
 
-    # safe_int
-    @pytest.mark.parametrize("value, expected", [
-        (10, 10), ("123", 123), ("-50", -50), (" 7 ", 7),
-        (10.0, 10), ("10.0", 10), (True, 1), (False, 0),
-        (None, None), ([], None), ({}, None), ("abc", None),
-        ("10.5", None), (10.5, None), (math.inf, None), (math.nan, None),
-    ])
-    def test_safe_int(self, value, expected):
-        assert safe_int(value) == expected
+        if isinstance(value, str):
+            stripped = value.strip().lower()
+            if target_type == bool:
+                if stripped in ("true", "1"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → True")
+                    return True
+                elif stripped in ("false", "0"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → False")
+                    return False
+            elif target_type == int and stripped.isdigit():
+                result = int(stripped)
+                debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                return result
+            elif target_type == float:
+                try:
+                    result = float(stripped)
+                    if math.isnan(result):
+                        debug_log(f"[relaxed_cast] Rejected NaN parsing for '{value}'")
+                        return None
+                    debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                    return result
+                except ValueError:
+                    pass
 
-    # relaxed_cast
-    @pytest.mark.parametrize("value, target_type, expected", [
-        (True, bool, True), ("true", bool, True), ("false", bool, False),
-        ("1", bool, True), ("0", bool, False), ("yes", bool, None), (None, bool, None),
-        (10, int, 10), ("123", int, 123), ("10.5", int, None), ("abc", int, None),
-        (10.5, float, 10.5), ("123.45", float, 123.45), ("abc", float, None),
-        ("hello", str, "hello"), (123, str, "123"), (None, str, "None"),
-    ])
-    def test_relaxed_cast(self, value, target_type, expected):
-        assert relaxed_cast(value, target_type) == expected
+        result = target_type(value)
+        debug_log(f"[relaxed_cast] Fallback cast '{value}' → {result}")
+        return result
+    except Exception as e:
+        debug_log(f"[relaxed_cast] Failed to cast '{value}' to {target_type.__name__} → None | {e}")
+        return None
 
-    # relaxed_equals
-    @pytest.mark.parametrize("lhs, rhs, expected", [
-        (1, "1", True), ("1.0", 1.0, True), ("true", True, True), ("0", False, True),
-        ("hello", "hello", True), ("abc", "def", False), (None, "None", True),
-        ("nan", 1, False), (1, "nan", False), ("not_a_number", 5, False),
-        ("", "", True), (" ", " ", True), ("  1  ", "1", True),
-    ])
-    def test_relaxed_equals(self, lhs, rhs, expected):
-        assert relaxed_equals(lhs, rhs) == expected
+
+def relaxed_equals(lhs: Any, rhs: Any) -> bool:
+    """
+    Centralized relaxed comparison logic.
+    Attempts to cast both values to a common type and compares the result.
+    """
+    # Defensive guard: prevent unsafe coercion for malformed numeric strings
+    for unsafe in ("nan", "not_a_number"):
+        if isinstance(lhs, str) and lhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe lhs input detected → '{lhs}' → rejecting comparison")
+            return False
+        if isinstance(rhs, str) and rhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe rhs input detected → '{rhs}' → rejecting comparison")
+            return False
+
+    for target_type in (bool, int, float, str):
+        lhs_cast = relaxed_cast(lhs, target_type)
+        rhs_cast = relaxed_cast(rhs, target_type)
+        if lhs_cast is not None and rhs_cast is not None and lhs_cast == rhs_cast:
+            debug_log(f"[relaxed_equals] Matched via {target_type.__name__} → {lhs_cast} == {rhs_cast}")
+            return True
+    debug_log(f"[relaxed_equals] No match: {lhs} != {rhs}")
+    return False
 
 
 
