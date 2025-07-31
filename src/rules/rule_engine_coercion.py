@@ -23,6 +23,15 @@ def _coerce_types_for_comparison(left, right):
             debug_log(f"Coerced to boolean: {coerced}")
             return coerced
 
+        # Avoid numeric coercion for non-numeric strings in relaxed comparison
+        if isinstance(left, str) and isinstance(right, (int, float)) and not is_valid_numeric_string(left):
+            debug_log("Blocked invalid string-to-numeric coercion (left)")
+            return left, right
+        # Avoid numeric coercion for non-numeric strings in relaxed comparison
+        if isinstance(right, str) and isinstance(left, (int, float)) and not is_valid_numeric_string(right):
+            debug_log("Blocked invalid string-to-numeric coercion (right)")
+            return left, right
+
         if isinstance(left, (int, float)) and isinstance(right, str):
             if is_valid_numeric_string(right):
                 right_coerced = type(left)(right)

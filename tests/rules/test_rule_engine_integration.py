@@ -30,7 +30,7 @@ def test_boolean_string_equals_true_strict():
         "type_check_mode": "strict"
     }
     payload = {"flags": {"active": "true"}}
-    assert evaluate_rule(rule, payload) is False
+    assert evaluate_rule(rule, payload) is False, "💬 Expected failure: strict comparison of string ('true') to boolean (true)"
 
 def test_int_string_strict_comparison_failure():
     rule = {
@@ -39,7 +39,7 @@ def test_int_string_strict_comparison_failure():
         "type_check_mode": "strict"
     }
     payload = {"metrics": {"score": "85"}}
-    assert evaluate_rule(rule, payload) is False
+    assert evaluate_rule(rule, payload) is False, "💬 Expected failure: strict comparison of string ('85') to int (85)"
 
 # ✅ Matching Native Types
 def test_native_int_match_strict():
