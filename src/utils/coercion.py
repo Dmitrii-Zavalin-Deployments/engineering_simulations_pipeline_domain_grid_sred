@@ -15,6 +15,7 @@ Available Methods:
 - relaxed_equals(lhs, rhs)         # ✅ Strategic Addition
 """
 
+import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
 
@@ -99,12 +100,14 @@ def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
             elif target_type == float:
                 try:
                     result = float(stripped)
+                    if math.isnan(result):
+                        debug_log(f"[relaxed_cast] Rejected NaN parsing for '{value}'")
+                        return None
                     debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
                     return result
                 except ValueError:
                     pass
 
-        # Fallback for generic casting attempt
         result = target_type(value)
         debug_log(f"[relaxed_cast] Fallback cast '{value}' → {result}")
         return result

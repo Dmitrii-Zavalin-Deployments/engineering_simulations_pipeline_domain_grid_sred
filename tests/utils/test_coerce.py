@@ -1,5 +1,7 @@
+# tests/utils/test_coerce.py
+
 import unittest
-from src.utils.coercion import coerce_numeric
+from src.utils.coercion import coerce_numeric, relaxed_equals  # ✅ UPDATED: Include relaxed_equals
 
 
 class TestCoerceNumeric(unittest.TestCase):
@@ -56,12 +58,18 @@ class TestCoerceNumeric(unittest.TestCase):
         self.assertEqual(coerce_numeric("1e3"), 1000.0)
 
     def test_overflow_value(self):
-        # Should not raise but may return inf or raise a value error
         try:
             val = coerce_numeric("1e5000")
             self.assertTrue(val is None or isinstance(val, float))
         except Exception as e:
             self.fail(f"Overflow raised unexpected error: {e}")
+
+    # ✅ NEW: Relaxed equality behavior with malformed inputs
+    def test_relaxed_equals_nan_behavior(self):
+        self.assertFalse(relaxed_equals("not_a_number", 0))
+        self.assertFalse(relaxed_equals("NaN", 42))
+        self.assertTrue(relaxed_equals("false", False))
+        self.assertFalse(relaxed_equals("false", True))
 
 
 

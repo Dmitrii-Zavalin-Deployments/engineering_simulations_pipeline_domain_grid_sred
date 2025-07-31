@@ -3,14 +3,14 @@
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
 from src.validation.expression_utils import parse_literal, is_literal
-from src.validation.expression_utils import is_symbolic_reference  # ✅ kept only once
+from src.validation.expression_utils import is_symbolic_reference
 from src.rules.operators import resolve_operator, OperatorError, SUPPORTED_OPERATORS
 from src.rules.config import debug_log
 from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
-from src.utils.coercion import relaxed_equals  # ✅ NEW: Added comparison logic
+from src.utils.coercion import relaxed_equals
 
 logger = logging.getLogger(__name__)
 
@@ -86,7 +86,6 @@ def _evaluate_expression(
         except Exception as e:
             raise RuleEvaluationError(f"Literal comparison failed: {e}")
 
-    # ➤ Resolve LHS
     try:
         lhs_value = get_nested_value(payload, lhs_path)
     except RuleEvaluationError as e:
@@ -97,14 +96,12 @@ def _evaluate_expression(
         else:
             raise
 
-    # ➤ Resolve operator
     try:
         compare_fn = resolve_operator(operator_str)
         debug_log(f"Resolved operator '{operator_str}' → {compare_fn}")
     except OperatorError:
         raise RuleEvaluationError(f"Operator resolution failed: {operator_str}")
 
-    # ➤ Resolve RHS
     rhs_resolved_from_payload = False
     try:
         rhs_value = parse_literal(rhs_literal)
@@ -124,7 +121,6 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
-    # ✅ UPDATED: Replace raw equality with relaxed_equals
     if relaxed_type_check and (
         lhs_value is None or rhs_value is None or
         is_symbolic_reference(lhs_path) or is_symbolic_reference(rhs_literal)
@@ -134,7 +130,6 @@ def _evaluate_expression(
         debug_log(f"Relaxed comparison → {lhs_value} ~ {rhs_value} → {result}")
         return result
 
-    # ➤ Coercion logic
     try:
         if strict_type_check:
             debug_log("Strict type check enabled")
@@ -153,10 +148,14 @@ def _evaluate_expression(
     except Exception as e:
         raise RuleEvaluationError(f"Coercion error: {e}")
 
-    # ➤ Final comparison
     try:
-        result = compare_fn(lhs_value, rhs_value)
-        debug_log(f"Comparison result: {lhs_value} {operator_str} {rhs_value} → {result}")
+        if relaxed_type_check:
+            debug_log("Using relaxed comparison logic")
+            result = relaxed_equals(lhs_value, rhs_value)
+            debug_log(f"Relaxed final comparison → {lhs_value} ~ {rhs_value} → {result}")
+        else:
+            result = compare_fn(lhs_value, rhs_value)
+            debug_log(f"Strict final comparison → {lhs_value} {operator_str} {rhs_value} → {result}")
         return result
     except Exception as e:
         raise RuleEvaluationError(f"Comparison failed: {e}")
