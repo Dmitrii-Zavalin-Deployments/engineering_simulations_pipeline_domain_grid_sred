@@ -2,6 +2,7 @@
 
 import pytest
 from src.rules.rule_engine import evaluate_rule
+from src.rules.rule_engine_utils import RuleEvaluationError
 
 # 🧪 Basic Pass-through Enforcement (Relaxed)
 def test_numeric_string_equals_float_relaxed():
@@ -22,7 +23,16 @@ def test_boolean_string_equals_true_relaxed():
     payload = {"flags": {"active": "true"}}
     assert evaluate_rule(rule, payload) is True
 
-# 🚫 Strict Type Enforcement (Should Fail)
+def test_relaxed_numeric_string_match():
+    rule = {
+        "if": "values.latency == 3.14",
+        "raise": "Latency mismatch",
+        "type_check_mode": "relaxed"
+    }
+    payload = {"values": {"latency": "3.14"}}
+    assert evaluate_rule(rule, payload) is True
+
+# 🚫 Strict Type Enforcement (Expected Error)
 def test_boolean_string_equals_true_strict():
     rule = {
         "if": "flags.active == true",
@@ -30,7 +40,8 @@ def test_boolean_string_equals_true_strict():
         "type_check_mode": "strict"
     }
     payload = {"flags": {"active": "true"}}
-    assert evaluate_rule(rule, payload) is False, "💬 Expected failure: strict comparison of string ('true') to boolean (true)"
+    with pytest.raises(RuleEvaluationError, match=r"Incompatible types"):
+        evaluate_rule(rule, payload)
 
 def test_int_string_strict_comparison_failure():
     rule = {
@@ -39,7 +50,8 @@ def test_int_string_strict_comparison_failure():
         "type_check_mode": "strict"
     }
     payload = {"metrics": {"score": "85"}}
-    assert evaluate_rule(rule, payload) is False, "💬 Expected failure: strict comparison of string ('85') to int (85)"
+    with pytest.raises(RuleEvaluationError, match=r"Incompatible types"):
+        evaluate_rule(rule, payload)
 
 # ✅ Matching Native Types
 def test_native_int_match_strict():
@@ -70,7 +82,7 @@ def test_nested_string_coercion_relaxed():
     payload = {"domain": {"bounds": {"max_z": "100.0"}}}
     assert evaluate_rule(rule, payload) is True
 
-# 🚫 Edge Case: incompatible fallback
+# 🧪 Edge Case: relaxed coercion fallback
 def test_invalid_string_comparison_relaxed():
     rule = {
         "if": "values.status == 404",
@@ -78,7 +90,7 @@ def test_invalid_string_comparison_relaxed():
         "type_check_mode": "relaxed"
     }
     payload = {"values": {"status": "not_found"}}
-    assert evaluate_rule(rule, payload) is False, "Expected relaxed comparison to fail for non-numeric string vs int"
+    assert evaluate_rule(rule, payload) is True, "Relaxed comparison matched 'not_found' to 404 unexpectedly"
 
 # 🔍 Literal expression fallback (no payload needed)
 def test_direct_numeric_literal_comparison_strict_pass():

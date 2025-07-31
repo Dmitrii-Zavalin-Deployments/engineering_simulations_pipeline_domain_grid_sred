@@ -1,4 +1,4 @@
-# src/rules/rule_engine_utils.py
+# 📄 src/rules/rule_engine_utils.py
 
 import logging
 from src.rules.config import debug_log
@@ -29,6 +29,29 @@ def get_nested_value(payload: dict, path: str):
             )
         debug_log(f"Resolved key '{k}' → {value}")
     return value
+
+def coerce_relaxed_type_if_needed(left, right, relaxed_mode: bool):
+    """
+    Applies stricter relaxed-mode fallback logic to prevent unintended coercion.
+    Only allows string-to-numeric coercion if input is numerically valid.
+    """
+    if not relaxed_mode:
+        return left, right
+
+    # Only coerce if types are mismatched: string vs number
+    if isinstance(left, str) and isinstance(right, (int, float)):
+        try:
+            left = float(left)
+        except ValueError:
+            raise RuleEvaluationError(f"Incompatible coercion: '{left}' to {type(right)}")
+
+    elif isinstance(right, str) and isinstance(left, (int, float)):
+        try:
+            right = float(right)
+        except ValueError:
+            raise RuleEvaluationError(f"Incompatible coercion: '{right}' to {type(left)}")
+
+    return left, right
 
 
 
