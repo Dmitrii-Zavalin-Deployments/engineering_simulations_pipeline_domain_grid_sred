@@ -1,12 +1,13 @@
-# 📄 tests/utils/test_input_validation.py
+# tests/utils/test_input_validation.py
 
 import os
 import pytest
 import tempfile
 import pathlib
 from unittest.mock import patch
-import src.utils.input_validation as iv  # ✅ Refactored import
+import src.utils.input_validation as iv
 from utils.gmsh_input_check import validate_step_has_volumes
+
 
 # ------------------------------------------------------------------------------------
 # 🧪 Volume Validation Tests — validate_step_has_volumes
@@ -18,48 +19,49 @@ def step_with_volume():
 def step_empty():
     return { "solids": [] }
 
-@patch("gmsh.open", return_value=None)
-@patch("gmsh.model.getEntities", return_value=[(3, 1)])  # ✅ Mocked volume entity
+
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-def test_step_with_volume_passes(mock_validate_file, mock_isfile, mock_entities, mock_open_fn):
-    validate_step_has_volumes(step_with_volume())
+def test_step_with_volume_passes(mock_validate_file, mock_isfile, mock_gmsh_volume):
+    with mock_gmsh_volume:
+        validate_step_has_volumes(step_with_volume())
 
-@patch("gmsh.open", return_value=None)
-@patch("gmsh.model.getEntities", return_value=[(3, 1)])
+
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-def test_step_missing_solids_key_raises(mock_validate_file, mock_isfile, mock_entities, mock_open_fn):
-    invalid = { "shells": [] }
-    with pytest.raises(KeyError):
-        validate_step_has_volumes(invalid)
+def test_step_missing_solids_key_raises(mock_validate_file, mock_isfile, mock_gmsh_volume):
+    invalid = {}  # ❗ Updated to remove "solids" key entirely
+    with mock_gmsh_volume:
+        with pytest.raises(KeyError):
+            validate_step_has_volumes(invalid)
 
-@patch("gmsh.open", return_value=None)
-@patch("gmsh.model.getEntities", return_value=[])
+
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-def test_step_with_no_volumes_raises(mock_validate_file, mock_isfile, mock_entities, mock_open_fn):
-    with pytest.raises(ValueError):
-        validate_step_has_volumes(step_empty())
+def test_step_with_no_volumes_raises(mock_validate_file, mock_isfile):
+    with patch("gmsh.open", return_value=None), patch("gmsh.model.getEntities", return_value=[]):
+        with pytest.raises(ValueError):
+            validate_step_has_volumes(step_empty())
 
-@patch("gmsh.open", return_value=None)
-@patch("gmsh.model.getEntities", return_value=[(3, 1)])
+
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 @pytest.mark.parametrize("bad_input", [None, "step", 42, ["solids"], {"solids": None}])
-def test_invalid_step_types_raise_typeerror_or_file_not_found(mock_validate_file, mock_isfile, mock_entities, mock_open_fn, bad_input):
-    with pytest.raises((TypeError, FileNotFoundError)):
-        validate_step_has_volumes(bad_input)
+def test_invalid_step_types_raise_typeerror_or_file_not_found(mock_validate_file, mock_isfile, mock_gmsh_volume, bad_input):
+    with mock_gmsh_volume:
+        with pytest.raises((TypeError, FileNotFoundError)):
+            validate_step_has_volumes(bad_input)
 
-@patch("gmsh.open", return_value=None)
-@patch("gmsh.model.getEntities", return_value=[(3, 1)])
+
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-def test_volume_validator_runtime_safe(mock_validate_file, mock_isfile, mock_entities, mock_open_fn):
+def test_volume_validator_runtime_safe(mock_validate_file, mock_isfile, mock_gmsh_volume):
     import time
-    start = time.time()
-    validate_step_has_volumes(step_with_volume())
-    assert time.time() - start < 0.2
+    with mock_gmsh_volume:
+        start = time.time()
+        validate_step_has_volumes(step_with_volume())
+        assert time.time() - start < 0.2
+
 
 # ------------------------------------------------------------------------------------
 # 🧪 STEP File Path Validation Tests — validate_step_file
@@ -88,15 +90,12 @@ def test_non_step_extension_still_passes_if_file_exists():
     with tempfile.NamedTemporaryFile(suffix=".txt") as temp_file:
         assert iv.validate_step_file(temp_file.name)
 
+
 # ------------------------------------------------------------------------------------
 # 🧪 Mock Fixture Verification — validate_step_file
 # ------------------------------------------------------------------------------------
 
 def test_step_file_validation(mock_validate_step_file):
-    """
-    Validates that the mock_validate_step_file fixture correctly intercepts
-    and returns a safe response when injected via conftest.py.
-    """
     result = iv.validate_step_file("fake/path/to/model.step")
     assert result is True
     mock_validate_step_file.assert_called_once()
