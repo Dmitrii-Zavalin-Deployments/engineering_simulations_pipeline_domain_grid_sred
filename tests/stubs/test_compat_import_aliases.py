@@ -3,7 +3,8 @@
 """🧩 Compatibility stub validation for get_resolution alias."""
 
 import pytest
-import validation.validation_profile_enforcer  # ✅ Imported as module for monkeypatching
+from unittest.mock import patch, mock_open
+import validation.validation_profile_enforcer  # ✅ Imported for monkeypatching
 from validation.validation_profile_enforcer import enforce_profile
 
 # 🪞 Compatibility alias for legacy usage
@@ -15,8 +16,9 @@ def test_legacy_alias_callable_type():
     assert callable(get_resolution)
     assert get_resolution.__name__ == "get_resolution"
 
-# 🧪 Invocation simulation with mock control override
-def test_alias_invocation_with_mock_payload(monkeypatch):
+# 🧪 Invocation simulation with mock control and file override
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data="rules: []")
+def test_alias_invocation_with_mock_payload(mock_file, monkeypatch):
     # ✅ Inject toggle flag into live module
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
@@ -38,7 +40,8 @@ def test_alias_invocation_with_mock_payload(monkeypatch):
     assert result is not None
 
 # 🧠 Edge-case: Missing fields in payload
-def test_alias_invocation_missing_fields():
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data="rules: []")
+def test_alias_invocation_missing_fields(mock_file):
     incomplete_payload = {
         "resolution": {},
         "config": {}
@@ -48,7 +51,8 @@ def test_alias_invocation_missing_fields():
         get_resolution("configs/validation/resolution_profile.yaml", incomplete_payload)
 
 # ⏱️ Performance ceiling
-def test_resolution_alias_runtime_guard(monkeypatch):
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data="rules: []")
+def test_resolution_alias_runtime_guard(mock_file, monkeypatch):
     import time
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
