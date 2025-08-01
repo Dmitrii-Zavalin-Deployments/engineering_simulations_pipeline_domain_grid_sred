@@ -17,7 +17,11 @@ def test_legacy_alias_callable_type():
     assert get_resolution.__name__ == "get_resolution"
 
 # 🧪 Invocation simulation with mock control and file override
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data="rules:\n  - field: resolution\n    op: exists\n    value: true")
+@patch(
+    "validation.validation_profile_enforcer.open",
+    new_callable=mock_open,
+    read_data="rules:\n  - field: resolution.dx\n    op: exists\n    value: true"
+)
 def test_alias_invocation_with_mock_payload(mock_file, monkeypatch):
     # ✅ Inject toggle flag into live module
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
@@ -40,8 +44,8 @@ def test_alias_invocation_with_mock_payload(mock_file, monkeypatch):
     assert result is not None
 
 # 🧠 Edge-case: Missing fields in payload — simulate exception directly
-@patch("validation.validation_profile_enforcer.get_resolution", side_effect=Exception("missing fields"))
-def test_alias_invocation_missing_fields(mock_get_resolution):
+@patch("validation.validation_profile_enforcer.enforce_profile", side_effect=Exception("missing fields"))
+def test_alias_invocation_missing_fields(mock_enforce):
     incomplete_payload = {
         "resolution": {},
         "config": {}
@@ -51,7 +55,11 @@ def test_alias_invocation_missing_fields(mock_get_resolution):
         get_resolution("configs/validation/resolution_profile.yaml", incomplete_payload)
 
 # ⏱️ Performance ceiling
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data="rules:\n  - field: resolution\n    op: exists\n    value: true")
+@patch(
+    "validation.validation_profile_enforcer.open",
+    new_callable=mock_open,
+    read_data="rules:\n  - field: resolution.dx\n    op: exists\n    value: true"
+)
 def test_resolution_alias_runtime_guard(mock_file, monkeypatch):
     import time
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)

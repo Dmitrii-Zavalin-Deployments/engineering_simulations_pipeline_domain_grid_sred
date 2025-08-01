@@ -22,6 +22,39 @@ def gmsh_session():
     gmsh.finalize()
 
 
+# 🧪 Fixture: Mocked STEP File Validator with file check override
+@pytest.fixture(scope="function")
+def mock_validate_step_file():
+    """
+    Centrally mocks the STEP file validation utility and its underlying filesystem check
+    so tests can override its behavior without repeating patch logic across modules.
+
+    Usage:
+        def test_something(mock_validate_step_file):
+            assert mock_validate_step_file.return_value is True
+            mock_validate_step_file.assert_called_once()
+    """
+    with patch("os.path.isfile", return_value=True):
+        with patch("src.utils.input_validation.validate_step_file", return_value=True) as mock_func:
+            yield mock_func
+
+
+# 🧪 Fixture: Mocked Gmsh I/O for Volume Validation
+@pytest.fixture(scope="function")
+def mock_gmsh_volume():
+    """
+    Simulates Gmsh loading and 3D volume entities for validation testing without file system access.
+
+    Usage:
+        def test_volume_something(mock_gmsh_volume):
+            with mock_gmsh_volume:
+                validate_step_has_volumes(...)
+    """
+    with patch("gmsh.open", return_value=None):
+        with patch("gmsh.model.getEntities", return_value=[(3, 1)]):
+            yield
+
+
 # 🧪 Utility: Expression Payload Factory
 def get_payload_with_defaults(overrides=None):
     """
@@ -53,23 +86,6 @@ def get_payload_with_defaults(overrides=None):
             else:
                 base[key] = value
     return base
-
-
-# 🧪 Fixture: Mocked STEP File Validator with file check override
-@pytest.fixture(scope="function")
-def mock_validate_step_file():
-    """
-    Centrally mocks the STEP file validation utility and its underlying filesystem check
-    so tests can override its behavior without repeating patch logic across modules.
-
-    Usage:
-        def test_something(mock_validate_step_file):
-            assert mock_validate_step_file.return_value is True
-            mock_validate_step_file.assert_called_once()
-    """
-    with patch("os.path.isfile", return_value=True):
-        with patch("src.utils.input_validation.validate_step_file", return_value=True) as mock_func:
-            yield mock_func
 
 
 
