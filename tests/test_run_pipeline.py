@@ -69,9 +69,10 @@ class TestSanitizePayload(unittest.TestCase):
 
 
 class TestPipelineMain(unittest.TestCase):
+    @patch("os.path.isfile", return_value=True)  # ✅ NEW patch: ensures file validator doesn't fail on MagicMock
     @patch("pathlib.Path.glob", return_value=[MagicMock(name="mock.step", spec=Path)])
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ New patch: bypass actual file check
+    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ Bypass actual file validation
     @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
         "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
     })
@@ -81,7 +82,7 @@ class TestPipelineMain(unittest.TestCase):
     @patch("src.run_pipeline.sys.exit")
     def test_main_pipeline_success(
         self, mock_exit, mock_open_fn, mock_enforce, mock_validate, mock_gmsh,
-        mock_validate_file, mock_exists, mock_glob
+        mock_validate_file, mock_exists, mock_glob, mock_isfile
     ):
         main(resolution=DEFAULT_RESOLUTION)
         mock_gmsh.assert_called()

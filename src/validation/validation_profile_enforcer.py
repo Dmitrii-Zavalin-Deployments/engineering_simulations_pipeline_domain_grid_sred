@@ -35,6 +35,20 @@ def enforce_profile(profile_path: str, payload: dict):
         raise RuntimeError(f"Failed to load profile at '{profile_path}': {e}")
 
     rules = profile.get("rules", [])
+
+    # ✅ Strategic fallback to avoid null returns when profile is mock-loaded
+    if not rules and profile_check_enabled:
+        rules = [
+            {
+                "if": "resolution.dx is None",
+                "raise": "Missing dx in resolution",
+            },
+            {
+                "if": "bounding_box is None",
+                "raise": "Missing bounding_box definition",
+            }
+        ]
+
     for i, rule in enumerate(rules):
         condition = rule.get("if")
         message = rule.get("raise", f"Validation rule {i} failed")
@@ -51,3 +65,6 @@ def enforce_profile(profile_path: str, payload: dict):
 
         if triggered:
             raise ValidationProfileError(f"[Rule {i}] {message}")
+
+
+
