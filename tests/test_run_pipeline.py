@@ -46,13 +46,13 @@ class TestSanitizePayload(unittest.TestCase):
         domain = result["domain_definition"]
         self.assertIn("width", domain)
         self.assertIsInstance(coerce_numeric(domain["width"]), float)
-        self.assertEqual(coerce_numeric(domain["width"]), 0.0)  # ✅ Clamped non-negative
+        self.assertEqual(coerce_numeric(domain["width"]), 0.0)
 
     def test_fallback_on_invalid_width(self):
         raw = {"domain_definition": {"x": "1", "max_x": "5", "width": "invalid"}}
         result = sanitize_payload(raw)
         width = result["domain_definition"]["width"]
-        self.assertEqual(width, 4.0)  # fallback logic: max_x - x
+        self.assertEqual(width, 4.0)
 
     @patch("src.run_pipeline.coerce_numeric", side_effect=lambda val: None if val is None or val == "invalid" else float(val))
     def test_mocked_coercion_fallback(self, mock_coerce):
@@ -71,6 +71,7 @@ class TestSanitizePayload(unittest.TestCase):
 class TestPipelineMain(unittest.TestCase):
     @patch("pathlib.Path.glob", return_value=[MagicMock(name="mock.step", spec=Path)])
     @patch("pathlib.Path.exists", return_value=True)
+    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ New patch: bypass actual file check
     @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
         "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
     })
@@ -80,7 +81,7 @@ class TestPipelineMain(unittest.TestCase):
     @patch("src.run_pipeline.sys.exit")
     def test_main_pipeline_success(
         self, mock_exit, mock_open_fn, mock_enforce, mock_validate, mock_gmsh,
-        mock_exists, mock_glob
+        mock_validate_file, mock_exists, mock_glob
     ):
         main(resolution=DEFAULT_RESOLUTION)
         mock_gmsh.assert_called()
@@ -88,6 +89,7 @@ class TestPipelineMain(unittest.TestCase):
         mock_enforce.assert_called()
         mock_open_fn.assert_called()
         mock_exit.assert_called_with(0)
+        mock_validate_file.assert_called()  # ✅ Confirm patched validator used
 
     @patch("src.run_pipeline.sys.exit", side_effect=SystemExit)
     @patch("pathlib.Path.exists", return_value=False)
