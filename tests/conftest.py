@@ -56,6 +56,22 @@ def mock_gmsh_volume():
             yield True  # Ensures fixture enters context correctly
 
 
+# 🧪 Fixture: Mocked Empty Gmsh Entity Set — triggers volume absence errors
+@pytest.fixture(scope="function")
+def mock_gmsh_entities_empty():
+    """
+    Simulates an empty result from gmsh.model.getEntities to test missing volume detection logic.
+
+    Usage:
+        def test_volume_absence(mock_gmsh_entities_empty):
+            with mock_gmsh_entities_empty:
+                validate_step_has_volumes(...)
+    """
+    with patch("gmsh.open", return_value=None):
+        with patch("gmsh.model.getEntities", return_value=[]):
+            yield True  # ✅ Ensures compatibility with 'with' block context
+
+
 # 🧪 Fixture: YAML Profile Loader Patch — for alias and rule validation
 @pytest.fixture
 def load_mock_profile():

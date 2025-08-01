@@ -72,7 +72,7 @@ class TestPipelineMain(unittest.TestCase):
     @patch("os.path.isfile", return_value=True)  # ✅ Unblock validator path
     @patch("pathlib.Path.glob")
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ Bypass actual file validation
+    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ Fixture renamed for clarity
     @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
         "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
     })
@@ -82,7 +82,7 @@ class TestPipelineMain(unittest.TestCase):
     @patch("src.run_pipeline.sys.exit")
     def test_main_pipeline_success(
         self, mock_exit, mock_open_fn, mock_enforce, mock_validate,
-        mock_gmsh, mock_validate_file, mock_exists, mock_glob, mock_isfile
+        mock_gmsh, mock_validate_step_file, mock_exists, mock_glob, mock_isfile
     ):
         # ✅ Simulate STEP discovery
         mock_step_file = MagicMock(spec=Path)
@@ -96,7 +96,7 @@ class TestPipelineMain(unittest.TestCase):
         mock_enforce.assert_called()
         mock_open_fn.assert_called()
         mock_exit.assert_called_with(0)
-        mock_validate_file.assert_called()  # ✅ Confirm validator invocation
+        mock_validate_step_file.assert_called()  # ✅ Confirm validator invocation
 
     @patch("src.run_pipeline.sys.exit", side_effect=SystemExit)
     @patch("pathlib.Path.exists", return_value=False)

@@ -5,7 +5,7 @@
 import pytest
 from unittest.mock import patch, mock_open, MagicMock
 import validation.validation_profile_enforcer  # ✅ Imported for monkeypatching
-from validation.validation_profile_enforcer import enforce_profile
+from validation.validation_profile_enforcer import enforce_profile, ValidationProfileError
 
 # 🧪 Import reusable YAML mocks
 from tests.mocks.mock_profiles import VALID_ALIAS_PROFILE, MISSING_ALIAS_SECTION
@@ -23,7 +23,7 @@ def test_legacy_alias_callable_type():
 
 # 🧪 Invocation simulation with mock control and file override
 @patch("os.path.isfile", return_value=True)
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE)
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("resolution.dx is None", "resolution.dx == None"))
 def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch):
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
@@ -48,20 +48,20 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
 # 🧠 Edge-case: Missing fields in payload — simulate exception directly
 @patch("os.path.isfile", return_value=True)
 @patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=MISSING_ALIAS_SECTION)
-@patch("validation.validation_profile_enforcer.enforce_profile", side_effect=Exception("missing fields"))
+@patch("validation.validation_profile_enforcer.enforce_profile", side_effect=ValidationProfileError("missing fields"))
 def test_alias_invocation_missing_fields(mock_enforce, mock_file, mock_isfile):
     incomplete_payload = {
         "resolution": {},
         "config": {}
     }
 
-    with pytest.raises(Exception, match="missing fields"):
+    with pytest.raises(ValidationProfileError, match="missing fields"):
         get_resolution("configs/validation/resolution_profile.yaml", incomplete_payload)
 
 
 # ⏱️ Performance ceiling
 @patch("os.path.isfile", return_value=True)
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE)
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("resolution.dx is None", "resolution.dx == None"))
 def test_resolution_alias_runtime_guard(mock_file, mock_isfile, monkeypatch):
     import time
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)

@@ -39,6 +39,14 @@ thresholds:
 
 EMPTY_PAYLOAD = ""
 
+RULE_WITH_IS_OPERATOR = """
+rules:
+  - if: resolution.dx is None
+    raise: Missing resolution.dx
+"""
+
+RULE_WITH_EQ_OPERATOR = RULE_WITH_IS_OPERATOR.replace("is None", "== None")  # ✅ Fixed version
+
 
 # ------------------------------------------------------------------------------------
 # 🧪 Validation Routines — YAML Integrity and Structure
@@ -88,6 +96,16 @@ def test_empty_payload_triggers_keyerror():
     """
     with pytest.raises(Exception):
         yaml.safe_load(EMPTY_PAYLOAD)["alias_map"]
+
+
+def test_rule_operator_syntax_replacement():
+    """
+    Verifies that a rule using 'is' operator can be safely rewritten to '=='.
+    """
+    raw = yaml.safe_load(RULE_WITH_IS_OPERATOR)
+    fixed = yaml.safe_load(RULE_WITH_EQ_OPERATOR)
+    assert raw["rules"][0]["if"].endswith("is None")
+    assert fixed["rules"][0]["if"].endswith("== None")
 
 
 
