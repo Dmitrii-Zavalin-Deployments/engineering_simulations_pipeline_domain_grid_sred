@@ -4,6 +4,7 @@ import os
 import pytest
 import tempfile
 import pathlib
+from unittest.mock import patch
 from utils.gmsh_input_check import validate_step_has_volumes
 from src.utils.input_validation import validate_step_file
 
@@ -17,24 +18,29 @@ def step_with_volume():
 def step_empty():
     return { "solids": [] }
 
-def test_step_with_volume_passes():
+@patch("src.utils.input_validation.validate_step_file", return_value=True)
+def test_step_with_volume_passes(mock_validate):
     validate_step_has_volumes(step_with_volume())
 
-def test_step_missing_solids_key_raises():
+@patch("src.utils.input_validation.validate_step_file", return_value=True)
+def test_step_missing_solids_key_raises(mock_validate):
     invalid = { "shells": [] }
     with pytest.raises(KeyError):
         validate_step_has_volumes(invalid)
 
-def test_step_with_no_volumes_raises():
+@patch("src.utils.input_validation.validate_step_file", return_value=True)
+def test_step_with_no_volumes_raises(mock_validate):
     with pytest.raises(ValueError):
         validate_step_has_volumes(step_empty())
 
+@patch("src.utils.input_validation.validate_step_file", return_value=True)
 @pytest.mark.parametrize("bad_input", [None, "step", 42, ["solids"], {"solids": None}])
-def test_invalid_step_types_raise_typeerror(bad_input):
+def test_invalid_step_types_raise_typeerror(mock_validate, bad_input):
     with pytest.raises(TypeError):
         validate_step_has_volumes(bad_input)
 
-def test_volume_validator_runtime_safe():
+@patch("src.utils.input_validation.validate_step_file", return_value=True)
+def test_volume_validator_runtime_safe(mock_validate):
     import time
     start = time.time()
     validate_step_has_volumes(step_with_volume())
