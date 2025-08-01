@@ -1,10 +1,11 @@
-# 📄 tests/conftest.py
+# tests/conftest.py
 
 import sys
 import pathlib
 import pytest
 import gmsh
-from unittest.mock import patch
+import yaml
+from unittest.mock import patch, mock_open
 
 # Adds src/ directory to sys.path for all tests
 SRC_PATH = pathlib.Path(__file__).resolve().parents[1] / "src"
@@ -52,7 +53,26 @@ def mock_gmsh_volume():
     """
     with patch("gmsh.open", return_value=None):
         with patch("gmsh.model.getEntities", return_value=[(3, 1)]):
-            yield
+            yield True  # Ensures fixture enters context correctly
+
+
+# 🧪 Fixture: YAML Profile Loader Patch — for alias and rule validation
+@pytest.fixture
+def load_mock_profile():
+    """
+    Replaces `open()` with patched YAML string and returns parsed profile dictionary.
+
+    Usage:
+        def test_profile_safety(load_mock_profile):
+            profile = load_mock_profile(VALID_ALIAS_PROFILE)
+            assert "alias_map" in profile
+    """
+    def _loader(yaml_text):
+        mocked_open = mock_open(read_data=yaml_text)
+        with patch("builtins.open", mocked_open):
+            with open("fake/path/profile.yaml") as f:
+                return yaml.safe_load(f)
+    return _loader
 
 
 # 🧪 Utility: Expression Payload Factory
@@ -86,9 +106,6 @@ def get_payload_with_defaults(overrides=None):
             else:
                 base[key] = value
     return base
-
-
-
 
 
 

@@ -19,6 +19,29 @@ class ValidationProfileError(Exception):
     pass
 
 
+class ProfileValidationError(Exception):
+    """Raised when profile loading fails due to structure or content issues."""
+    pass
+
+
+def load_profile(path: str) -> dict:
+    """
+    Safely loads a YAML validation profile and verifies minimum structure.
+
+    Ensures 'alias_map' exists and is dictionary-shaped for downstream use.
+    """
+    try:
+        with open(path, "r") as f:
+            profile = yaml.safe_load(f)
+        if not isinstance(profile, dict):
+            raise TypeError("Profile file does not contain a top-level dictionary")
+        if "alias_map" in profile and not isinstance(profile["alias_map"], dict):
+            raise TypeError("Field 'alias_map' must be a dictionary if present")
+        return profile
+    except Exception as e:
+        raise ProfileValidationError(f"Failed to load or validate profile at '{path}': {e}")
+
+
 def enforce_profile(profile_path: str, payload: dict):
     """
     Parse a validation YAML profile and enforce its rules on the given payload.
