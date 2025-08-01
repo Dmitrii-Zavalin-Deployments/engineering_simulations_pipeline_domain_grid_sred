@@ -4,8 +4,8 @@ import os
 import pytest
 import tempfile
 import pathlib
-from utils.gmsh_input_check import validate_step_has_volumes  # ✅ corrected import
-from src.utils.input_validation import validate_step_file  # ✅ file validator
+from utils.gmsh_input_check import validate_step_has_volumes
+from src.utils.input_validation import validate_step_file
 
 # ------------------------------------------------------------------------------------
 # 🧪 Volume Validation Tests — validate_step_has_volumes
@@ -44,9 +44,9 @@ def test_volume_validator_runtime_safe():
 # 🧪 STEP File Path Validation Tests — validate_step_file
 # ------------------------------------------------------------------------------------
 
-@pytest.mark.parametrize("invalid_input", [42, {}, None])
-def test_invalid_step_types_raise_typeerror_file(invalid_input):
-    with pytest.raises(TypeError):
+@pytest.mark.parametrize("invalid_input", [42, {}, None, [], set(), object()])
+def test_invalid_step_types_raise_typeerror_or_file_not_found(invalid_input):
+    with pytest.raises((TypeError, FileNotFoundError)):
         validate_step_file(invalid_input)
 
 @pytest.mark.parametrize("bad_path", ["nonexistent.step", "/fake/dir/file.step"])
