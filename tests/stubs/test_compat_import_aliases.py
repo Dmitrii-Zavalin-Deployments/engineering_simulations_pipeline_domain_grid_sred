@@ -3,6 +3,7 @@
 """🧩 Compatibility stub validation for get_resolution alias."""
 
 import pytest
+import validation.validation_profile_enforcer  # ✅ Imported as module for monkeypatching
 from validation.validation_profile_enforcer import enforce_profile
 
 # 🪞 Compatibility alias for legacy usage
@@ -16,8 +17,8 @@ def test_legacy_alias_callable_type():
 
 # 🧪 Invocation simulation with mock control override
 def test_alias_invocation_with_mock_payload(monkeypatch):
-    # 🧬 Inject mock activation for validation check
-    monkeypatch.setattr("validation.validation_profile_enforcer.profile_check_enabled", lambda: True)
+    # ✅ Inject toggle flag into live module
+    monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
     payload = {
         "resolution": {"dx": 0.2, "dy": 0.2, "dz": 0.2},
@@ -33,7 +34,6 @@ def test_alias_invocation_with_mock_payload(monkeypatch):
         }
     }
 
-    # 🧪 Test enforcement logic without skip
     result = get_resolution("configs/validation/resolution_profile.yaml", payload)
     assert result is not None
 
@@ -50,7 +50,7 @@ def test_alias_invocation_missing_fields():
 # ⏱️ Performance ceiling
 def test_resolution_alias_runtime_guard(monkeypatch):
     import time
-    monkeypatch.setattr("validation.validation_profile_enforcer.profile_check_enabled", lambda: True)
+    monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
     start = time.time()
     try:
