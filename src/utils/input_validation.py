@@ -36,7 +36,7 @@ def validate_step_file(path: Union[str, bytes, os.PathLike]) -> bool:
 
     return True
 
-# 🔗 Assign internal alias after definition (optional)
+# 🔗 Patch-safe alias (used only for deep test injection, not public API)
 _validate_step_file_internal = validate_step_file
 
 

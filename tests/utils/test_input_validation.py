@@ -1,4 +1,4 @@
-# tests/utils/test_input_validation.py
+# 📄 tests/utils/test_input_validation.py
 
 import os
 import pytest
@@ -72,6 +72,19 @@ def test_valid_pathlike_step_file_passes():
 def test_non_step_extension_still_passes_if_file_exists():
     with tempfile.NamedTemporaryFile(suffix=".txt") as temp_file:
         assert validate_step_file(temp_file.name)
+
+# ------------------------------------------------------------------------------------
+# 🧪 Mock Fixture Verification — validate_step_file
+# ------------------------------------------------------------------------------------
+
+def test_step_file_validation(mock_validate_step_file):
+    """
+    Validates that the mock_validate_step_file fixture correctly intercepts
+    and returns a safe response when injected via conftest.py.
+    """
+    result = validate_step_file("fake/path/to/model.step")
+    assert result is True
+    mock_validate_step_file.assert_called_once()
 
 
 

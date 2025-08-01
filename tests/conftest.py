@@ -56,11 +56,16 @@ def get_payload_with_defaults(overrides=None):
 
 
 # 🧪 Fixture: Mocked STEP File Validator
-@pytest.fixture
+@pytest.fixture(scope="function")
 def mock_validate_step_file():
     """
     Centrally mocks the STEP file validation utility so tests can override
     its behavior without repeating patch logic across modules.
+
+    Usage:
+        def test_something(mock_validate_step_file):
+            assert mock_validate_step_file.return_value is True
+            mock_validate_step_file.assert_called_once()
     """
     with patch("src.utils.input_validation.validate_step_file", return_value=True) as mock_func:
         yield mock_func
