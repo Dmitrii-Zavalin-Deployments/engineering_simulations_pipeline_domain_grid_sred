@@ -45,8 +45,13 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
 
 # 🧠 Edge-case: Missing fields in payload — simulate exception directly
 @patch("os.path.isfile", return_value=True)  # ✅ File check safeguard
+@patch(
+    "validation.validation_profile_enforcer.open",
+    new_callable=mock_open,
+    read_data="rules:\n  - dummy_rule: true"
+)
 @patch("validation.validation_profile_enforcer.enforce_profile", side_effect=Exception("missing fields"))
-def test_alias_invocation_missing_fields(mock_enforce, mock_isfile):
+def test_alias_invocation_missing_fields(mock_enforce, mock_file, mock_isfile):
     incomplete_payload = {
         "resolution": {},
         "config": {}
