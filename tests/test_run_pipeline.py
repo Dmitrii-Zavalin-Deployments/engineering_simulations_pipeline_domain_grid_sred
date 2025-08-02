@@ -77,7 +77,7 @@ class TestPipelineMain(unittest.TestCase):
         "min_x": 0, "max_x": 1,
         "min_y": 0, "max_y": 1,
         "min_z": 0, "max_z": 1,
-        "nx": 10, "ny": 10, "nz": 10  # ✅ Revised to correct alignment
+        "nx": 10, "ny": 10, "nz": 10
     })
     @patch("src.run_pipeline.validate_domain_bounds")
     @patch("src.run_pipeline.enforce_profile")
@@ -90,6 +90,11 @@ class TestPipelineMain(unittest.TestCase):
         mock_step_file = MagicMock(spec=Path)
         mock_step_file.name = "model.step"
         mock_glob.return_value = [mock_step_file]
+
+        step_files = mock_glob.return_value
+        # 🛡️ Guard to prevent IndexError from empty list
+        assert isinstance(step_files, list) and len(step_files) > 0
+        assert isinstance(step_files[0], Path)
 
         main(resolution=DEFAULT_RESOLUTION)
 
@@ -113,7 +118,6 @@ class TestPipelineMain(unittest.TestCase):
         self.assertTrue(kwargs.get("fatal"))
 
     def test_safe_list_indexing_guard(self):
-        # 🛡 Defensive structure validation to prevent IndexError
         result_list = ["alpha", "beta", "gamma"]
         index = 1
         assert isinstance(result_list, list) and len(result_list) > index

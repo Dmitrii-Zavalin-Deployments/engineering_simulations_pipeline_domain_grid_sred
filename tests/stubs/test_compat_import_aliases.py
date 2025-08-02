@@ -46,7 +46,7 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
     assert result is not None
 
 
-# 🧠 Edge-case: Missing fields in payload — real exception trigger
+# 🧠 Edge-case: Missing resolution fields — enhanced enforcement
 @patch("os.path.isfile", return_value=True)
 @patch("validation.validation_profile_enforcer.open", new_callable=mock_open,
        read_data="""
@@ -54,6 +54,8 @@ expected_resolution:
   dx: 0.2
   dy: 0.2
   dz: 0.2
+enforce:
+  resolution_required: true
 """)
 def test_alias_invocation_missing_fields(mock_file, mock_isfile):
     incomplete_payload = {
@@ -66,7 +68,7 @@ def test_alias_invocation_missing_fields(mock_file, mock_isfile):
         "config": {}
     }
 
-    with pytest.raises(ValidationProfileError, match="missing"):
+    with pytest.raises(ValidationProfileError, match="missing.*resolution"):
         get_resolution("configs/validation/resolution_profile.yaml", incomplete_payload)
 
 
