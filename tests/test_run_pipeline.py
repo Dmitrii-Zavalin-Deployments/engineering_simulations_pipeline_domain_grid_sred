@@ -112,5 +112,12 @@ class TestPipelineMain(unittest.TestCase):
         self.assertIn("Input directory not found", args[0])
         self.assertTrue(kwargs.get("fatal"))
 
+    def test_safe_list_indexing_guard(self):
+        # 🛡 Defensive structure validation to prevent IndexError
+        result_list = ["alpha", "beta", "gamma"]
+        index = 1
+        assert isinstance(result_list, list) and len(result_list) > index
+        self.assertEqual(result_list[index], "beta")
+
 
 

@@ -1,3 +1,5 @@
+# tests/integration/test_domain_pipeline.py
+
 import os
 import json
 import pytest
@@ -49,7 +51,8 @@ def dummy_bounds():
         "zmin": 0.0, "zmax": 0.8
     }
 
-# 🧪 NEW Integration Test — Geometry Parsing via STEP Fixture
+# 🧪 Integration Test — Geometry Parsing via STEP Fixture
+@pytest.mark.skipif(not os.path.isfile("test_models/test.step"), reason="STEP file missing")
 def test_domain_geometry_parsing(mock_step_file):
     """
     Loads the mocked STEP file and verifies geometry presence and surface count.

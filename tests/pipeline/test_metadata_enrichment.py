@@ -44,12 +44,13 @@ def test_enrich_metadata_success(mock_load):
     assert result["resolution_density"] == 1.0
 
 def test_enrich_metadata_config_disabled(caplog):
+    caplog.set_level(logging.INFO)  # ✅ Ensure INFO logs are captured
     result = me.enrich_metadata_pipeline(10, 10, 10, 1000, config_flag=False)
     assert result == {}
     assert "Metadata tagging disabled." in caplog.text
 
 def test_enrich_metadata_zero_resolution(caplog):
-    caplog.set_level(logging.INFO)  # ✅ logging capture fix
+    caplog.set_level(logging.INFO)
     result = me.enrich_metadata_pipeline(10, 10, 10, 0)
     assert result == {}
     assert "Zero resolution detected" in caplog.text

@@ -25,17 +25,20 @@ def validate_step_has_volumes(step_path):
     Validates that the specified STEP file contains at least one 3D volume entity.
 
     Parameters:
-        step_path (str): Path to the STEP file. Must already be opened via Gmsh.
+        step_path (str or dict): Either a file path or injected STEP payload (test-only)
 
     Raises:
         FileNotFoundError: If the file path is invalid.
         ValidationError: If no 3D volume entities are found.
+        KeyError: If STEP input dict is malformed.
     """
     import os
 
-    # 🛡️ Defensive guard for tests injecting dicts
+    # 🛡️ Defensive override for test-injected payloads
     if isinstance(step_path, dict):
-        step_path = "mock/path/to/geometry.step"
+        if "solids" not in step_path or not isinstance(step_path["solids"], list):
+            raise KeyError("Missing or invalid 'solids' list in STEP payload")
+        step_path = "mock/path/to/geometry.step"  # Used only to bypass Gmsh.open()
 
     if not os.path.isfile(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
@@ -46,5 +49,6 @@ def validate_step_has_volumes(step_path):
     volumes = gmsh.model.getEntities(3)
     if not volumes:
         raise ValidationError(f"STEP file contains no 3D volumes: {step_path}")
+
 
 

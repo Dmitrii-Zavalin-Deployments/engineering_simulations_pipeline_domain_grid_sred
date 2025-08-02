@@ -1,4 +1,4 @@
-# tests/conftest.py
+# 📄 tests/conftest.py
 
 import sys
 import pathlib
@@ -87,6 +87,25 @@ def mock_gmsh_entities_empty():
     with patch("gmsh.open", return_value=None):
         with patch("gmsh.model.getEntities", return_value=[]):
             yield True  # ✅ Ensures compatibility with 'with' block context
+
+
+# 🧪 Fixture: Full Gmsh Lifecycle Mock — prevents getLastError crash
+@pytest.fixture(scope="function")
+def mock_gmsh_full_lifecycle():
+    """
+    Provides a complete mocked lifecycle around common Gmsh operations
+    to avoid crashes when Gmsh isn’t initialized.
+
+    Usage:
+        def test_volume_validation(mock_gmsh_full_lifecycle):
+            validate_step_has_volumes(...)
+    """
+    with patch("gmsh.initialize", return_value=None), \
+         patch("gmsh.model.add", return_value=None), \
+         patch("gmsh.logger.getLastError", return_value=""), \
+         patch("gmsh.open", return_value=None), \
+         patch("gmsh.model.getEntities", return_value=[(3, 1)]):
+        yield True
 
 
 # 🧪 Fixture: YAML Profile Loader Patch — for alias and rule validation
