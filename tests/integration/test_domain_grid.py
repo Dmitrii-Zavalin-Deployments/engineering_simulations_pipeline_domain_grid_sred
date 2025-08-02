@@ -9,23 +9,22 @@ from validation.validation_profile_enforcer import enforce_profile  # ✅ correc
 CONFIG_PATH = "configs/system_config.json"
 TEST_OUTPUT_PATH = "output/test_enriched_metadata.json"
 
-# ⛑️ Temporary resolution fallback wrapper using enforce_profile
+# ⛑️ Resolution fallback wrapper using enforce_profile
 def get_resolution(dx=None, dy=None, dz=None, bounding_box=None, config=None):
     payload = {
         "resolution": {"dx": dx, "dy": dy, "dz": dz},
         "bounding_box": bounding_box,
         "config": config,
     }
-    enforce_profile("configs/validation/resolution_profile.yaml", payload)  # Example path
-    # Simulated fallback result for test continuity
-    return {"dx": 1.0, "dy": 1.0, "dz": 1.0}
+    enforce_profile("configs/validation/resolution_profile.yaml", payload)
+    return {"dx": 1.0, "dy": 1.0, "dz": 1.0}  # Stubbed fallback for test continuity
 
-# Load system config safely
+# 📦 Load system config safely
 def load_config():
     with open(CONFIG_PATH, "r") as f:
         return json.load(f)
 
-# Simulate bounding box input
+# 📐 Simulate bounding box input
 def stub_bounding_box(xmax=1.0, xmin=0.0, ymax=2.0, ymin=0.0, zmax=3.0, zmin=0.0):
     return {
         "xmin": xmin, "xmax": xmax,
@@ -33,10 +32,14 @@ def stub_bounding_box(xmax=1.0, xmin=0.0, ymax=2.0, ymin=0.0, zmax=3.0, zmin=0.0
         "zmin": zmin, "zmax": zmax
     }
 
-# Auto cleanup for test output file
+# 🧼 Auto cleanup and directory setup for test output
 @pytest.fixture(autouse=True)
 def cleanup_output():
     output_path = Path(TEST_OUTPUT_PATH)
+    output_dir = output_path.parent
+
+    output_dir.mkdir(parents=True, exist_ok=True)  # ✅ ensure directory exists
+
     if output_path.exists():
         output_path.unlink()
     yield

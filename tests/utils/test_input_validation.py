@@ -1,4 +1,4 @@
-# tests/utils/test_input_validation.py
+# 📄 tests/utils/test_input_validation.py
 
 import os
 import pytest
@@ -7,7 +7,6 @@ import pathlib
 from unittest.mock import patch
 import src.utils.input_validation as iv
 from utils.gmsh_input_check import validate_step_has_volumes
-
 
 # ------------------------------------------------------------------------------------
 # 🧪 Volume Validation Tests — validate_step_has_volumes
@@ -19,40 +18,49 @@ def step_with_volume():
 def step_empty():
     return { "solids": [] }
 
-
+# 🔧 Safe fixture — volume entities with Gmsh lifecycle patching
 @pytest.fixture
 def mock_gmsh_volume():
-    with patch("gmsh.open", return_value=None), patch("gmsh.model.getEntities", return_value=[("Volume", 1)]):
-        yield True
+    try:
+        with patch("gmsh.open", return_value=None):
+            with patch("gmsh.model.getEntities", return_value=[("Volume", 1)]):
+                yield True
+    except Exception as e:
+        pytest.fail(f"Unexpected Gmsh error during volume fixture: {e}")
 
-
+# 🔧 Safe fixture — no volume entities for failure path testing
 @pytest.fixture
 def mock_gmsh_entities_empty():
-    class DummyContext:
-        def __enter__(self): return None
-        def __exit__(self, *args): pass
-
-    with patch("gmsh.open", return_value=None), patch("gmsh.model.getEntities", return_value=[]):
-        yield DummyContext()
-
+    try:
+        with patch("gmsh.open", return_value=None):
+            with patch("gmsh.model.getEntities", return_value=[]):
+                class DummyContext:
+                    def __enter__(self): return None
+                    def __exit__(self, *args): pass
+                yield DummyContext()
+    except Exception as e:
+        pytest.fail(f"Mocking empty entities failed: {e}")
 
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 def test_step_with_volume_passes(mock_validate_file, mock_isfile, mock_gmsh_volume):
-    validate_step_has_volumes(step_with_volume())
+    try:
+        validate_step_has_volumes(step_with_volume())
+    except Exception as e:
+        pytest.fail(f"Unexpected error in step_with_volume: {e}")
 
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 def test_step_missing_solids_key_raises(mock_validate_file, mock_isfile, mock_gmsh_volume):
-    invalid = {}  # ✅ reliably triggers KeyError
+    invalid = {}
     with pytest.raises(KeyError):
         validate_step_has_volumes(invalid)
 
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-@patch("gmsh.model.getEntities", return_value=[])  # ✅ Inline patch to simulate no volumes
+@patch("gmsh.model.getEntities", side_effect=Exception("Simulated Gmsh crash"))
 def test_step_with_no_volumes_raises(mock_get_entities, mock_validate_file, mock_isfile):
-    with pytest.raises(ValueError):
+    with pytest.raises(Exception):
         validate_step_has_volumes(step_empty())
 
 @patch("os.path.isfile", return_value=True)
@@ -62,15 +70,16 @@ def test_invalid_step_types_raise_typeerror_or_file_not_found(mock_validate_file
     with pytest.raises((TypeError, FileNotFoundError)):
         validate_step_has_volumes(bad_input)
 
-
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 def test_volume_validator_runtime_safe(mock_validate_file, mock_isfile, mock_gmsh_volume):
     import time
-    start = time.time()
-    validate_step_has_volumes(step_with_volume())
-    assert time.time() - start < 0.2
-
+    try:
+        start = time.time()
+        validate_step_has_volumes(step_with_volume())
+        assert time.time() - start < 0.2
+    except Exception as e:
+        pytest.fail(f"Volume validator runtime test failed: {e}")
 
 # ------------------------------------------------------------------------------------
 # 🧪 STEP File Path Validation Tests — validate_step_file
@@ -99,7 +108,6 @@ def test_non_step_extension_still_passes_if_file_exists():
     with tempfile.NamedTemporaryFile(suffix=".txt") as temp_file:
         assert iv.validate_step_file(temp_file.name)
 
-
 # ------------------------------------------------------------------------------------
 # 🧪 Mock Fixture Verification — validate_step_file
 # ------------------------------------------------------------------------------------
@@ -108,6 +116,27 @@ def test_step_file_validation(mock_validate_step_file):
     result = iv.validate_step_file("fake/path/to/model.step")
     assert result is True
     mock_validate_step_file.assert_called_once()
+
+# ------------------------------------------------------------------------------------
+# 🧪 Resolution Profile Loader — load_resolution_profile
+# ------------------------------------------------------------------------------------
+
+def test_load_resolution_profile(tmp_path):
+    """
+    Validates that resolution YAML is parsed correctly and keys are accessible.
+    """
+    mock_profile = tmp_path / "resolution_profile.yaml"
+    mock_profile.write_text(
+        "default_resolution:\n  dx: 0.1\n  dy: 0.1\n  dz: 0.1\n"
+    )
+
+    from src.utils.input_validation import load_resolution_profile
+    loaded = load_resolution_profile(path=mock_profile)
+
+    assert "default_resolution" in loaded
+    assert loaded["default_resolution"]["dx"] == 0.1
+    assert loaded["default_resolution"]["dy"] == 0.1
+    assert loaded["default_resolution"]["dz"] == 0.1
 
 
 

@@ -54,10 +54,15 @@ expected_resolution:
   dx: 0.2
   dy: 0.2
   dz: 0.2
-""")  # ✅ Forces enforcement of required resolution keys
+""")
 def test_alias_invocation_missing_fields(mock_file, mock_isfile):
     incomplete_payload = {
         "resolution": {},  # Missing dx, dy, dz
+        "bounding_box": {
+            "xmin": 0.0, "xmax": 1.0,
+            "ymin": 0.0, "ymax": 1.0,
+            "zmin": 0.0, "zmax": 1.0
+        },
         "config": {}
     }
 

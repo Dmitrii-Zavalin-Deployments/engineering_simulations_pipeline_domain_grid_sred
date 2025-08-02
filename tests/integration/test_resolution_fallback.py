@@ -17,14 +17,17 @@ def run_pipeline_with_geometry(step_file_path, config):
         "ymin": 0.0, "ymax": 2.0,
         "zmin": 0.0, "zmax": 1.0
     }
-    resolution = config.get("default_resolution", {
-        "dx": 0.1, "dy": 0.1, "dz": 0.1
-    })
+
+    resolution = config.get("default_resolution", {})
+    default_dx = 0.1
+    default_dy = 0.1
+    default_dz = 0.1
+
     return {
         "resolution": {
-            "dx": resolution["dx"],
-            "dy": resolution["dy"],
-            "dz": resolution["dz"]
+            "dx": resolution.get("dx", default_dx),
+            "dy": resolution.get("dy", default_dy),
+            "dz": resolution.get("dz", default_dz)
         },
         "bounding_box": bbox
     }
@@ -51,12 +54,12 @@ def get_resolution(dx=None, dy=None, dz=None, bounding_box=None, config=None):
 
     fallback = config.get("default_resolution", {"dx": 0.1, "dy": 0.1, "dz": 0.1})
     return {
-        "dx": dx or fallback["dx"],
-        "dy": dy or fallback["dy"],
-        "dz": dz or fallback["dz"],
-        "nx": int((bounding_box["xmax"] - bounding_box["xmin"]) / (dx or fallback["dx"])) if bounding_box else 1,
-        "ny": int((bounding_box["ymax"] - bounding_box["ymin"]) / (dy or fallback["dy"])) if bounding_box else 1,
-        "nz": int((bounding_box["zmax"] - bounding_box["zmin"]) / (dz or fallback["dz"])) if bounding_box else 1,
+        "dx": dx or fallback.get("dx", 0.1),
+        "dy": dy or fallback.get("dy", 0.1),
+        "dz": dz or fallback.get("dz", 0.1),
+        "nx": int((bounding_box["xmax"] - bounding_box["xmin"]) / (dx or fallback.get("dx", 0.1))) if bounding_box else 1,
+        "ny": int((bounding_box["ymax"] - bounding_box["ymin"]) / (dy or fallback.get("dy", 0.1))) if bounding_box else 1,
+        "nz": int((bounding_box["zmax"] - bounding_box["zmin"]) / (dz or fallback.get("dz", 0.1))) if bounding_box else 1,
         "bounding_box": bounding_box
     }
 

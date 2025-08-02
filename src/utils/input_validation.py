@@ -1,9 +1,11 @@
 # 📄 src/utils/input_validation.py
 
 import os
+import yaml
+from pathlib import Path
 from typing import Union
 
-__all__ = ["validate_step_file"]
+__all__ = ["validate_step_file", "load_resolution_profile"]
 
 # 🧩 Patch-safe alias (optional, for test access robustness)
 _validate_step_file_internal = None  # Will be assigned after definition
@@ -38,6 +40,37 @@ def validate_step_file(path: Union[str, bytes, os.PathLike]) -> bool:
 
 # 🔗 Patch-safe alias (used only for deep test injection, not public API)
 _validate_step_file_internal = validate_step_file
+
+
+def load_resolution_profile(path: Union[str, Path, None] = None) -> dict:
+    """
+    Loads resolution configuration from a YAML file.
+
+    Args:
+        path (Union[str, Path, None]): Optional override for profile path.
+
+    Returns:
+        dict: Parsed resolution profile dictionary.
+
+    Raises:
+        FileNotFoundError: If the YAML file does not exist.
+        yaml.YAMLError: If the file is not a valid YAML document.
+
+    Example:
+        >>> res = load_resolution_profile()
+        >>> res["default_resolution"]["dx"]
+        0.1
+    """
+    default_path = Path(path or "configs/validation/resolution_profile.yaml")
+
+    if not default_path.is_file():
+        raise FileNotFoundError(f"Missing resolution profile: {default_path}")
+
+    try:
+        with default_path.open("r") as f:
+            return yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        raise ValueError(f"Invalid YAML in resolution profile: {e}")
 
 
 

@@ -14,16 +14,18 @@ import os
 
 # ✅ Import volume integrity checker
 from utils.gmsh_input_check import validate_step_has_volumes
+# ✅ Import fallback resolution profile loader
+from utils.input_validation import load_resolution_profile
 
 
-def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
+def extract_bounding_box_with_gmsh(step_path, resolution=None):
     """
     Parses STEP geometry with Gmsh and returns domain_definition
     including bounding box and grid resolution.
 
     Parameters:
         step_path (str or Path): Path to STEP file
-        resolution (float): Grid resolution in meters
+        resolution (float or None): Grid resolution in meters. If None, fallback profile will be used.
 
     Returns:
         dict: domain_definition dictionary
@@ -31,12 +33,20 @@ def extract_bounding_box_with_gmsh(step_path, resolution=0.01):
     if not os.path.isfile(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
 
+    if resolution is None:
+        # 🧩 Load from fallback profile
+        try:
+            profile = load_resolution_profile()
+            resolution = profile.get("default_resolution", {}).get("dx", 0.01)
+        except Exception:
+            resolution = 0.01  # 🔧 Final default fallback
+
     gmsh.initialize()  # ✅ Defensive session entry
     try:
         gmsh.model.add("domain_model")
         gmsh.logger.start()
 
-        validate_step_has_volumes(step_path)  # assumes file path input
+        validate_step_has_volumes(step_path)
 
         gmsh.open(str(step_path))  # ✅ Ensure fileName is str
 
@@ -72,7 +82,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Gmsh STEP parser for domain metadata")
     parser.add_argument("--step", type=str, required=True, help="Path to STEP file")
-    parser.add_argument("--resolution", type=float, default=0.01, help="Grid resolution in meters")
+    parser.add_argument("--resolution", type=float, help="Grid resolution in meters")
     parser.add_argument("--output", type=str, help="Path to write domain JSON")
 
     args = parser.parse_args()

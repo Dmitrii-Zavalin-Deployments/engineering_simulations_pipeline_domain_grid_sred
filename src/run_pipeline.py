@@ -11,12 +11,12 @@ import json
 from pathlib import Path
 from gmsh_runner import extract_bounding_box_with_gmsh
 from domain_definition_writer import validate_domain_bounds, DomainValidationError
-from logger_utils import log_checkpoint, log_error, log_success, log_warning  # ✅ Add log_warning
+from logger_utils import log_checkpoint, log_error, log_success, log_warning
 from src.utils.coercion import coerce_numeric
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
 from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
-from src.utils.input_validation import validate_step_file  # ✅ ADDED: Path/type guard
+from src.utils.input_validation import validate_step_file
 
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
@@ -26,6 +26,10 @@ OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 __all__ = ["sanitize_payload"]
 
 TEST_MODE_ENABLED = os.getenv("PIPELINE_TEST_MODE", "false").lower() == "true"
+
+# 🧩 Optional preload: injected fallback via environment
+ENV_RESOLUTION = os.getenv("PIPELINE_RESOLUTION_OVERRIDE")
+PRELOADED_RESOLUTION = float(ENV_RESOLUTION) if ENV_RESOLUTION else None
 
 def conditional_exit(code=0):
     if TEST_MODE_ENABLED:
@@ -72,7 +76,7 @@ def sanitize_payload(metadata: dict) -> dict:
         }
     }
 
-def main(resolution=DEFAULT_RESOLUTION):
+def main(resolution=None):
     log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
 
@@ -95,7 +99,6 @@ def main(resolution=DEFAULT_RESOLUTION):
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
-    # ✅ Defensive path/type check before parsing
     validate_step_file(step_path)
 
     try:
@@ -145,11 +148,11 @@ if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (Gmsh backend)")
-    parser.add_argument("--resolution", type=float, default=DEFAULT_RESOLUTION,
-                        help="Voxel resolution in meters (default: 0.01)")
+    parser.add_argument("--resolution", type=float,
+                        help="Voxel resolution in meters (default: auto via profile or env override)")
 
     args = parser.parse_args()
-    main(resolution=args.resolution)
+    main(resolution=args.resolution or PRELOADED_RESOLUTION)
 
 
 

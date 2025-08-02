@@ -49,6 +49,7 @@ def test_enrich_metadata_config_disabled(caplog):
     assert "Metadata tagging disabled." in caplog.text
 
 def test_enrich_metadata_zero_resolution(caplog):
+    caplog.set_level(logging.INFO)  # ✅ logging capture fix
     result = me.enrich_metadata_pipeline(10, 10, 10, 0)
     assert result == {}
     assert "Zero resolution detected" in caplog.text
