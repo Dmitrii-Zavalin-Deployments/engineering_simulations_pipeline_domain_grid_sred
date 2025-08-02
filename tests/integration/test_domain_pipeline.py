@@ -7,6 +7,7 @@ import subprocess
 from pathlib import Path
 
 from pipeline.metadata_enrichment import enrich_metadata_pipeline  # ✅ still valid
+from src.utils.domain_loader import DomainLoader  # ✅ corrected import path
 
 # 🩹 Local fallback stubs to satisfy missing module references
 # These would normally reside in src/utils/step_parser.py
@@ -52,12 +53,11 @@ def dummy_bounds():
     }
 
 # 🧪 Integration Test — Geometry Parsing via STEP Fixture
-@pytest.mark.skipif(not os.path.isfile("test_models/test.step"), reason="STEP file missing")
+@pytest.mark.skipif(not Path("test_models/test.step").exists(), reason="Required STEP file missing")
 def test_domain_geometry_parsing(mock_step_file):
     """
     Loads the mocked STEP file and verifies geometry presence and surface count.
     """
-    from src.components.domain_loader import DomainLoader  # ⛳️ Adjust as per actual path
     domain = DomainLoader.from_step(mock_step_file)
 
     assert domain.has_geometry() is True
