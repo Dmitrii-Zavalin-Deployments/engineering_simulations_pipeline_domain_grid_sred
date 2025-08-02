@@ -1,4 +1,3 @@
-# tests/integration/test_domain_pipeline.py
 import os
 import json
 import pytest
@@ -49,6 +48,17 @@ def dummy_bounds():
         "ymin": 0.0, "ymax": 2.5,
         "zmin": 0.0, "zmax": 0.8
     }
+
+# 🧪 NEW Integration Test — Geometry Parsing via STEP Fixture
+def test_domain_geometry_parsing(mock_step_file):
+    """
+    Loads the mocked STEP file and verifies geometry presence and surface count.
+    """
+    from src.components.domain_loader import DomainLoader  # ⛳️ Adjust as per actual path
+    domain = DomainLoader.from_step(mock_step_file)
+
+    assert domain.has_geometry() is True
+    assert domain.surface_count > 0
 
 # 🧪 Unit Tests — Bounding Box
 def test_validate_bounding_box_success(dummy_bounds):

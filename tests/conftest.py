@@ -23,6 +23,23 @@ def gmsh_session():
     gmsh.finalize()
 
 
+# 🧪 Fixture: Injects mocked STEP asset into temp test path
+@pytest.fixture(scope="function")
+def mock_step_file(tmp_path):
+    """
+    Loads mock_geometry.step into temporary path for geometry parsing tests.
+    
+    Usage:
+        def test_geometry_parser(mock_step_file):
+            domain = DomainLoader.from_step(mock_step_file)
+            ...
+    """
+    fixture_path = pathlib.Path(__file__).parent / "fixtures" / "mock_geometry" / "mock_geometry.step"
+    target_path = tmp_path / "mock_geometry.step"
+    target_path.write_bytes(fixture_path.read_bytes())
+    return str(target_path)
+
+
 # 🧪 Fixture: Mocked STEP File Validator with file check override
 @pytest.fixture(scope="function")
 def mock_validate_step_file():
