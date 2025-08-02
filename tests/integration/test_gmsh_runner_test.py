@@ -5,10 +5,6 @@ from pathlib import Path
 from unittest.mock import patch
 from gmsh_runner import extract_bounding_box_with_gmsh
 
-# 📁 Test STEP file must exist at this location
-TEST_STEP_PATH = Path("test_models/test.step")
-
-
 # 🧩 Shared lifecycle patch for Gmsh API stability
 def mock_gmsh_lifecycle():
     return patch.multiple(
