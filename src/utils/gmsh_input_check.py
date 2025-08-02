@@ -15,6 +15,11 @@ except ImportError:
     raise RuntimeError("Gmsh module not found. Run: pip install gmsh==4.11.1")
 
 
+class ValidationError(Exception):
+    """Raised when STEP file validation fails."""
+    pass
+
+
 def validate_step_has_volumes(step_path):
     """
     Validates that the specified STEP file contains at least one 3D volume entity.
@@ -24,7 +29,7 @@ def validate_step_has_volumes(step_path):
 
     Raises:
         FileNotFoundError: If the file path is invalid.
-        RuntimeError: If no 3D volume entities are found.
+        ValidationError: If no 3D volume entities are found.
     """
     import os
 
@@ -40,7 +45,6 @@ def validate_step_has_volumes(step_path):
 
     volumes = gmsh.model.getEntities(3)
     if not volumes:
-        raise RuntimeError(f"STEP file contains no 3D volumes: {step_path}")
-
+        raise ValidationError(f"STEP file contains no 3D volumes: {step_path}")
 
 
