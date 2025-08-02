@@ -49,12 +49,15 @@ def dummy_bounds():
     }
 
 # 🧪 Integration Test — Geometry Parsing via STEP Fixture
-@pytest.mark.skipif(not Path("test_models/test.step").exists(), reason="Required STEP file missing")
+@pytest.mark.skipif(
+    not (Path(__file__).parent.parent.parent / "test_models" / "test.step").exists(),
+    reason="Required STEP file missing"
+)
 def test_domain_geometry_parsing():
     """
     Loads the STEP file and verifies geometry presence and surface count.
     """
-    step_path = Path("test_models/test.step")
+    step_path = Path(__file__).parent.parent.parent / "test_models" / "test.step"
     domain = DomainLoader.from_step(step_path)
 
     assert domain.has_geometry() is True
