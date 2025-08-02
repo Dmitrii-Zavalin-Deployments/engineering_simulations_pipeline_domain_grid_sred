@@ -46,13 +46,12 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
     assert result is not None  # ✅ Passes now due to explicit return
 
 
-# 🧠 Edge-case: Missing fields in payload — simulate exception directly
-@patch("__main__.get_resolution", side_effect=ValidationProfileError("missing fields"))  # ✅ Corrected patch target
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=MISSING_ALIAS_SECTION)
+# 🧠 Edge-case: Missing fields in payload — real exception trigger
 @patch("os.path.isfile", return_value=True)
-def test_alias_invocation_missing_fields(mock_isfile, mock_file, mock_get_resolution):
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=MISSING_ALIAS_SECTION)
+def test_alias_invocation_missing_fields(mock_file, mock_isfile):
     incomplete_payload = {
-        "resolution": {},
+        "resolution": {},  # Missing expected keys
         "config": {}
     }
 
