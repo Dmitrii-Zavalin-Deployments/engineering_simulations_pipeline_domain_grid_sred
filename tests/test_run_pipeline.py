@@ -74,7 +74,10 @@ class TestPipelineMain(unittest.TestCase):
     @patch("pathlib.Path.glob")
     @patch("pathlib.Path.exists", return_value=True)
     @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
-        "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
+    "min_x": 0, "max_x": 1,
+    "min_y": 0, "max_y": 1,
+    "min_z": 0, "max_z": 1,
+    "nx": 100, "ny": 100, "nz": 100
     })
     @patch("src.run_pipeline.validate_domain_bounds")
     @patch("src.run_pipeline.enforce_profile")
