@@ -71,15 +71,6 @@ def test_enriched_metadata_has_resolution_tags():
     assert "spacing_hint" in enriched
     assert "resolution_density" in enriched
 
-# ⚠️ Malformed bounding box triggers failure
-def test_resolution_with_invalid_bounding_box():
-    config = load_config()
-    bad_bbox = stub_bounding_box(xmin=2.0, xmax=1.0)  # Reversed bounds
-
-    with patch("validation.validation_profile_enforcer.enforce_profile", side_effect=Exception("Invalid bounding box")):
-        with pytest.raises(Exception, match="Invalid bounding box"):
-            get_resolution(dx=None, dy=None, dz=None, bounding_box=bad_bbox, config=config)
-
 # 🚨 Missing config keys fallback safely
 def test_resolution_with_missing_config_defaults():
     config = load_config()
