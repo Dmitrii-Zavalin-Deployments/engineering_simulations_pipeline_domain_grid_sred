@@ -87,11 +87,14 @@ class TestPipelineMain(unittest.TestCase):
         self, mock_exit, mock_open_fn, mock_enforce, mock_validate_bounds,
         mock_gmsh, mock_validate_step_file, mock_exists, mock_glob, mock_isfile
     ):
-        mock_glob.return_value = [Path("mock_model.step")]
+        mock_step_file = MagicMock(spec=Path)
+        mock_step_file.name = "model.step"
+        mock_glob.return_value = [mock_step_file]
 
         step_files = mock_glob.return_value
-        # 🛡️ Guard improved with error messaging
-        assert step_files and isinstance(step_files[0], Path), "STEP file list is empty or invalid"
+        # 🛡️ Guard to prevent IndexError from empty list
+        assert isinstance(step_files, list) and len(step_files) > 0
+        assert isinstance(step_files[0], Path)
 
         main(resolution=DEFAULT_RESOLUTION)
 
