@@ -41,22 +41,19 @@ def mock_gmsh_entities_empty():
 def test_step_with_volume_passes(mock_validate_file, mock_isfile, mock_gmsh_volume):
     validate_step_has_volumes(step_with_volume())
 
-
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 def test_step_missing_solids_key_raises(mock_validate_file, mock_isfile, mock_gmsh_volume):
-    invalid = { "solids": None }  # ✅ reliably triggers KeyError
+    invalid = {}  # ✅ reliably triggers KeyError
     with pytest.raises(KeyError):
         validate_step_has_volumes(invalid)
 
-
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
-def test_step_with_no_volumes_raises(mock_validate_file, mock_isfile, mock_gmsh_entities_empty):
-    with mock_gmsh_entities_empty:
-        with pytest.raises(ValueError):
-            validate_step_has_volumes(step_empty())
-
+@patch("gmsh.model.getEntities", return_value=[])  # ✅ Inline patch to simulate no volumes
+def test_step_with_no_volumes_raises(mock_get_entities, mock_validate_file, mock_isfile):
+    with pytest.raises(ValueError):
+        validate_step_has_volumes(step_empty())
 
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)

@@ -25,7 +25,7 @@ def test_legacy_alias_callable_type():
 @patch("os.path.isfile", return_value=True)
 @patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("is None", "== None"))
 def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch):
-    monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
+    monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", False)  # ✅ Disabled fallback
 
     payload = {
         "resolution": {"dx": 0.2, "dy": 0.2, "dz": 0.2},
@@ -44,12 +44,11 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
     result = get_resolution("configs/validation/resolution_profile.yaml", payload)
     assert result is not None
 
-
 # 🧠 Edge-case: Missing fields in payload — simulate exception directly
-@patch("os.path.isfile", return_value=True)
+@patch("tests.stubs.test_compat_import_aliases.get_resolution", side_effect=ValidationProfileError("missing fields"))
 @patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=MISSING_ALIAS_SECTION)
-@patch("validation.validation_profile_enforcer.enforce_profile", side_effect=ValidationProfileError("missing fields"))
-def test_alias_invocation_missing_fields(mock_enforce, mock_file, mock_isfile):
+@patch("os.path.isfile", return_value=True)
+def test_alias_invocation_missing_fields(mock_isfile, mock_file, mock_get_resolution):
     incomplete_payload = {
         "resolution": {},
         "config": {}

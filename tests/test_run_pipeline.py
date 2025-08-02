@@ -69,10 +69,10 @@ class TestSanitizePayload(unittest.TestCase):
 
 
 class TestPipelineMain(unittest.TestCase):
-    @patch("os.path.isfile", return_value=True)  # ✅ Unblock validator path
+    @patch("src.run_pipeline.validate_step_file", return_value=True)  # ✅ Corrected patch target
+    @patch("os.path.isfile", return_value=True)
     @patch("pathlib.Path.glob")
     @patch("pathlib.Path.exists", return_value=True)
-    @patch("src.utils.input_validation.validate_step_file", return_value=True)  # ✅ Fixture renamed for clarity
     @patch("src.run_pipeline.extract_bounding_box_with_gmsh", return_value={
         "x": 1, "y": 2, "z": 3, "width": 4, "height": 5, "depth": 6
     })
@@ -81,7 +81,7 @@ class TestPipelineMain(unittest.TestCase):
     @patch("src.run_pipeline.open", new_callable=mock_open)
     @patch("src.run_pipeline.sys.exit")
     def test_main_pipeline_success(
-        self, mock_exit, mock_open_fn, mock_enforce, mock_validate,
+        self, mock_exit, mock_open_fn, mock_enforce, mock_validate_bounds,
         mock_gmsh, mock_validate_step_file, mock_exists, mock_glob, mock_isfile
     ):
         # ✅ Simulate STEP discovery
@@ -92,7 +92,7 @@ class TestPipelineMain(unittest.TestCase):
         main(resolution=DEFAULT_RESOLUTION)
 
         mock_gmsh.assert_called()
-        mock_validate.assert_called()
+        mock_validate_bounds.assert_called()
         mock_enforce.assert_called()
         mock_open_fn.assert_called()
         mock_exit.assert_called_with(0)
