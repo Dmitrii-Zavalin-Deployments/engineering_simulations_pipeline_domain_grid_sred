@@ -47,7 +47,7 @@ def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch)
 
 
 # 🧠 Edge-case: Missing fields in payload — simulate exception directly
-@patch("tests.stubs.test_compat_import_aliases.get_resolution", side_effect=ValidationProfileError("missing fields"))
+@patch("__main__.get_resolution", side_effect=ValidationProfileError("missing fields"))  # ✅ Corrected patch target
 @patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=MISSING_ALIAS_SECTION)
 @patch("os.path.isfile", return_value=True)
 def test_alias_invocation_missing_fields(mock_isfile, mock_file, mock_get_resolution):
