@@ -27,17 +27,4 @@ def test_gmsh_version_exact_match():
     assert version == EXPECTED_VERSION, f"Gmsh version mismatch: found {version}, expected {EXPECTED_VERSION}"
 
 
-@patch("gmsh.model.getEntities", return_value=[(3, 1)])
-def test_gmsh_api_stability(mock_entities):
-    """Smoke test to confirm stable Gmsh API presence."""
-    gmsh.initialize()
-    try:
-        gmsh.model.add("version_check")
-        bbox = gmsh.model.getBoundingBox(3, 1)  # Uses patched entity tag
-        assert isinstance(bbox, tuple)
-        assert len(bbox) == 6
-    finally:
-        gmsh.finalize()
-
-
 

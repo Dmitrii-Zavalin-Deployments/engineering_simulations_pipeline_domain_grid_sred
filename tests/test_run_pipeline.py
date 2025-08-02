@@ -1,5 +1,3 @@
-# tests/test_run_pipeline.py
-
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
@@ -92,9 +90,8 @@ class TestPipelineMain(unittest.TestCase):
         mock_glob.return_value = [mock_step_file]
 
         step_files = mock_glob.return_value
-        # 🛡️ Guard to prevent IndexError from empty list
-        assert isinstance(step_files, list) and len(step_files) > 0
-        assert isinstance(step_files[0], Path)
+        # 🛡️ Revised guard to prevent IndexError from empty list
+        assert step_files and isinstance(step_files[0], Path), "STEP file list is empty or invalid"
 
         main(resolution=DEFAULT_RESOLUTION)
 

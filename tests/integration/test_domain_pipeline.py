@@ -6,11 +6,10 @@ import pytest
 import subprocess
 from pathlib import Path
 
-from pipeline.metadata_enrichment import enrich_metadata_pipeline  # ✅ still valid
-from src.utils.domain_loader import DomainLoader  # ✅ corrected import path
+from pipeline.metadata_enrichment import enrich_metadata_pipeline
+from src.utils.domain_loader import DomainLoader
 
 # 🩹 Local fallback stubs to satisfy missing module references
-# These would normally reside in src/utils/step_parser.py
 class StepBoundingBoxError(Exception):
     pass
 
@@ -22,7 +21,6 @@ def validate_bounding_box(bbox):
         raise StepBoundingBoxError("Non-numeric bounding box value")
     return True
 
-# This would normally be sourced from src/components/grid_calculator.py
 class GridResolutionError(Exception):
     pass
 
@@ -33,10 +31,8 @@ def compute_grid_dimensions(bounds, resolution):
         dz = bounds["zmax"] - bounds["zmin"]
     except KeyError:
         raise GridResolutionError("Missing bounds for grid dimension calculation")
-
     if resolution <= 0:
         raise GridResolutionError("Invalid resolution")
-
     return {
         "nx": max(1, int(dx / resolution)),
         "ny": max(1, int(dy / resolution)),
@@ -54,11 +50,12 @@ def dummy_bounds():
 
 # 🧪 Integration Test — Geometry Parsing via STEP Fixture
 @pytest.mark.skipif(not Path("test_models/test.step").exists(), reason="Required STEP file missing")
-def test_domain_geometry_parsing(mock_step_file):
+def test_domain_geometry_parsing():
     """
-    Loads the mocked STEP file and verifies geometry presence and surface count.
+    Loads the STEP file and verifies geometry presence and surface count.
     """
-    domain = DomainLoader.from_step(mock_step_file)
+    step_path = Path("test_models/test.step")
+    domain = DomainLoader.from_step(step_path)
 
     assert domain.has_geometry() is True
     assert domain.surface_count > 0
@@ -105,7 +102,6 @@ def test_metadata_enrichment_with_resolution(dummy_bounds):
         (dummy_bounds["ymax"] - dummy_bounds["ymin"]) *
         (dummy_bounds["zmax"] - dummy_bounds["zmin"])
     )
-
     enriched = enrich_metadata_pipeline(nx, ny, nz, bounding_volume, config_flag=True)
     assert "domain_size" in enriched
     assert "spacing_hint" in enriched
