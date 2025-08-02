@@ -1,4 +1,4 @@
-# src/rules/rule_engine.py
+# 📄 src/rules/rule_engine.py
 
 import logging
 from configs.rule_engine_defaults import get_type_check_mode
@@ -14,6 +14,24 @@ from src.rules.rule_engine_coercion import _coerce_types_for_comparison  # ✅ M
 from src.utils.coercion import relaxed_equals
 
 logger = logging.getLogger(__name__)
+
+# ------------------------------------------------------------------
+# ✳️ Expression Evaluation Notes
+# ------------------------------------------------------------------
+# Supported expression format:
+#   <lhs path> <operator> <rhs literal or path>
+# Example:
+#   resolution.dx == None
+#   temperature < 150
+#
+# 🛑 Unsupported operators include:
+# - Python-native logical operators: 'is', 'is not', 'in', 'not in', 'not', 'and', 'or'
+# - Multi-part or chained expressions
+# - List/collection membership checks (unless explicitly supported in operator registry)
+#
+# 🚧 All supported operators must appear in SUPPORTED_OPERATORS
+#       → Controlled centrally in src.rules.operators
+# ------------------------------------------------------------------
 
 def _evaluate_expression(
     expression: str,
@@ -31,7 +49,9 @@ def _evaluate_expression(
     debug_log(f"Parsed expression: lhs='{lhs_path}', operator='{operator_str}', rhs='{rhs_literal}'")
 
     if operator_str not in SUPPORTED_OPERATORS:
-        raise RuleEvaluationError(f"Unsupported operator: '{operator_str}'")
+        raise RuleEvaluationError(
+            f"Unsupported operator: '{operator_str}' — allowed operators: {', '.join(SUPPORTED_OPERATORS)}"
+        )
 
     if not payload and all(is_literal(x) for x in [lhs_path, rhs_literal]):
         lhs_val = parse_literal(lhs_path)

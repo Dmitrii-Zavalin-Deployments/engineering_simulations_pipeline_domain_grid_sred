@@ -63,11 +63,11 @@ def enforce_profile(profile_path: str, payload: dict):
     if not rules and profile_check_enabled:
         rules = [
             {
-                "if": "resolution.dx is None",
+                "if": "resolution.dx == None",  # ✅ updated to supported operator
                 "raise": "Missing dx in resolution",
             },
             {
-                "if": "bounding_box is None",
+                "if": "bounding_box == None",  # ✅ updated to supported operator
                 "raise": "Missing bounding_box definition",
             }
         ]

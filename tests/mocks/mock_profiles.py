@@ -39,14 +39,12 @@ thresholds:
 
 EMPTY_PAYLOAD = ""
 
-RULE_WITH_IS_OPERATOR = """
+# ✅ Safe rule mock for fallback evaluation
+RULE_WITH_EQ_OPERATOR = """
 rules:
-  - if: resolution.dx is None
+  - if: resolution.dx == None
     raise: Missing resolution.dx
 """
-
-RULE_WITH_EQ_OPERATOR = RULE_WITH_IS_OPERATOR.replace("is None", "== None")  # ✅ Fixed version
-
 
 # ------------------------------------------------------------------------------------
 # 🧪 Validation Routines — YAML Integrity and Structure
@@ -102,7 +100,7 @@ def test_rule_operator_syntax_replacement():
     """
     Verifies that a rule using 'is' operator can be safely rewritten to '=='.
     """
-    raw = yaml.safe_load(RULE_WITH_IS_OPERATOR)
+    raw = yaml.safe_load(RULE_WITH_EQ_OPERATOR.replace("== None", "is None"))  # simulate original
     fixed = yaml.safe_load(RULE_WITH_EQ_OPERATOR)
     assert raw["rules"][0]["if"].endswith("is None")
     assert fixed["rules"][0]["if"].endswith("== None")

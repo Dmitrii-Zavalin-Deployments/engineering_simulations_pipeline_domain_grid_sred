@@ -1,4 +1,4 @@
-# tests/stubs/test_compat_import_aliases.py
+# 📄 tests/stubs/test_compat_import_aliases.py
 
 """🧩 Compatibility stub validation for get_resolution alias."""
 
@@ -23,7 +23,7 @@ def test_legacy_alias_callable_type():
 
 # 🧪 Invocation simulation with mock control and file override
 @patch("os.path.isfile", return_value=True)
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("resolution.dx is None", "resolution.dx == None"))
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("is None", "== None"))
 def test_alias_invocation_with_mock_payload(mock_file, mock_isfile, monkeypatch):
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)
 
@@ -61,7 +61,7 @@ def test_alias_invocation_missing_fields(mock_enforce, mock_file, mock_isfile):
 
 # ⏱️ Performance ceiling
 @patch("os.path.isfile", return_value=True)
-@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("resolution.dx is None", "resolution.dx == None"))
+@patch("validation.validation_profile_enforcer.open", new_callable=mock_open, read_data=VALID_ALIAS_PROFILE.replace("is None", "== None"))
 def test_resolution_alias_runtime_guard(mock_file, mock_isfile, monkeypatch):
     import time
     monkeypatch.setattr(validation.validation_profile_enforcer, "profile_check_enabled", True)

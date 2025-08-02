@@ -23,12 +23,17 @@ def step_empty():
 @pytest.fixture
 def mock_gmsh_volume():
     with patch("gmsh.open", return_value=None), patch("gmsh.model.getEntities", return_value=[("Volume", 1)]):
-        yield True  # ✅ ensures compatibility with 'with' syntax
+        yield True
+
 
 @pytest.fixture
 def mock_gmsh_entities_empty():
+    class DummyContext:
+        def __enter__(self): return None
+        def __exit__(self, *args): pass
+
     with patch("gmsh.open", return_value=None), patch("gmsh.model.getEntities", return_value=[]):
-        yield True  # ✅ fixed to support context manager usage
+        yield DummyContext()
 
 
 @patch("os.path.isfile", return_value=True)
@@ -40,7 +45,7 @@ def test_step_with_volume_passes(mock_validate_file, mock_isfile, mock_gmsh_volu
 @patch("os.path.isfile", return_value=True)
 @patch("src.utils.input_validation.validate_step_file", return_value=True)
 def test_step_missing_solids_key_raises(mock_validate_file, mock_isfile, mock_gmsh_volume):
-    invalid = { "solids": None }  # ✅ updated to reliably trigger KeyError
+    invalid = { "solids": None }  # ✅ reliably triggers KeyError
     with pytest.raises(KeyError):
         validate_step_has_volumes(invalid)
 
@@ -106,7 +111,6 @@ def test_step_file_validation(mock_validate_step_file):
     result = iv.validate_step_file("fake/path/to/model.step")
     assert result is True
     mock_validate_step_file.assert_called_once()
-
 
 
 
