@@ -67,7 +67,7 @@ class TestSanitizePayload(unittest.TestCase):
 
 
 class TestPipelineMain(unittest.TestCase):
-    def test_pipeline_output_is_valid():
+    def test_pipeline_output_is_valid(self):
         output_path = Path("data/testing-input-output/enriched_metadata.json")
         assert output_path.exists(), "Pipeline output file missing"
 
