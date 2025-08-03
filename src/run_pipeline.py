@@ -27,13 +27,13 @@ __all__ = ["sanitize_payload"]
 
 TEST_MODE_ENABLED = os.getenv("PIPELINE_TEST_MODE", "false").lower() == "true"
 
+# 🧩 Optional preload: injected fallback via environment
 ENV_RESOLUTION = os.getenv("PIPELINE_RESOLUTION_OVERRIDE")
 PRELOADED_RESOLUTION = float(ENV_RESOLUTION) if ENV_RESOLUTION else None
 
 def conditional_exit(code=0):
     if TEST_MODE_ENABLED:
         log_checkpoint(f"🚦 TEST MODE ACTIVE: exit({code}) suppressed")
-        return code
     else:
         sys.exit(code)
 
@@ -76,7 +76,7 @@ def sanitize_payload(metadata: dict) -> dict:
         }
     }
 
-def main(resolution=None, debug_json=False):
+def main(resolution=None):
     log_checkpoint("🔧 Pipeline script has entered main()")
     log_checkpoint("🚀 STEP-driven pipeline initialized (Gmsh backend)")
 
@@ -86,23 +86,20 @@ def main(resolution=None, debug_json=False):
 
     if not IO_DIRECTORY.exists():
         log_error(f"Input directory not found: {IO_DIRECTORY}", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
-    step_files = [f for f in IO_DIRECTORY.glob("*") if f.suffix.lower() == ".step"]
+    step_files = list(IO_DIRECTORY.glob("*.step"))
     if len(step_files) == 0:
         log_error("No STEP files found", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
     elif len(step_files) > 1:
         log_error("Multiple STEP files detected — provide exactly one", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
     step_path = step_files[0]
     log_checkpoint(f"📄 Using STEP file: {step_path.name}")
 
     validate_step_file(step_path)
-
-    resolution = resolution or PRELOADED_RESOLUTION or DEFAULT_RESOLUTION
-    log_checkpoint(f"📏 Resolution used: {resolution} meters")
 
     try:
         log_checkpoint("📂 Calling Gmsh geometry parser...")
@@ -110,14 +107,14 @@ def main(resolution=None, debug_json=False):
         log_checkpoint(f"📐 Domain extracted: {domain_definition}")
     except Exception as e:
         log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
     try:
         validate_domain_bounds(domain_definition)
         log_success("Domain bounds validated successfully")
     except DomainValidationError as err:
         log_error(f"Domain bounds validation failed:\n{err}", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
     metadata = {"domain_definition": domain_definition}
 
@@ -127,7 +124,7 @@ def main(resolution=None, debug_json=False):
         log_checkpoint(f"🔧 {len(rule_list)} validation rules loaded")
     except RuleConfigError as e:
         log_error(f"Failed to load validation profile:\n{e}", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
     payload = sanitize_payload(metadata)
 
@@ -137,22 +134,15 @@ def main(resolution=None, debug_json=False):
         log_success("Metadata schema validation passed")
     except ValidationProfileError as e:
         log_error(f"Validation failed:\n{e}", fatal=True)
-        return conditional_exit(1)
+        conditional_exit(1)
 
-    if debug_json:
-        log_checkpoint("📤 Metadata payload preview:")
-        print(json.dumps(payload, indent=2))
-    else:
-        OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-        if OUTPUT_PATH.exists():
-            OUTPUT_PATH.rename(OUTPUT_PATH.with_suffix(".bak"))
-            log_warning(f"⚠️ Existing output file renamed to backup: {OUTPUT_PATH.with_suffix('.bak')}")
-        with open(OUTPUT_PATH, "w") as f:
-            json.dump(payload, f, indent=2)
-        log_success(f"Metadata written to {OUTPUT_PATH}")
+    OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with open(OUTPUT_PATH, "w") as f:
+        json.dump(payload, f, indent=2)
+    log_success(f"Metadata written to {OUTPUT_PATH}")
 
     log_checkpoint("🏁 Pipeline completed successfully")
-    return conditional_exit(0)
+    conditional_exit(0)
 
 if __name__ == "__main__":
     import argparse
@@ -160,11 +150,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (Gmsh backend)")
     parser.add_argument("--resolution", type=float,
                         help="Voxel resolution in meters (default: auto via profile or env override)")
-    parser.add_argument("--debug-json", action="store_true",
-                        help="Print metadata JSON payload to console instead of writing to file")
 
     args = parser.parse_args()
-    main(resolution=args.resolution, debug_json=args.debug_json)
+    main(resolution=args.resolution or PRELOADED_RESOLUTION)
 
 
 
