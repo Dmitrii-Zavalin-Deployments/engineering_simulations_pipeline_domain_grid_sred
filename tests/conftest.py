@@ -13,6 +13,16 @@ if SRC_PATH.exists():
     sys.path.insert(0, str(SRC_PATH))
 
 
+# 🧪 Global Test Mode Activation (Optional Enhancement)
+@pytest.fixture(autouse=True)
+def enable_test_mode(monkeypatch):
+    """
+    Automatically sets the PIPELINE_TEST_MODE environment variable for all tests.
+    Avoids repetitive monkeypatching across test modules.
+    """
+    monkeypatch.setenv("PIPELINE_TEST_MODE", "true")
+
+
 @pytest.fixture(scope="function")
 def gmsh_session():
     """
