@@ -18,51 +18,49 @@ Available Methods:
 import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
-from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
+from src.utils.validation_helpers import is_valid_numeric_string
 
 def coerce_numeric(value: Any) -> Optional[float]:
-    if isinstance(value, (int, float)):
-        debug_log(f"[numeric] Native numeric detected → {value}")
+    try:
         result = float(value)
-        if math.isinf(result):
-            debug_log(f"[numeric] Overflow detected → result: inf → returning None")
+        if math.isnan(result) or math.isinf(result):
+            debug_log(f"[numeric] Rejected invalid float → result: {result} → returning None")
             return None
+        debug_log(f"[numeric] Coerced native → {result}")
         return result
+    except (ValueError, TypeError) as e:
+        debug_log(f"[numeric] Native coercion failed for '{value}' → None | {e}")
 
-    if is_valid_numeric_string(value):  # ✅ Defensive check
+    if is_valid_numeric_string(value):
         try:
             result = float(str(value).strip())
-            if math.isinf(result):
-                debug_log(f"[numeric] Overflow detected during coercion → '{value}' → result: inf → returning None")
+            if math.isnan(result) or math.isinf(result):
+                debug_log(f"[numeric] Rejected string coercion → '{value}' → result: {result} → returning None")
                 return None
-            debug_log(f"[numeric] Coerced '{value}' → {result}")
+            debug_log(f"[numeric] Coerced string '{value}' → {result}")
             return result
         except Exception as e:
             debug_log(f"[numeric] Coercion fallback failed for '{value}' → None | {e}")
-            return None
 
-    debug_log(f"[numeric] Rejected invalid numeric string: '{value}'")
+    debug_log(f"[numeric] Rejected non-numeric value: '{value}'")
     return None
 
 
-def coerce_boolean(value: Any) -> Union[bool, str]:
-    if isinstance(value, bool):
-        debug_log(f"[boolean] Native bool detected → {value}")
-        return value
+def coerce_boolean(value: Any) -> Union[bool, str, None]:
     try:
         str_value = str(value).strip().lower()
-        if str_value in ("true", "1"):
-            debug_log(f"[boolean] Interpreted '{value}' → True")
-            return True
-        elif str_value in ("false", "0"):
-            debug_log(f"[boolean] Interpreted '{value}' → False")
-            return False
-        debug_log(f"[boolean] Unrecognized form '{value}' → fallback: '{str_value}'")
-        return str_value
     except Exception as e:
-        fallback = str(value)
-        debug_log(f"[boolean] Coercion error for '{value}' ({type(value).__name__}) → fallback: '{fallback}' | {e}")
-        return fallback
+        debug_log(f"[boolean] Coercion error for '{value}' ({type(value).__name__}) → returning None | {e}")
+        return None
+
+    if str_value in ("true", "1"):
+        debug_log(f"[boolean] Interpreted '{value}' → True")
+        return True
+    elif str_value in ("false", "0"):
+        debug_log(f"[boolean] Interpreted '{value}' → False")
+        return False
+    debug_log(f"[boolean] Unrecognized form '{value}' → fallback: '{str_value}'")
+    return str_value
 
 
 def coerce_string(value: Any) -> str:
@@ -133,7 +131,6 @@ def relaxed_equals(lhs: Any, rhs: Any) -> bool:
     Centralized relaxed comparison logic.
     Attempts to cast both values to a common type and compares the result.
     """
-    # Defensive guard: prevent unsafe coercion for malformed numeric strings
     for unsafe in ("nan", "not_a_number"):
         if isinstance(lhs, str) and lhs.strip().lower() == unsafe:
             debug_log(f"[relaxed_equals] Unsafe lhs input detected → '{lhs}' → rejecting comparison")

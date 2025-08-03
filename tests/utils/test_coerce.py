@@ -71,9 +71,9 @@ class TestCoerceNumeric(unittest.TestCase):
         self.assertIsNone(coerce_numeric("-inf"))
 
     def test_nan_string(self):
-        self.assertIsNone(coerce_numeric("NaN"))
+        result = coerce_numeric("NaN")
+        self.assertIsNone(result)  # ✅ Clarified fallback assertion
 
-    # ✅ NEW: Relaxed equality behavior with malformed inputs
     def test_relaxed_equals_nan_behavior(self):
         self.assertFalse(relaxed_equals("not_a_number", 0))
         self.assertFalse(relaxed_equals("NaN", 42))

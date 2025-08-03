@@ -132,13 +132,12 @@ def test_metadata_output_structure(tmp_path, dummy_bounds):
         assert key in content["domain_definition"]
 
 # 🧪 System Test — Full CLI Execution
-def test_run_pipeline_execution(tmp_path):
-    step_file = Path("data/testing-input-output/test_shape.step")
-    if not step_file.exists():
-        pytest.skip("Required STEP file missing for system test.")
+STEP_PATH = Path("data/testing-input-output/test_shape.step")
 
+@pytest.mark.skipif(not STEP_PATH.exists(), reason="Required STEP file missing for system test.")
+def test_run_pipeline_execution(tmp_path):
     env = os.environ.copy()
-    env["IO_DIRECTORY"] = str(step_file.parent)
+    env["IO_DIRECTORY"] = str(STEP_PATH.parent)
     env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata.json")
 
     result = subprocess.run(

@@ -47,12 +47,11 @@ def test_boolean_unknown_string():
     assert coerce_boolean("maybe") == "maybe"
 
 def test_boolean_str_cast_failure():
-    """🚫 Non-string coercion fallback."""
+    """🚫 Defensive fallback returns None for str() failure."""
     class BadStr:
         def __str__(self): raise ValueError("intentional failure")
 
-    fallback = coerce_boolean(BadStr())
-    assert fallback is None or isinstance(fallback, bool)
+    assert coerce_boolean(BadStr()) is None  # ✅ Strict fallback check
 
 # ---------------- coerce_string ----------------
 
