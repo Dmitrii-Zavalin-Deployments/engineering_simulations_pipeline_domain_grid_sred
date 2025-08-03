@@ -1,14 +1,14 @@
 ISO-10303-21;
 HEADER;
-FILE_DESCRIPTION(('Malformation Test Sample — intentionally invalid'),'2;1');
+FILE_DESCRIPTION(('Malformation Test Sample'),'2;1');
 FILE_NAME('mock_invalid_geometry.step','20250728','','','','','');
 FILE_SCHEMA(('AUTOMOTIVE_DESIGN'));
 ENDSEC;
 
 DATA;
-#42 = ADVANCED_FACE('',*,#999,FALSE);               -- ⚠️ Dangling surface: references undefined #999
-#99 = MANIFOLD_SOLID_BREP('EmptySolid',#777);       -- ⚠️ Invalid volume: #777 entity does not exist
-#101 = CLOSED_SHELL('EmptyShell',());               -- ⚠️ Empty shell: no constituent faces or surfaces
+#42 = ADVANCED_FACE('',*,#999,FALSE);  -- Undefined reference to #999
+#99 = MANIFOLD_SOLID_BREP('EmptySolid',#777);  -- #777 does not exist
+#101 = CLOSED_SHELL('EmptyShell',());          -- Empty shell entity
 ENDSEC;
 
 END-ISO-10303-21;
