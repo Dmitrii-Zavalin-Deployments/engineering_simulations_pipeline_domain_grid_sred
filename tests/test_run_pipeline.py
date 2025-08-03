@@ -66,11 +66,8 @@ class TestSanitizePayload(unittest.TestCase):
         mock_coerce.assert_any_call("invalid")
 
 
-class TestPipelineMain:
-    def test_pipeline_output_is_valid(self):
-        import json
-        from pathlib import Path
-
+class TestPipelineMain(unittest.TestCase):
+    def test_pipeline_output_is_valid():
         output_path = Path("data/testing-input-output/enriched_metadata.json")
         assert output_path.exists(), "Pipeline output file missing"
 
