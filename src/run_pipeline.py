@@ -33,7 +33,6 @@ PRELOADED_RESOLUTION = float(ENV_RESOLUTION) if ENV_RESOLUTION else None
 def conditional_exit(code=0):
     if TEST_MODE_ENABLED:
         log_checkpoint(f"🚦 TEST MODE ACTIVE: exit({code}) suppressed")
-        log_checkpoint("Returning from test-mode")
         return code
     else:
         sys.exit(code)
