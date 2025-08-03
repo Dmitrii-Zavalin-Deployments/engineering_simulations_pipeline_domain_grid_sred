@@ -1,3 +1,4 @@
+import json
 import unittest
 from unittest.mock import patch, MagicMock, mock_open
 from pathlib import Path
