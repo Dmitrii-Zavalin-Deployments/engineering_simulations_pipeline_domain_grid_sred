@@ -1,33 +1,30 @@
 # 📄 src/run_pipeline.py
 
-# ----------------------------------------------------------------------
-# Lightweight entrypoint for STEP-driven domain generation pipeline
-# Streamlined for deterministic geometry analysis and metadata export
-# ----------------------------------------------------------------------
+"""📄 STEP-driven domain generation pipeline — module mode compatible"""
 
 import sys
 import os
 import json
 from pathlib import Path
-from gmsh_runner import extract_bounding_box_with_gmsh
-from domain_definition_writer import validate_domain_bounds, DomainValidationError
-from logger_utils import log_checkpoint, log_error, log_success, log_warning
+
+from src.pipeline.gmsh_runner import extract_bounding_box_with_gmsh
+from src.pipeline.domain_definition_writer import validate_domain_bounds, DomainValidationError
+from src.pipeline.logger_utils import log_checkpoint, log_error, log_success, log_warning
 from src.utils.coercion import coerce_numeric
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
 from src.rules.rule_engine import evaluate_rule
-from validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
+from src.validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
 from src.utils.input_validation import validate_step_file
 
 DEFAULT_RESOLUTION = 0.01  # meters
 PROFILE_PATH = "schemas/validation_profile.yaml"
-IO_DIRECTORY = Path(__file__).parent.resolve() / "data/testing-input-output"
+IO_DIRECTORY = Path(__file__).parent.parent.resolve() / "data/testing-input-output"
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 __all__ = ["sanitize_payload"]
 
 TEST_MODE_ENABLED = os.getenv("PIPELINE_TEST_MODE", "false").lower() == "true"
 
-# 🧩 Optional preload: injected fallback via environment
 ENV_RESOLUTION = os.getenv("PIPELINE_RESOLUTION_OVERRIDE")
 PRELOADED_RESOLUTION = float(ENV_RESOLUTION) if ENV_RESOLUTION else None
 

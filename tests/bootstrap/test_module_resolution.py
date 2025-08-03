@@ -3,6 +3,7 @@
 """🔍 Bootstrap sanity checks for sys.path module resolution."""
 
 import importlib
+import importlib.util
 import time
 import pytest
 
@@ -30,6 +31,14 @@ def test_bulk_import_under_time_limit():
         importlib.import_module(path)
     elapsed = time.time() - start
     assert elapsed < 0.5, f"Bulk import exceeded runtime threshold: {elapsed:.2f}s"
+
+def test_src_module_importable():
+    """🔧 Defensive check: ensure 'src' module is discoverable in CI."""
+    assert importlib.util.find_spec("src") is not None
+
+def test_src_package_discoverable():
+    """🧭 Guard: confirm 'src.utils.coercion' is visible to the runtime."""
+    assert importlib.util.find_spec("src.utils.coercion") is not None
 
 
 

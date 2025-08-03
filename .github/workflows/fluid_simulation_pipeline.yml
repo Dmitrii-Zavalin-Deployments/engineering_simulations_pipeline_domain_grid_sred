@@ -8,11 +8,15 @@ on:
       - "**"
   workflow_dispatch:
 
+defaults:
+  run:
+    working-directory: ${{ github.workspace }}
+
 jobs:
   process_step_for_coordinates:
     runs-on: ubuntu-latest
     env:
-      PYTHONPATH: ${{ github.workspace }}/src
+      PYTHONPATH: ${{ github.workspace }}
       ENABLE_RULE_DEBUG: true
 
     steps:
@@ -145,8 +149,6 @@ jobs:
           grep -r "type_check_mode.*relaxed" tests/rules/test_rule_engine_integration.py || echo "⚠️ No relaxed-mode tests found"
 
       - name: 🧪 Run Unit Tests
-        env:
-          PYTHONPATH: ${{ github.workspace }}/src
         run: |
           pytest -s tests/ --verbose -ra
           echo "✅ Unit tests completed."

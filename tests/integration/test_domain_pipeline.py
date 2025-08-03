@@ -139,9 +139,10 @@ def test_run_pipeline_execution(tmp_path):
     env = os.environ.copy()
     env["IO_DIRECTORY"] = str(STEP_PATH.parent)
     env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata.json")
+    env["PYTHONPATH"] = os.getcwd()  # ✅ Ensures subprocess can resolve src/ imports
 
     result = subprocess.run(
-        ["python", "src/run_pipeline.py", "--resolution", "0.02"],
+        ["python", "-m", "src.run_pipeline", "--resolution", "0.02"],
         env=env,
         capture_output=True,
         text=True
