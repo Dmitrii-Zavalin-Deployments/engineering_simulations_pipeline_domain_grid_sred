@@ -45,23 +45,22 @@ def coerce_numeric(value: Any) -> Optional[float]:
     debug_log(f"[numeric] Rejected non-numeric value: '{value}'")
     return None
 
-
 def coerce_boolean(value: Any) -> Union[bool, str, None]:
     try:
         str_value = str(value).strip().lower()
     except Exception as e:
-        debug_log(f"[boolean] Coercion error for '{value}' ({type(value).__name__}) → returning None | {e}")
+        debug_log(f"[boolean] Coercion error from type {type(value).__name__} → returning None | {e}")
         return None
 
     if str_value in ("true", "1"):
-        debug_log(f"[boolean] Interpreted '{value}' → True")
+        debug_log(f"[boolean] Interpreted input → True")
         return True
     elif str_value in ("false", "0"):
-        debug_log(f"[boolean] Interpreted '{value}' → False")
+        debug_log(f"[boolean] Interpreted input → False")
         return False
-    debug_log(f"[boolean] Unrecognized form '{value}' → fallback: '{str_value}'")
-    return str_value
 
+    debug_log(f"[boolean] Unrecognized boolean form → fallback: '{str_value}'")
+    return str_value
 
 def coerce_string(value: Any) -> str:
     try:
