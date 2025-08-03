@@ -18,49 +18,42 @@ Available Methods:
 import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
-from src.utils.validation_helpers import is_valid_numeric_string
+from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
 
 def coerce_numeric(value: Any) -> Optional[float]:
     if isinstance(value, (int, float)):
-        if math.isinf(value):
-            debug_log(f"[numeric] Input is infinity → fallback: None")
-            return None
         debug_log(f"[numeric] Native numeric detected → {value}")
         return float(value)
-    if is_valid_numeric_string(value):
+    if is_valid_numeric_string(value):  # ✅ Defensive check
         try:
             result = float(str(value).strip())
-            if math.isinf(result):
-                debug_log(f"[numeric] Coercion result is infinity → fallback: None")
-                return None
             debug_log(f"[numeric] Coerced '{value}' → {result}")
             return result
         except Exception as e:
-            debug_log(f"[numeric] Coercion failed for '{value}' → None | {e}")
+            debug_log(f"[numeric] Coercion fallback failed for '{value}' → None | {e}")
             return None
     debug_log(f"[numeric] Rejected invalid numeric string: '{value}'")
     return None
 
 
-def coerce_boolean(value: Any) -> Union[bool, str, None]:
+def coerce_boolean(value: Any) -> Union[bool, str]:
     if isinstance(value, bool):
         debug_log(f"[boolean] Native bool detected → {value}")
         return value
     try:
         str_value = str(value).strip().lower()
+        if str_value in ("true", "1"):
+            debug_log(f"[boolean] Interpreted '{value}' → True")
+            return True
+        elif str_value in ("false", "0"):
+            debug_log(f"[boolean] Interpreted '{value}' → False")
+            return False
+        debug_log(f"[boolean] Unrecognized form '{value}' → fallback: '{str_value}'")
+        return str_value
     except Exception as e:
-        debug_log(f"[boolean] Coercion error for '{value}' → fallback: None | {e}")
-        return None
-
-    if str_value in ("true", "1"):
-        debug_log(f"[boolean] Interpreted '{value}' → True")
-        return True
-    elif str_value in ("false", "0"):
-        debug_log(f"[boolean] Interpreted '{value}' → False")
-        return False
-
-    debug_log(f"[boolean] Unrecognized boolean form '{value}' → fallback: '{str_value}'")
-    return str_value
+        fallback = str(value)
+        debug_log(f"[boolean] Coercion error for '{value}' ({type(value).__name__}) → fallback: '{fallback}' | {e}")
+        return fallback
 
 
 def coerce_string(value: Any) -> str:
@@ -84,6 +77,11 @@ def safe_float(value: Any) -> Optional[float]:
 
 
 def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
+    """
+    Defensive relaxed-mode type casting.
+    Handles common encodings like "true", "123", etc. without raising.
+    Returns None for unsafe or unrecognized cases.
+    """
     try:
         if isinstance(value, target_type):
             debug_log(f"[relaxed_cast] Native {target_type.__name__} detected → {value}")
@@ -105,8 +103,8 @@ def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
             elif target_type == float:
                 try:
                     result = float(stripped)
-                    if math.isnan(result) or math.isinf(result):
-                        debug_log(f"[relaxed_cast] Rejected invalid float '{value}'")
+                    if math.isnan(result):
+                        debug_log(f"[relaxed_cast] Rejected NaN parsing for '{value}'")
                         return None
                     debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
                     return result
@@ -122,19 +120,24 @@ def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
 
 
 def relaxed_equals(lhs: Any, rhs: Any) -> bool:
+    """
+    Centralized relaxed comparison logic.
+    Attempts to cast both values to a common type and compares the result.
+    """
+    # Defensive guard: prevent unsafe coercion for malformed numeric strings
     for unsafe in ("nan", "not_a_number"):
         if isinstance(lhs, str) and lhs.strip().lower() == unsafe:
-            debug_log(f"[relaxed_equals] Unsafe lhs → '{lhs}' → rejecting")
+            debug_log(f"[relaxed_equals] Unsafe lhs input detected → '{lhs}' → rejecting comparison")
             return False
         if isinstance(rhs, str) and rhs.strip().lower() == unsafe:
-            debug_log(f"[relaxed_equals] Unsafe rhs → '{rhs}' → rejecting")
+            debug_log(f"[relaxed_equals] Unsafe rhs input detected → '{rhs}' → rejecting comparison")
             return False
 
     for target_type in (bool, int, float, str):
         lhs_cast = relaxed_cast(lhs, target_type)
         rhs_cast = relaxed_cast(rhs, target_type)
         if lhs_cast is not None and rhs_cast is not None and lhs_cast == rhs_cast:
-            debug_log(f"[relaxed_equals] Match via {target_type.__name__} → {lhs_cast} == {rhs_cast}")
+            debug_log(f"[relaxed_equals] Matched via {target_type.__name__} → {lhs_cast} == {rhs_cast}")
             return True
     debug_log(f"[relaxed_equals] No match: {lhs} != {rhs}")
     return False
