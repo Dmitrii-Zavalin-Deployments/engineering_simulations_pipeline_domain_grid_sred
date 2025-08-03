@@ -23,15 +23,24 @@ from src.utils.validation_helpers import is_valid_numeric_string  # ✅ Injected
 def coerce_numeric(value: Any) -> Optional[float]:
     if isinstance(value, (int, float)):
         debug_log(f"[numeric] Native numeric detected → {value}")
-        return float(value)
+        result = float(value)
+        if math.isinf(result):
+            debug_log(f"[numeric] Overflow detected → result: inf → returning None")
+            return None
+        return result
+
     if is_valid_numeric_string(value):  # ✅ Defensive check
         try:
             result = float(str(value).strip())
+            if math.isinf(result):
+                debug_log(f"[numeric] Overflow detected during coercion → '{value}' → result: inf → returning None")
+                return None
             debug_log(f"[numeric] Coerced '{value}' → {result}")
             return result
         except Exception as e:
             debug_log(f"[numeric] Coercion fallback failed for '{value}' → None | {e}")
             return None
+
     debug_log(f"[numeric] Rejected invalid numeric string: '{value}'")
     return None
 
