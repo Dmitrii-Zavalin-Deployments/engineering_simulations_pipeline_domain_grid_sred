@@ -132,7 +132,7 @@ def test_metadata_output_structure(tmp_path, dummy_bounds):
         assert key in content["domain_definition"]
 
 # 🧪 System Test — Full CLI Execution
-STEP_PATH = Path("data/testing-input-output/test_shape.step")
+STEP_PATH = Path("data/testing-input-output/input.step")
 
 @pytest.mark.skipif(not STEP_PATH.exists(), reason="Required STEP file missing for system test.")
 def test_run_pipeline_execution(tmp_path):
