@@ -13,9 +13,9 @@ import json
 import os
 
 # ✅ Import volume integrity checker
-from utils.gmsh_input_check import validate_step_has_volumes
+from src.utils.gmsh_input_check import validate_step_has_volumes
 # ✅ Import fallback resolution profile loader
-from utils.input_validation import load_resolution_profile
+from src.utils.input_validation import load_resolution_profile
 
 
 def extract_bounding_box_with_gmsh(step_path, resolution=None):
