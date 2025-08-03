@@ -40,13 +40,26 @@ class DomainLoader:
                 "ymax": bounds[4],
                 "zmax": bounds[5]
             }
+        elif surfaces:
+            # Fallback: bounding box from first surface
+            dim, tag = surfaces[0]
+            bounds = gmsh.model.getBoundingBox(dim, tag)
+            bbox = {
+                "xmin": bounds[0],
+                "ymin": bounds[1],
+                "zmin": bounds[2],
+                "xmax": bounds[3],
+                "ymax": bounds[4],
+                "zmax": bounds[5]
+            }
 
         gmsh.finalize()
         return DomainLoader(bounding_box=bbox, surface_tags=surface_tags)
 
     def has_geometry(self):
         """Checks if geometry data was successfully parsed."""
-        return bool(self._bbox)
+        # Return True if either surface tags or bounding box is present
+        return bool(self._surface_tags or self._bbox)
 
     @property
     def surface_count(self):
