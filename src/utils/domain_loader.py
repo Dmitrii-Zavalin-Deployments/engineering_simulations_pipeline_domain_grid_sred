@@ -19,46 +19,59 @@ class DomainLoader:
             DomainLoader: Instance with bounding box and surface tags extracted.
         """
         gmsh.initialize()
-        gmsh.open(str(step_path))
-        gmsh.model.add("domain_loader_parse")
+        try:
+            gmsh.model.add("domain_loader_parse")
+            gmsh.open(str(step_path))
 
-        # Extract volume entities and surface tags
-        volumes = gmsh.model.getEntities(3)
-        surfaces = gmsh.model.getEntities(2)
-        surface_tags = [tag for (dim, tag) in surfaces if dim == 2]
+            # Extract volume entities and surface tags
+            try:
+                volumes = gmsh.model.getEntities(3)
+            except Exception:
+                volumes = []
 
-        # Default bounding box from first volume
-        bbox = {}
-        if volumes:
-            dim, tag = volumes[0]
-            bounds = gmsh.model.getBoundingBox(dim, tag)
-            bbox = {
-                "xmin": bounds[0],
-                "ymin": bounds[1],
-                "zmin": bounds[2],
-                "xmax": bounds[3],
-                "ymax": bounds[4],
-                "zmax": bounds[5]
-            }
-        elif surfaces:
-            # Fallback: bounding box from first surface
-            dim, tag = surfaces[0]
-            bounds = gmsh.model.getBoundingBox(dim, tag)
-            bbox = {
-                "xmin": bounds[0],
-                "ymin": bounds[1],
-                "zmin": bounds[2],
-                "xmax": bounds[3],
-                "ymax": bounds[4],
-                "zmax": bounds[5]
-            }
+            try:
+                surfaces = gmsh.model.getEntities(2)
+            except Exception:
+                surfaces = []
 
-        gmsh.finalize()
+            surface_tags = [tag for (_, tag) in surfaces]
+
+            # Default bounding box from first volume
+            bbox = {}
+            try:
+                if volumes:
+                    dim, tag = volumes[0]
+                    bounds = gmsh.model.getBoundingBox(dim, tag)
+                    bbox = {
+                        "xmin": bounds[0],
+                        "ymin": bounds[1],
+                        "zmin": bounds[2],
+                        "xmax": bounds[3],
+                        "ymax": bounds[4],
+                        "zmax": bounds[5]
+                    }
+                elif surfaces:
+                    # Fallback: bounding box from first surface
+                    dim, tag = surfaces[0]
+                    bounds = gmsh.model.getBoundingBox(dim, tag)
+                    bbox = {
+                        "xmin": bounds[0],
+                        "ymin": bounds[1],
+                        "zmin": bounds[2],
+                        "xmax": bounds[3],
+                        "ymax": bounds[4],
+                        "zmax": bounds[5]
+                    }
+            except Exception:
+                bbox = {}
+
+        finally:
+            gmsh.finalize()
+
         return DomainLoader(bounding_box=bbox, surface_tags=surface_tags)
 
     def has_geometry(self):
         """Checks if geometry data was successfully parsed."""
-        # Return True if either surface tags or bounding box is present
         return bool(self._surface_tags or self._bbox)
 
     @property
