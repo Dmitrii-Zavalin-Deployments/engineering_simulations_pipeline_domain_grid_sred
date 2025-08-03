@@ -48,20 +48,17 @@ def dummy_bounds():
         "zmin": 0.0, "zmax": 0.8
     }
 
-# 🧪 Integration Test — Geometry Parsing via STEP Fixture
-@pytest.mark.skipif(
-    not (Path(__file__).parent.parent.parent / "test_models" / "test.step").exists(),
-    reason="Required STEP file missing"
-)
-def test_domain_geometry_parsing():
-    """
-    Loads the STEP file and verifies geometry presence and surface count.
-    """
-    step_path = Path(__file__).parent.parent.parent / "test_models" / "test.step"
-    domain = DomainLoader.from_step(step_path)
+def test_geometry_was_detected():
+    metadata_path = Path("data/testing-input-output/enriched_metadata.json")
+    assert metadata_path.exists(), "Output metadata file not found"
 
-    assert domain.has_geometry() is True
-    assert domain.surface_count > 0
+    with metadata_path.open() as f:
+        metadata = json.load(f)
+        domain = metadata.get("domain_definition", {})
+        assert domain, "No domain_definition found in metadata"
+        assert domain.get("min_x") is not None, "Missing min_x"
+        assert domain.get("max_x") is not None, "Missing max_x"
+        assert domain["max_x"] - domain["min_x"] > 0, "Invalid domain extent"
 
 # 🧪 Unit Tests — Bounding Box
 def test_validate_bounding_box_success(dummy_bounds):
