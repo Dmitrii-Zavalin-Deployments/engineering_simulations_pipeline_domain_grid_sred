@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 
 from src.gmsh_runner import extract_bounding_box_with_gmsh
-from src.pipeline.domain_definition_writer import validate_domain_bounds, DomainValidationError
+from src.domain_definition_writer import validate_domain_bounds, DomainValidationError
 from src.pipeline.logger_utils import log_checkpoint, log_error, log_success, log_warning
 from src.utils.coercion import coerce_numeric
 from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
