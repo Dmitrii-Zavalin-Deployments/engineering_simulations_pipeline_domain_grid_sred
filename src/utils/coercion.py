@@ -51,4 +51,30 @@ def relaxed_equals(a, b) -> bool:
     except Exception:
         return False
 
+def coerce_boolean(value) -> bool:
+    """
+    Coerces input to boolean using common relaxed rules.
+
+    Args:
+        value: Input value to convert.
+
+    Returns:
+        bool: Interpreted boolean value.
+    """
+    truthy = {'true', 'yes', '1', 'on'}
+    falsy = {'false', 'no', '0', 'off'}
+
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, (int, float)):
+        return value != 0
+    if isinstance(value, str):
+        val = value.strip().lower()
+        if val in truthy:
+            return True
+        if val in falsy:
+            return False
+    raise ValueError(f"Cannot coerce value to boolean: {value}")
+
+
 
