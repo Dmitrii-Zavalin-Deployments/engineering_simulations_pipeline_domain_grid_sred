@@ -139,7 +139,6 @@ def test_run_pipeline_execution(tmp_path):
     env = os.environ.copy()
     env["IO_DIRECTORY"] = str(STEP_PATH.parent)
     env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata.json")
-    # 🔧 Updated to point to project root for proper module resolution
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
 
     result = subprocess.run(
@@ -150,6 +149,7 @@ def test_run_pipeline_execution(tmp_path):
     )
 
     if result.returncode != 0:
+        print("STDOUT:", result.stdout)
         print("STDERR:", result.stderr)
 
     assert result.returncode == 0
@@ -161,8 +161,14 @@ def test_run_pipeline_execution(tmp_path):
     with open(output_file) as f:
         metadata = json.load(f)
 
+    print("✅ Parsed pipeline output metadata:")
+    print(json.dumps(metadata, indent=2))
+
     assert "domain_definition" in metadata
     assert metadata["domain_definition"]["nx"] > 0
+
+
+
 
 
 

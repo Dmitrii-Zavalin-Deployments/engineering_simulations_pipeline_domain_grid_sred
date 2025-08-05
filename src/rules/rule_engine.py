@@ -10,28 +10,10 @@ from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
-from src.rules.rule_engine_coercion import _coerce_types_for_comparison  # ✅ Moved logic
+from src.rules.rule_engine_coercion import _coerce_types_for_comparison
 from src.utils.coercion import relaxed_equals
 
 logger = logging.getLogger(__name__)
-
-# ------------------------------------------------------------------
-# ✳️ Expression Evaluation Notes
-# ------------------------------------------------------------------
-# Supported expression format:
-#   <lhs path> <operator> <rhs literal or path>
-# Example:
-#   resolution.dx == None
-#   temperature < 150
-#
-# 🛑 Unsupported operators include:
-# - Python-native logical operators: 'is', 'is not', 'in', 'not in', 'not', 'and', 'or'
-# - Multi-part or chained expressions
-# - List/collection membership checks (unless explicitly supported in operator registry)
-#
-# 🚧 All supported operators must appear in SUPPORTED_OPERATORS
-#       → Controlled centrally in src.rules.operators
-# ------------------------------------------------------------------
 
 def _evaluate_expression(
     expression: str,
@@ -65,6 +47,9 @@ def _evaluate_expression(
 
     try:
         lhs_value = get_nested_value(payload, lhs_path)
+    except KeyError as err:
+        logger.warning(f"Missing key during LHS resolution: {lhs_path} → {err}")
+        raise RuleEvaluationError(f"Missing key in expression: {lhs_path}")
     except RuleEvaluationError as e:
         if relaxed_type_check:
             lhs_value = None
@@ -91,6 +76,9 @@ def _evaluate_expression(
                 rhs_value = get_nested_value(payload, rhs_literal)
                 rhs_resolved_from_payload = True
                 debug_log(f"Fallback: Resolved RHS from payload key path '{rhs_literal}' → {rhs_value}")
+            except KeyError as err:
+                logger.warning(f"Missing key during RHS resolution: {rhs_literal} → {err}")
+                raise RuleEvaluationError(f"Missing key in expression: {rhs_literal}")
             except RuleEvaluationError as e:
                 logger.debug(f"Relaxed RHS fallback key resolution failed: {e}")
                 rhs_value = None
