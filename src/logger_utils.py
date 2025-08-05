@@ -66,13 +66,5 @@ def log_warning(msg: str) -> None:
     """
     log_checkpoint(f"⚠️ WARNING: {msg}", emoji="⚠️")
 
-def log_debug(msg: str) -> None:
-    """
-    Print a standardized debug message.
-
-    Args:
-        msg (str): Debug message.
-    """
-    log_checkpoint(f"🐞 DEBUG: {msg}", emoji="🐞")
 
 

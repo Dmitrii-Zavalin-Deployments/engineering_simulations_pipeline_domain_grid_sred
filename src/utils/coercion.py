@@ -1,16 +1,26 @@
 # src/utils/coercion.py
 
+"""
+Type coercion helpers tailored for rule evaluation.
+
+Used to convert raw values during expression parsing and logical comparisons.
+Ensures safety and consistency for numeric and boolean operations under strict or relaxed modes.
+
+Available Methods:
+- coerce_numeric(value)
+- coerce_boolean(value)
+- coerce_string(value)
+- safe_float(value)
+- relaxed_cast(value, target_type)
+- relaxed_equals(lhs, rhs)
+"""
+
 import math
 from typing import Any, Union, Optional
 from src.rules.config import debug_log
-from src.logger_utils import log_warning  # ✅ Required for fallback injection
 from src.utils.validation_helpers import is_valid_numeric_string
 
 def coerce_numeric(value: Any) -> Optional[float]:
-    if value is None:
-        log_warning("🧯 Value for coercion is None → applying fallback: 0.0")
-        return 0.0
-
     try:
         result = float(value)
         if math.isnan(result) or math.isinf(result):
@@ -35,102 +45,107 @@ def coerce_numeric(value: Any) -> Optional[float]:
     debug_log(f"[numeric] Rejected non-numeric value: '{value}'")
     return None
 
-def relaxed_equals(a, b) -> bool:
-    """
-    Compares two values with relaxed rules, allowing type coercion.
-
-    Args:
-        a: First value
-        b: Second value
-
-    Returns:
-        bool: True if values are considered equivalent, even loosely.
-    """
+def coerce_boolean(value: Any) -> Union[bool, str, None]:
     try:
-        return str(a).strip().lower() == str(b).strip().lower()
-    except Exception:
+        str_value = str(value).strip().lower()
+    except Exception as e:
+        debug_log(f"[boolean] Coercion error from type {type(value).__name__} → returning None | {e}")
+        return None
+
+    if str_value in ("true", "1"):
+        debug_log(f"[boolean] Interpreted input → True")
+        return True
+    elif str_value in ("false", "0"):
+        debug_log(f"[boolean] Interpreted input → False")
         return False
 
-def coerce_boolean(value) -> bool:
-    """
-    Coerces input to boolean using common relaxed rules.
+    debug_log(f"[boolean] Unrecognized boolean form → fallback: '{str_value}'")
+    return str_value
 
-    Args:
-        value: Input value to convert.
-
-    Returns:
-        bool: Interpreted boolean value.
-    """
-    truthy = {'true', 'yes', '1', 'on'}
-    falsy = {'false', 'no', '0', 'off'}
-
-    if isinstance(value, bool):
-        return value
-    if isinstance(value, (int, float)):
-        return value != 0
-    if isinstance(value, str):
-        val = value.strip().lower()
-        if val in truthy:
-            return True
-        if val in falsy:
-            return False
-    raise ValueError(f"Cannot coerce value to boolean: {value}")
-
-def coerce_string(value) -> str:
-    """
-    Coerces input to a cleaned string representation.
-
-    Args:
-        value: Input value to convert.
-
-    Returns:
-        str: Sanitized string value.
-    """
-    if value is None:
+def coerce_string(value: Any) -> str:
+    try:
+        result = value.strip() if isinstance(value, str) else str(value)
+        debug_log(f"[string] Coerced '{value}' → '{result}'")
+        return result
+    except Exception as e:
+        debug_log(f"[string] Failed to coerce '{value}' → fallback: '' | {e}")
         return ""
-    return str(value).strip()
 
-def safe_float(value: Any, fallback: float = 0.0) -> float:
-    """
-    Safely converts a value to float. Falls back to default if conversion fails.
 
-    Args:
-        value: Input value to convert.
-        fallback (float): Default to return if conversion fails.
-
-    Returns:
-        float: Converted float or fallback.
-    """
+def safe_float(value: Any) -> Optional[float]:
     try:
         result = float(value)
-        if math.isnan(result) or math.isinf(result):
-            return fallback
+        debug_log(f"[safe_float] Parsed '{value}' → {result}")
         return result
-    except (ValueError, TypeError):
-        return fallback
+    except Exception as e:
+        debug_log(f"[safe_float] Failed to parse '{value}' → None | {e}")
+        return None
 
 
-def relaxed_cast(value: Any, target_type: Union[type, str]) -> Any:
+def relaxed_cast(value: Any, target_type: type) -> Optional[Any]:
     """
-    Attempts relaxed casting of input to a target type.
-
-    Args:
-        value: Input value.
-        target_type: Type or type name to cast to ('float', 'str', 'bool', etc).
-
-    Returns:
-        Any: Casted value or original if conversion fails.
+    Defensive relaxed-mode type casting.
+    Handles common encodings like "true", "123", etc. without raising.
+    Returns None for unsafe or unrecognized cases.
     """
     try:
-        if isinstance(target_type, str):
-            target_type = {
-                'float': float,
-                'str': str,
-                'bool': coerce_boolean,
-                'int': int
-            }.get(target_type.lower(), str)
-        return target_type(value)
-    except Exception:
-        return value
+        if isinstance(value, target_type):
+            debug_log(f"[relaxed_cast] Native {target_type.__name__} detected → {value}")
+            return value
+
+        if isinstance(value, str):
+            stripped = value.strip().lower()
+            if target_type == bool:
+                if stripped in ("true", "1"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → True")
+                    return True
+                elif stripped in ("false", "0"):
+                    debug_log(f"[relaxed_cast] Interpreted '{value}' → False")
+                    return False
+            elif target_type == int and stripped.isdigit():
+                result = int(stripped)
+                debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                return result
+            elif target_type == float:
+                try:
+                    result = float(stripped)
+                    if math.isnan(result):
+                        debug_log(f"[relaxed_cast] Rejected NaN parsing for '{value}'")
+                        return None
+                    debug_log(f"[relaxed_cast] Parsed '{value}' → {result}")
+                    return result
+                except ValueError:
+                    pass
+
+        result = target_type(value)
+        debug_log(f"[relaxed_cast] Fallback cast '{value}' → {result}")
+        return result
+    except Exception as e:
+        debug_log(f"[relaxed_cast] Failed to cast '{value}' to {target_type.__name__} → None | {e}")
+        return None
+
+
+def relaxed_equals(lhs: Any, rhs: Any) -> bool:
+    """
+    Centralized relaxed comparison logic.
+    Attempts to cast both values to a common type and compares the result.
+    """
+    for unsafe in ("nan", "not_a_number"):
+        if isinstance(lhs, str) and lhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe lhs input detected → '{lhs}' → rejecting comparison")
+            return False
+        if isinstance(rhs, str) and rhs.strip().lower() == unsafe:
+            debug_log(f"[relaxed_equals] Unsafe rhs input detected → '{rhs}' → rejecting comparison")
+            return False
+
+    for target_type in (bool, int, float, str):
+        lhs_cast = relaxed_cast(lhs, target_type)
+        rhs_cast = relaxed_cast(rhs, target_type)
+        if lhs_cast is not None and rhs_cast is not None and lhs_cast == rhs_cast:
+            debug_log(f"[relaxed_equals] Matched via {target_type.__name__} → {lhs_cast} == {rhs_cast}")
+            return True
+    debug_log(f"[relaxed_equals] No match: {lhs} != {rhs}")
+    return False
+
 
 

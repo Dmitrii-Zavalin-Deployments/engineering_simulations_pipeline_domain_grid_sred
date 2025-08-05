@@ -14,7 +14,6 @@ try:
 except ImportError:
     raise RuntimeError("Gmsh module not found. Run: pip install gmsh==4.11.1")
 
-from src.logger_utils import log_debug  # ✅ Injected logging helper
 
 class ValidationError(Exception):
     """Raised when STEP file validation fails."""
@@ -39,28 +38,17 @@ def validate_step_has_volumes(step_path):
     if isinstance(step_path, dict):
         if "solids" not in step_path or not isinstance(step_path["solids"], list):
             raise KeyError("Missing or invalid 'solids' list in STEP payload")
-        step_path = "mock/path/to/geometry.step"
+        step_path = "mock/path/to/geometry.step"  # Used only to bypass Gmsh.open()
 
     if not os.path.isfile(step_path):
         raise FileNotFoundError(f"STEP file not found: {step_path}")
 
     gmsh.model.add("volume_check_model")
-    gmsh.open(str(step_path))
+    gmsh.open(str(step_path))  # ✅ Ensures compatibility with Path-like inputs
 
     volumes = gmsh.model.getEntities(3)
     if not volumes:
         raise ValidationError(f"STEP file contains no 3D volumes: {step_path}")
-
-    # 🧭 Debug: Log raw bounds extracted from the model (if available)
-    try:
-        bbox = gmsh.model.getBoundingBox(volumes[0][0], volumes[0][1])
-        min_x, min_y, min_z, max_x, max_y, max_z = bbox
-        width = max_x - min_x
-        height = max_y - min_y
-        depth = max_z - min_z
-        log_debug(f"Gmsh bounds extracted → width={width}, height={height}, depth={depth}")
-    except Exception as e:
-        log_debug(f"Gmsh bounding box extraction failed silently → {e}")
 
 
 

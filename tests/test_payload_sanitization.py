@@ -60,17 +60,5 @@ def test_edge_case_empty_payload():
     }
     assert sanitized == expected
 
-def test_autopopulate_bounds_from_dimensions():
-    raw = {"domain_definition": {"x": 1, "y": 2, "z": 3, "width": 10, "height": 20, "depth": 30}}
-    clean = sanitize_payload(raw)
-    domain = clean["domain_definition"]
-
-    assert domain["min_x"] == 1
-    assert domain["max_x"] == 11
-    assert domain["min_y"] == 2
-    assert domain["max_y"] == 22
-    assert domain["min_z"] == 3
-    assert domain["max_z"] == 33
-
 
 

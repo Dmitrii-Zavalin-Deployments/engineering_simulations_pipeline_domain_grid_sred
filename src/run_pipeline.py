@@ -66,20 +66,10 @@ def sanitize_payload(metadata: dict) -> dict:
     max_z_val = coerce_numeric(domain.get("max_z"))
     depth = max(0.0, depth_val if depth_val is not None else (max_z_val or 0.0) - z)
 
-    min_x = x
-    max_x = x + width
-    min_y = y
-    max_y = y + height
-    min_z = z
-    max_z = z + depth
-
     return {
         "domain_definition": {
             "x": x, "y": y, "z": z,
             "width": width, "height": height, "depth": depth,
-            "min_x": min_x, "max_x": max_x,
-            "min_y": min_y, "max_y": max_y,
-            "min_z": min_z, "max_z": max_z
         }
     }
 
@@ -157,6 +147,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (Gmsh backend)")
     parser.add_argument("--resolution", type=float,
                         help="Voxel resolution in meters (default: auto via profile or env override)")
+
     args = parser.parse_args()
     main(resolution=args.resolution or PRELOADED_RESOLUTION)
 
