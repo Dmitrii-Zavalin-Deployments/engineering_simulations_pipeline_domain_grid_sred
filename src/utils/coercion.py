@@ -76,5 +76,19 @@ def coerce_boolean(value) -> bool:
             return False
     raise ValueError(f"Cannot coerce value to boolean: {value}")
 
+def coerce_string(value) -> str:
+    """
+    Coerces input to a cleaned string representation.
+
+    Args:
+        value: Input value to convert.
+
+    Returns:
+        str: Sanitized string value.
+    """
+    if value is None:
+        return ""
+    return str(value).strip()
+
 
 
