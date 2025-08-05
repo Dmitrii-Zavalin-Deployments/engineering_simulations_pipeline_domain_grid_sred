@@ -90,5 +90,47 @@ def coerce_string(value) -> str:
         return ""
     return str(value).strip()
 
+def safe_float(value: Any, fallback: float = 0.0) -> float:
+    """
+    Safely converts a value to float. Falls back to default if conversion fails.
+
+    Args:
+        value: Input value to convert.
+        fallback (float): Default to return if conversion fails.
+
+    Returns:
+        float: Converted float or fallback.
+    """
+    try:
+        result = float(value)
+        if math.isnan(result) or math.isinf(result):
+            return fallback
+        return result
+    except (ValueError, TypeError):
+        return fallback
+
+
+def relaxed_cast(value: Any, target_type: Union[type, str]) -> Any:
+    """
+    Attempts relaxed casting of input to a target type.
+
+    Args:
+        value: Input value.
+        target_type: Type or type name to cast to ('float', 'str', 'bool', etc).
+
+    Returns:
+        Any: Casted value or original if conversion fails.
+    """
+    try:
+        if isinstance(target_type, str):
+            target_type = {
+                'float': float,
+                'str': str,
+                'bool': coerce_boolean,
+                'int': int
+            }.get(target_type.lower(), str)
+        return target_type(value)
+    except Exception:
+        return value
 
 
