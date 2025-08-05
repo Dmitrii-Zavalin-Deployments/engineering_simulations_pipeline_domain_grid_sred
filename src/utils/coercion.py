@@ -35,5 +35,20 @@ def coerce_numeric(value: Any) -> Optional[float]:
     debug_log(f"[numeric] Rejected non-numeric value: '{value}'")
     return None
 
+def relaxed_equals(a, b) -> bool:
+    """
+    Compares two values with relaxed rules, allowing type coercion.
+
+    Args:
+        a: First value
+        b: Second value
+
+    Returns:
+        bool: True if values are considered equivalent, even loosely.
+    """
+    try:
+        return str(a).strip().lower() == str(b).strip().lower()
+    except Exception:
+        return False
 
 
