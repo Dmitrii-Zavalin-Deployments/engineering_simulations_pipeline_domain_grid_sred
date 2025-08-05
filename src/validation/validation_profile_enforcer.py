@@ -9,20 +9,16 @@ except ImportError:
 
 from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
 
-
 # Strategic addition: runtime flag for test mocking or profile enforcement toggle
 profile_check_enabled = os.getenv("PROFILE_CHECK_ENABLED", "false").lower() == "true"
-
 
 class ValidationProfileError(Exception):
     """Raised when a validation profile rule fails."""
     pass
 
-
 class ProfileValidationError(Exception):
     """Raised when profile loading fails due to structure or content issues."""
     pass
-
 
 def load_profile(path: str) -> dict:
     """
@@ -41,33 +37,37 @@ def load_profile(path: str) -> dict:
     except Exception as e:
         raise ProfileValidationError(f"Failed to load or validate profile at '{path}': {e}")
 
-
-def enforce_profile(profile_path: str, payload: dict):
+def enforce_profile(profile_source, payload: dict):
     """
-    Parse a validation YAML profile and enforce its rules on the given payload.
-
-    Each rule must include:
-      - if: <expression>
-      - raise: <error message>
-      - Optional: strict_type_check: <bool>
+    Enforce validation rules against the given payload.
+    
+    Supports two input formats:
+    - File path (str): loads rules from YAML file
+    - Direct list of rule dicts: bypasses file I/O
     """
-    try:
-        with open(profile_path, "r") as f:
-            profile = yaml.safe_load(f)
-    except Exception as e:
-        raise RuntimeError(f"Failed to load profile at '{profile_path}': {e}")
+    if isinstance(profile_source, str):
+        # Treat as file path
+        try:
+            with open(profile_source, "r") as f:
+                profile = yaml.safe_load(f)
+            rules = profile.get("rules", [])
+        except Exception as e:
+            raise RuntimeError(f"Failed to load profile at '{profile_source}': {e}")
+    elif isinstance(profile_source, list):
+        # Treat as direct rule list
+        rules = profile_source
+    else:
+        raise TypeError(f"Unsupported profile input type: {type(profile_source).__name__}")
 
-    rules = profile.get("rules", [])
-
-    # ✅ Strategic fallback to avoid null returns when profile is mock-loaded
+    # ✅ Strategic fallback for test mocking or disabled profiles
     if not rules and profile_check_enabled:
         rules = [
             {
-                "if": "resolution.dx == None",  # ✅ updated to supported operator
+                "if": "resolution.dx == None",
                 "raise": "Missing dx in resolution",
             },
             {
-                "if": "bounding_box == None",  # ✅ updated to supported operator
+                "if": "bounding_box == None",
                 "raise": "Missing bounding_box definition",
             }
         ]
