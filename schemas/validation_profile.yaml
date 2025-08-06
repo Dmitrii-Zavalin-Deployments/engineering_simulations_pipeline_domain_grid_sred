@@ -5,7 +5,7 @@
 # Field-level constraints are mapped under top-level domain blocks (e.g. domain_definition).
 
 rules:
-  - if: domain_definition.max_z <= domain_definition.min_z
+  - if: "domain_definition.max_z <= domain_definition.min_z"
     raise: "Invalid bounds: max_z must exceed min_z"
 
   - if: domain_definition.nx == 0

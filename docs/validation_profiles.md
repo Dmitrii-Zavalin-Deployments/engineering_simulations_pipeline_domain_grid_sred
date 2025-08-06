@@ -24,7 +24,7 @@ Validation profiles are written in YAML, consisting of a `rules:` list. Each rul
 
 ```yaml
 rules:
-  - if: domain_definition.max_z <= domain_definition.min_z
+  - if: "domain_definition.max_z <= domain_definition.min_z"
     raise: "Invalid bounds: max_z must exceed min_z"
 
   - if: domain_definition.nx == 0
