@@ -136,6 +136,13 @@ def main(resolution=None):
 
     payload = sanitize_payload(metadata)
 
+    # 🔧 Type sanitizer for strict validation
+    domain = payload["domain_definition"]
+    for key in ["min_x", "max_x", "min_y", "max_y", "min_z", "max_z"]:
+        val = domain[key]
+        if isinstance(val, str):
+            domain[key] = float(val)
+
     try:
         log_checkpoint("🔎 Enforcing validation rules on payload...")
         enforce_profile(rule_list, payload)
@@ -161,5 +168,6 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     main(resolution=args.resolution or PRELOADED_RESOLUTION)
+
 
 
