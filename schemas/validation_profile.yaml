@@ -10,7 +10,7 @@ rules:
   #  else: "Invalid bounds: max_z must exceed min_z"
 
   # Ensure grid resolution is nonzero
-  - if: domain_definition["nx"] != 0
+  - if: domain_definition.nx != 0
     else: "Grid resolution nx must be nonzero"
 
   # Ensure max_x is not less than min_x
