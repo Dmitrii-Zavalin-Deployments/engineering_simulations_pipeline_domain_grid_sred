@@ -18,7 +18,12 @@ domain_definition:
   nx: {min: 1}
   ny: {min: 1}
   nz: {min: 1}
-  max_x: {max: 100.0}
+  min_x: {type: number}
+  max_x: {type: number}
+  min_y: {type: number}
+  max_y: {type: number}
+  min_z: {type: number}
+  max_z: {type: number}
 
 
 
