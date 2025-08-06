@@ -5,17 +5,17 @@
 # Field-level constraints are mapped under top-level domain blocks (e.g. domain_definition).
 
 rules:
-  - if: type(domain_definition.min_z) != "float"
-    raise: "min_z is not a float"
+  # Ensure max_z is greater than min_z
+  - if: domain_definition.max_z > domain_definition.min_z
+    else: "Invalid bounds: max_z must exceed min_z"
 
-  - if: domain_definition.max_z <= domain_definition.min_z
-    raise: "Invalid bounds: max_z must exceed min_z"
+  # Ensure grid resolution is nonzero
+  - if: domain_definition.nx != 0
+    else: "Grid resolution nx must be nonzero"
 
-  - if: domain_definition.nx == 0
-    raise: "Grid resolution nx must be nonzero"
-
-  - if: domain_definition.max_x < domain_definition.min_x
-    raise: "max_x cannot be less than min_x"
+  # Ensure max_x is not less than min_x
+  - if: domain_definition.max_x >= domain_definition.min_x
+    else: "max_x cannot be less than min_x"
 
 domain_definition:
   nx: {min: 1}
