@@ -1,4 +1,4 @@
-# 📄 src/run_pipeline.py
+# src/run_pipeline.py
 
 """📄 STEP-driven domain generation pipeline — module mode compatible"""
 
@@ -15,7 +15,10 @@ from src.utils.input_validation import validate_step_file
 
 DEFAULT_RESOLUTION = 0.01  # meters
 IO_DIRECTORY = Path(__file__).parent.parent.resolve() / "data/testing-input-output"
-OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
+
+# ✅ Allow dynamic override from environment
+env_output_path = os.getenv("OUTPUT_PATH")
+OUTPUT_PATH = Path(env_output_path) if env_output_path else IO_DIRECTORY / "domain_metadata.json"
 
 __all__ = ["sanitize_payload"]
 
@@ -77,16 +80,12 @@ def sanitize_payload(metadata: dict) -> dict:
             "width": width, "height": height, "depth": depth,
             "min_x": min_x, "max_x": max_x,
             "min_y": min_y, "max_y": max_y,
-            "min_z": min_z, "max_z": max_z,
-            "nx": domain.get("nx"),
-            "ny": domain.get("ny"),
-            "nz": domain.get("nz")
+            "min_z": min_z, "max_z": max_z
         }
     }
 
 
 def enforce_domain_rules(domain: dict):
-    # Only check that max bounds are not less than min bounds
     if domain.get("max_x") < domain.get("min_x"):
         raise ValueError("max_x must be ≥ min_x")
     if domain.get("max_y") < domain.get("min_y"):
