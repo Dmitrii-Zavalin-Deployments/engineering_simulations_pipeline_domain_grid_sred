@@ -10,7 +10,10 @@ from tests.helpers.payload_factory import (
 )
 from src.utils.coercion import coerce_numeric  # ✅ Existing Asset Update for clarity
 
-EXPECTED_KEYS = ["x", "y", "z", "width", "height", "depth"]
+EXPECTED_KEYS = [
+    "x", "y", "z", "width", "height", "depth",
+    "min_x", "max_x", "min_y", "max_y", "min_z", "max_z"
+]
 
 def test_valid_domain_payload_sanitization():
     payload = valid_domain_payload()
@@ -50,12 +53,11 @@ def test_mixed_schema_payload_sanitization():
     for key in EXPECTED_KEYS:
         assert key in domain
         assert isinstance(coerce_numeric(domain[key]), float)
-        assert coerce_numeric(domain[key]) >= 0.0  # Sanity check: all spatial values should be non-negative
+        assert coerce_numeric(domain[key]) >= 0.0
 
-    # Assert no unexpected fields leaked in
-    unexpected_keys = ["min_x", "max_y", "min_z", "extra"]
+    # Assert no unintended extras leaked in
+    unexpected_keys = ["extra", "junk_field"]
     for key in unexpected_keys:
         assert key not in domain
-
 
 
