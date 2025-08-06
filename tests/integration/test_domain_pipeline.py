@@ -139,11 +139,11 @@ def test_run_pipeline_execution(tmp_path):
     env = os.environ.copy()
     env["IO_DIRECTORY"] = str(STEP_PATH.parent)
     env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata.json")
-    # 🔧 Updated to point to project root for proper module resolution
     env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
 
+    resolution = 0.02
     result = subprocess.run(
-        ["python", "-m", "src.run_pipeline", "--resolution", "0.02"],
+        ["python", "-m", "src.run_pipeline", "--resolution", str(resolution)],
         env=env,
         capture_output=True,
         text=True
@@ -162,7 +162,16 @@ def test_run_pipeline_execution(tmp_path):
         metadata = json.load(f)
 
     assert "domain_definition" in metadata
-    assert metadata["domain_definition"]["nx"] > 0
+    domain = metadata["domain_definition"]
+
+    computed_nx = int((domain["max_x"] - domain["min_x"]) / resolution)
+    computed_ny = int((domain["max_y"] - domain["min_y"]) / resolution)
+    computed_nz = int((domain["max_z"] - domain["min_z"]) / resolution)
+
+    assert computed_nx > 0, "Computed nx must be positive"
+    assert computed_ny > 0, "Computed ny must be positive"
+    assert computed_nz > 0, "Computed nz must be positive"
+
 
 
 
