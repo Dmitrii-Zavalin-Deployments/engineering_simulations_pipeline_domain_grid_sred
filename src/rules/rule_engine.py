@@ -10,27 +10,13 @@ from src.rules.rule_engine_utils import (
     RuleEvaluationError,
     get_nested_value
 )
-from src.rules.rule_engine_coercion import _coerce_types_for_comparison  # ✅ Moved logic
-from src.utils.coercion import relaxed_equals
+from src.rules.rule_engine_coercion import _coerce_types_for_comparison
+from src.utils.coercion import relaxed_equals, coerce_numeric  # ✅ Added coerce_numeric import
 
 logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------
-# ✳️ Expression Evaluation Notes
-# ------------------------------------------------------------------
-# Supported expression format:
-#   <lhs path> <operator> <rhs literal or path>
-# Example:
-#   resolution.dx == None
-#   temperature < 150
-#
-# 🛑 Unsupported operators include:
-# - Python-native logical operators: 'is', 'is not', 'in', 'not in', 'not', 'and', 'or'
-# - Multi-part or chained expressions
-# - List/collection membership checks (unless explicitly supported in operator registry)
-#
-# 🚧 All supported operators must appear in SUPPORTED_OPERATORS
-#       → Controlled centrally in src.rules.operators
+# ✳️ Expression Evaluation Notes (unchanged)
 # ------------------------------------------------------------------
 
 def _evaluate_expression(
@@ -98,6 +84,9 @@ def _evaluate_expression(
         else:
             raise RuleEvaluationError(f"Invalid RHS literal: '{rhs_literal}'")
 
+    # ✳️ Coercion logic: improved with logging and float fallback
+    debug_log(f"Resolved types: lhs={type(lhs_value).__name__}, rhs={type(rhs_value).__name__}")
+
     if relaxed_type_check and (
         lhs_value is None or rhs_value is None or
         is_symbolic_reference(lhs_path) or is_symbolic_reference(rhs_literal)
@@ -110,8 +99,12 @@ def _evaluate_expression(
     try:
         if strict_type_check:
             debug_log("Strict type check enabled")
+            # ✅ Float fallback coercion if one side is a stringified number
+            lhs_value = coerce_numeric(lhs_value)
+            rhs_value = coerce_numeric(rhs_value)
+            debug_log(f"Post-coercion types: lhs={type(lhs_value).__name__}, rhs={type(rhs_value).__name__}")
             if type(lhs_value) != type(rhs_value):
-                raise RuleEvaluationError(f"Incompatible types: {type(lhs_value)} vs {type(rhs_value)}")
+                raise RuleEvaluationError(f"Incompatible types after numeric coercion: {type(lhs_value)} vs {type(rhs_value)}")
         elif relaxed_type_check:
             debug_log("Relaxed type check enabled")
             if not rhs_resolved_from_payload:

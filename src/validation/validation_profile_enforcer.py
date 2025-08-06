@@ -1,6 +1,7 @@
 # 📄 src/validation/validation_profile_enforcer.py
 
 import os
+import logging
 
 try:
     import yaml
@@ -11,6 +12,10 @@ from src.rules.rule_engine import evaluate_rule, RuleEvaluationError
 
 # Strategic addition: runtime flag for test mocking or profile enforcement toggle
 profile_check_enabled = os.getenv("PROFILE_CHECK_ENABLED", "false").lower() == "true"
+
+# 🧪 Logging setup (could be externally configured)
+logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO)
 
 class ValidationProfileError(Exception):
     """Raised when a validation profile rule fails."""
@@ -79,12 +84,19 @@ def enforce_profile(profile_source, payload: dict):
         if not condition:
             continue  # skip incomplete rule
 
+        # 🧪 Logging before rule evaluation
+        logger.info(f"[Rule {i}] Evaluating condition: '{condition}' with payload: {payload}")
+
         try:
             triggered = evaluate_rule(rule, payload)
         except RuleEvaluationError as err:
+            logger.error(f"[Rule {i}] Evaluation error: {err}")
             raise ValidationProfileError(
                 f"[Rule {i}] {message} — Evaluation error for '{condition}': {err}"
             )
+
+        # 🧪 Logging after evaluation outcome
+        logger.info(f"[Rule {i}] Evaluation result: triggered={triggered}")
 
         if triggered:
             raise ValidationProfileError(f"[Rule {i}] {message}")
