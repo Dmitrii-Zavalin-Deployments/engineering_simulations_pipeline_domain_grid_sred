@@ -139,9 +139,16 @@ def main(resolution=None):
     # 🔧 Type sanitizer for strict validation
     domain = payload["domain_definition"]
     for key in ["min_x", "max_x", "min_y", "max_y", "min_z", "max_z"]:
-        val = domain[key]
+        val = domain.get(key)
         if isinstance(val, str):
-            domain[key] = float(val)
+            try:
+                domain[key] = float(val)
+                log_checkpoint(f"🔧 Coerced {key} from string to float: {val} → {domain[key]}")
+            except ValueError:
+                log_error(f"Failed to coerce {key}: {val}", fatal=True)
+                conditional_exit(1)
+        else:
+            log_checkpoint(f"✅ {key} is already {type(val).__name__}: {val}")
 
     try:
         log_checkpoint("🔎 Enforcing validation rules on payload...")
