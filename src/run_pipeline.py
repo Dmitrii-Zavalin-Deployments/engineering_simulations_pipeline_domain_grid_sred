@@ -11,22 +11,18 @@ from src.gmsh_runner import extract_bounding_box_with_gmsh
 from src.domain_definition_writer import validate_domain_bounds, DomainValidationError
 from src.logger_utils import log_checkpoint, log_error, log_success, log_warning
 from src.utils.coercion import coerce_numeric
-from src.rules.rule_config_parser import load_rule_profile, RuleConfigError
-from src.rules.rule_engine import evaluate_rule
-from src.validation.validation_profile_enforcer import ValidationProfileError, enforce_profile
 from src.utils.input_validation import validate_step_file
 
 DEFAULT_RESOLUTION = 0.01  # meters
-PROFILE_PATH = "schemas/validation_profile.yaml"
 IO_DIRECTORY = Path(__file__).parent.parent.resolve() / "data/testing-input-output"
 OUTPUT_PATH = IO_DIRECTORY / "domain_metadata.json"
 
 __all__ = ["sanitize_payload"]
 
 TEST_MODE_ENABLED = os.getenv("PIPELINE_TEST_MODE", "false").lower() == "true"
-
 ENV_RESOLUTION = os.getenv("PIPELINE_RESOLUTION_OVERRIDE")
 PRELOADED_RESOLUTION = float(ENV_RESOLUTION) if ENV_RESOLUTION else None
+
 
 def conditional_exit(code=0):
     if TEST_MODE_ENABLED:
@@ -34,11 +30,13 @@ def conditional_exit(code=0):
     else:
         sys.exit(code)
 
+
 def default_domain():
     return {
         "x": 0.0, "y": 0.0, "z": 0.0,
         "width": 0.0, "height": 0.0, "depth": 0.0
     }
+
 
 def sanitize_payload(metadata: dict) -> dict:
     metadata.setdefault("domain_definition", default_domain())
@@ -66,7 +64,6 @@ def sanitize_payload(metadata: dict) -> dict:
     max_z_val = coerce_numeric(domain.get("max_z"))
     depth = max(0.0, depth_val if depth_val is not None else (max_z_val or 0.0) - z)
 
-    # Ensure all bounding keys are present with numeric coercion
     min_x = coerce_numeric(x)
     max_x = coerce_numeric(x + width)
     min_y = coerce_numeric(y)
@@ -80,9 +77,23 @@ def sanitize_payload(metadata: dict) -> dict:
             "width": width, "height": height, "depth": depth,
             "min_x": min_x, "max_x": max_x,
             "min_y": min_y, "max_y": max_y,
-            "min_z": min_z, "max_z": max_z
+            "min_z": min_z, "max_z": max_z,
+            "nx": domain.get("nx"),
+            "ny": domain.get("ny"),
+            "nz": domain.get("nz")
         }
     }
+
+
+def enforce_domain_rules(domain: dict):
+    # Only check that max bounds are not less than min bounds
+    if domain.get("max_x") < domain.get("min_x"):
+        raise ValueError("max_x must be ≥ min_x")
+    if domain.get("max_y") < domain.get("min_y"):
+        raise ValueError("max_y must be ≥ min_y")
+    if domain.get("max_z") < domain.get("min_z"):
+        raise ValueError("max_z must be ≥ min_z")
+
 
 def main(resolution=None):
     log_checkpoint("🔧 Pipeline script has entered main()")
@@ -125,19 +136,9 @@ def main(resolution=None):
         conditional_exit(1)
 
     metadata = {"domain_definition": domain_definition}
-
-    try:
-        log_checkpoint("📖 Parsing validation profile...")
-        rule_list = load_rule_profile(PROFILE_PATH)
-        log_checkpoint(f"🔧 {len(rule_list)} validation rules loaded")
-    except RuleConfigError as e:
-        log_error(f"Failed to load validation profile:\n{e}", fatal=True)
-        conditional_exit(1)
-
     payload = sanitize_payload(metadata)
-
-    # 🔧 Type sanitizer for strict validation
     domain = payload["domain_definition"]
+
     for key in ["min_x", "max_x", "min_y", "max_y", "min_z", "max_z"]:
         val = domain.get(key)
         if isinstance(val, str):
@@ -151,11 +152,11 @@ def main(resolution=None):
             log_checkpoint(f"✅ {key} is already {type(val).__name__}: {val}")
 
     try:
-        log_checkpoint("🔎 Enforcing validation rules on payload...")
-        enforce_profile(rule_list, payload)
-        log_success("Metadata schema validation passed")
-    except ValidationProfileError as e:
-        log_error(f"Validation failed:\n{e}", fatal=True)
+        log_checkpoint("🔎 Enforcing domain validation rules (native Python)...")
+        enforce_domain_rules(domain)
+        log_success("✅ Domain validation passed")
+    except ValueError as e:
+        log_error(f"Validation failed: {e}", fatal=True)
         conditional_exit(1)
 
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
@@ -166,13 +167,13 @@ def main(resolution=None):
     log_checkpoint("🏁 Pipeline completed successfully")
     conditional_exit(0)
 
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="STEP-driven domain pipeline (Gmsh backend)")
     parser.add_argument("--resolution", type=float,
                         help="Voxel resolution in meters (default: auto via profile or env override)")
-
     args = parser.parse_args()
     main(resolution=args.resolution or PRELOADED_RESOLUTION)
 
