@@ -66,13 +66,13 @@ def sanitize_payload(metadata: dict) -> dict:
     max_z_val = coerce_numeric(domain.get("max_z"))
     depth = max(0.0, depth_val if depth_val is not None else (max_z_val or 0.0) - z)
 
-    # Ensure all bounding keys are present
-    min_x = x
-    max_x = x + width
-    min_y = y
-    max_y = y + height
-    min_z = z
-    max_z = z + depth
+    # Ensure all bounding keys are present with numeric coercion
+    min_x = coerce_numeric(x)
+    max_x = coerce_numeric(x + width)
+    min_y = coerce_numeric(y)
+    max_y = coerce_numeric(y + height)
+    min_z = coerce_numeric(z)
+    max_z = coerce_numeric(z + depth)
 
     return {
         "domain_definition": {
