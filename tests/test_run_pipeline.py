@@ -1,6 +1,8 @@
+# tests/test_run_pipeline.py
+
 import json
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 from pathlib import Path
 from src.run_pipeline import sanitize_payload, main, DEFAULT_RESOLUTION
 from src.utils.coercion import coerce_numeric
@@ -12,7 +14,10 @@ class TestSanitizePayload(unittest.TestCase):
         expected = {
             "domain_definition": {
                 "x": 1.0, "y": 2.0, "z": 3.0,
-                "width": 4.0, "height": 5.0, "depth": 6.0
+                "width": 4.0, "height": 5.0, "depth": 6.0,
+                "min_x": 1.0, "max_x": 5.0,
+                "min_y": 2.0, "max_y": 7.0,
+                "min_z": 3.0, "max_z": 9.0
             }
         }
         result = sanitize_payload(raw)
@@ -20,38 +25,52 @@ class TestSanitizePayload(unittest.TestCase):
 
     def test_missing_fields(self):
         raw = {"domain_definition": {"x": "1"}}
-        expected = {
-            "domain_definition": {
-                "x": 1.0, "y": 0.0, "z": 0.0,
-                "width": 0.0, "height": 0.0, "depth": 0.0
-            }
-        }
         result = sanitize_payload(raw)
-        self.assertEqual(result, expected)
+        domain = result["domain_definition"]
+        self.assertEqual(domain["x"], 1.0)
+        self.assertEqual(domain["y"], 0.0)
+        self.assertEqual(domain["z"], 0.0)
+        self.assertEqual(domain["width"], 0.0)
+        self.assertEqual(domain["height"], 0.0)
+        self.assertEqual(domain["depth"], 0.0)
+        self.assertEqual(domain["min_x"], 1.0)
+        self.assertEqual(domain["max_x"], 1.0)
+        self.assertEqual(domain["min_y"], 0.0)
+        self.assertEqual(domain["max_y"], 0.0)
+        self.assertEqual(domain["min_z"], 0.0)
+        self.assertEqual(domain["max_z"], 0.0)
 
     def test_empty_metadata(self):
         result = sanitize_payload({})
-        expected = {
-            "domain_definition": {
-                "x": 0.0, "y": 0.0, "z": 0.0,
-                "width": 0.0, "height": 0.0, "depth": 0.0
-            }
-        }
-        self.assertEqual(result, expected)
+        domain = result["domain_definition"]
+        self.assertEqual(domain["x"], 0.0)
+        self.assertEqual(domain["y"], 0.0)
+        self.assertEqual(domain["z"], 0.0)
+        self.assertEqual(domain["width"], 0.0)
+        self.assertEqual(domain["height"], 0.0)
+        self.assertEqual(domain["depth"], 0.0)
+        self.assertEqual(domain["min_x"], 0.0)
+        self.assertEqual(domain["max_x"], 0.0)
+        self.assertEqual(domain["min_y"], 0.0)
+        self.assertEqual(domain["max_y"], 0.0)
+        self.assertEqual(domain["min_z"], 0.0)
+        self.assertEqual(domain["max_z"], 0.0)
 
     def test_width_clamping_on_misaligned_bounds(self):
         raw = {"domain_definition": {"min_x": "1.0", "max_x": "0.0"}}
         result = sanitize_payload(raw)
         domain = result["domain_definition"]
-        self.assertIn("width", domain)
-        self.assertIsInstance(coerce_numeric(domain["width"]), float)
-        self.assertEqual(coerce_numeric(domain["width"]), 0.0)
+        self.assertEqual(domain["width"], 0.0)
+        self.assertEqual(domain["min_x"], 1.0)
+        self.assertEqual(domain["max_x"], 1.0)
 
     def test_fallback_on_invalid_width(self):
         raw = {"domain_definition": {"x": "1", "max_x": "5", "width": "invalid"}}
         result = sanitize_payload(raw)
         width = result["domain_definition"]["width"]
         self.assertEqual(width, 4.0)
+        self.assertEqual(result["domain_definition"]["min_x"], 1.0)
+        self.assertEqual(result["domain_definition"]["max_x"], 5.0)
 
     @patch("src.run_pipeline.coerce_numeric", side_effect=lambda val: None if val is None or val == "invalid" else float(val))
     def test_mocked_coercion_fallback(self, mock_coerce):
@@ -63,7 +82,10 @@ class TestSanitizePayload(unittest.TestCase):
             }
         }
         result = sanitize_payload(raw)
-        self.assertEqual(result["domain_definition"]["width"], 4.0)
+        domain = result["domain_definition"]
+        self.assertEqual(domain["width"], 4.0)
+        self.assertEqual(domain["min_x"], 1.0)
+        self.assertEqual(domain["max_x"], 5.0)
         mock_coerce.assert_any_call("invalid")
 
 
@@ -94,8 +116,6 @@ class TestPipelineMain(unittest.TestCase):
     def test_safe_list_indexing_guard(self):
         result_list = ["alpha", "beta", "gamma"]
         index = 1
-        assert isinstance(result_list, list) and len(result_list) > index
         self.assertEqual(result_list[index], "beta")
-
 
 
