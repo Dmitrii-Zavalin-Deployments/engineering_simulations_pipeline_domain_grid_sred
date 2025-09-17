@@ -26,8 +26,5 @@ jobs:
           git commit -m "Log trigger from autorun orchestrator"
           git push
 
-  call-simulation:
-    uses: ./.github/workflows/fluid_simulation_pipeline.yml
-
 
 

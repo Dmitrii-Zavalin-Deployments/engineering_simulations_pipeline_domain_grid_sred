@@ -3,11 +3,10 @@
 name: STEP Spatial Metadata Processor
 
 on:
-  # push:
-  #   branches:
-  #     - "**"
+  push:
+     branches:
+       - "**"
   workflow_dispatch:
-  workflow_call:
 
 jobs:
   process_step_for_coordinates:
