@@ -4,8 +4,8 @@ name: STEP Spatial Metadata Processor
 
 on:
   push:
-     branches:
-       - "**"
+    paths:
+      - trigger.txt
   workflow_dispatch:
 
 jobs:
