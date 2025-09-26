@@ -87,7 +87,10 @@ def extract_bounding_box_with_gmsh(step_path, resolution=None, flow_region=None)
                 if gmsh.model.getPhysicalName(dim, tag).lower() in {"inlet", "outlet", "internal"}
             ]
             if not internal_tags:
-                raise ValueError("No internal surfaces found for flow_region='internal'")
+                raise ValueError(
+                    "Flow region set to 'internal', but no physical surfaces named 'inlet', 'outlet', or 'internal' were found.\n"
+                    "This likely means the STEP file lacks tagged surface groups. Please ensure your geometry includes properly named physical surfaces."
+                )
             min_x, min_y, min_z, max_x, max_y, max_z = extract_internal_bounding_box(internal_tags)
         else:
             # 🧩 Use full volume bounding box
