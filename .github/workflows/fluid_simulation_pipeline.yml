@@ -1,3 +1,5 @@
+# 📄 .github/workflows/STEP Spatial Metadata Processor.yml
+
 name: STEP Spatial Metadata Processor
 
 on:
@@ -107,28 +109,17 @@ jobs:
           echo "Extracted resolution: $RESOLUTION"
           echo "resolution=$RESOLUTION" >> $GITHUB_ENV
 
-      - name: 🧠 Extract flow_region from flow_data.json
-        id: extract_flow_region
-        run: |
-          echo "Reading flow_region from flow_data.json..."
-          FLOW_REGION=$(python -c "import json; print(json.load(open('data/testing-input-output/flow_data.json'))['model_properties'].get('flow_region', 'external'))")
-          echo "Extracted flow_region: $FLOW_REGION"
-          echo "flow_region=$FLOW_REGION" >> $GITHUB_ENV
-
-      - name: 📏 Print extracted resolution and flow_region
+      - name: 📏 Print extracted resolution value
         run: |
           echo "✅ Resolution extracted from flow_data.json:"
           echo "Resolution = ${{ env.resolution }} meters"
-          echo "✅ Flow region extracted from flow_data.json:"
-          echo "Flow Region = ${{ env.flow_region }}"
 
       - name: 🧠 Run domain extraction via Gmsh CLI module
         run: |
           python3 src/gmsh_runner.py \
             --step data/testing-input-output/input.step \
             --resolution ${{ env.resolution }} \
-            --output data/testing-input-output/enriched_metadata.json \
-            --flow_region ${{ env.flow_region }}
+            --output data/testing-input-output/enriched_metadata.json
 
       - name: 🔍 Validate output JSON against schema
         run: |
@@ -199,6 +190,8 @@ jobs:
           git add trigger.txt
           git commit -m "Log STEP processor trigger by ${{ github.actor }} via ${{ github.event_name }}"
           git push
+
+
 
 
 
