@@ -119,24 +119,9 @@ def main(resolution=None):
 
     validate_step_file(step_path)
 
-    # 🧠 Load flow_region from flow_data.json
-    flow_region = "external"
-    flow_data_path = IO_DIRECTORY / "flow_data.json"
-    if flow_data_path.exists():
-        try:
-            with open(flow_data_path) as f:
-                flow_data = json.load(f)
-                flow_region = flow_data.get("model_properties", {}).get("flow_region", "external")
-        except Exception as e:
-            log_warning(f"Failed to parse flow_data.json → defaulting to 'external'\n{e}")
-    else:
-        log_warning("flow_data.json not found → defaulting to 'external'")
-
-    log_checkpoint(f"🧠 Flow region strategy: '{flow_region}'")
-
     try:
         log_checkpoint("📂 Calling Gmsh geometry parser...")
-        domain_definition = extract_bounding_box_with_gmsh(str(step_path), resolution=resolution, flow_region=flow_region)
+        domain_definition = extract_bounding_box_with_gmsh(str(step_path), resolution)
         log_checkpoint(f"📐 Domain extracted: {domain_definition}")
     except Exception as e:
         log_error(f"Gmsh geometry extraction failed:\n{e}", fatal=True)
