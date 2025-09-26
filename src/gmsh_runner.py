@@ -38,7 +38,7 @@ def extract_internal_bounding_box(surface_tags):
     max_z = max(box[5] for box in boxes)
     return min_x, min_y, min_z, max_x, max_y, max_z
 
-def extract_bounding_box_with_gmsh(step_path, resolution=None):
+def extract_bounding_box_with_gmsh(step_path, resolution=None, flow_region=None):
     """
     Parses STEP geometry with Gmsh and returns domain_definition
     including bounding box and grid resolution.
@@ -46,6 +46,7 @@ def extract_bounding_box_with_gmsh(step_path, resolution=None):
     Parameters:
         step_path (str or Path): Path to STEP file
         resolution (float or None): Grid resolution in meters. If None, fallback profile will be used.
+        flow_region (str or None): Optional override for flow region ("internal" or "external")
 
     Returns:
         dict: domain_definition dictionary
@@ -61,13 +62,14 @@ def extract_bounding_box_with_gmsh(step_path, resolution=None):
         except Exception:
             resolution = 0.01
 
-    # 🧩 Load flow region from flow_data.json
-    try:
-        with open(FLOW_DATA_PATH) as f:
-            flow_data = json.load(f)
-            flow_region = flow_data.get("model_properties", {}).get("flow_region", "external")
-    except Exception:
-        flow_region = "external"
+    # 🧩 Load flow region from flow_data.json if not provided
+    if flow_region is None:
+        try:
+            with open(FLOW_DATA_PATH) as f:
+                flow_data = json.load(f)
+                flow_region = flow_data.get("model_properties", {}).get("flow_region", "external")
+        except Exception:
+            flow_region = "external"
 
     gmsh.initialize()
     try:
@@ -122,10 +124,16 @@ if __name__ == "__main__":
     parser.add_argument("--step", type=str, required=True, help="Path to STEP file")
     parser.add_argument("--resolution", type=float, help="Grid resolution in meters")
     parser.add_argument("--output", type=str, help="Path to write domain JSON")
+    parser.add_argument("--flow_region", type=str, choices=["internal", "external"],
+                        help="Override flow region strategy (internal or external)")
 
     args = parser.parse_args()
 
-    result = extract_bounding_box_with_gmsh(args.step, resolution=args.resolution)
+    result = extract_bounding_box_with_gmsh(
+        step_path=args.step,
+        resolution=args.resolution,
+        flow_region=args.flow_region
+    )
 
     print(json.dumps({"domain_definition": result}, indent=2))
 
