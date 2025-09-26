@@ -1,7 +1,7 @@
 # tests/test_gmsh_runner.py
 
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, mock_open
 from src.gmsh_runner import extract_bounding_box_with_gmsh
 from utils.gmsh_input_check import ValidationError
 
@@ -64,24 +64,12 @@ def test_resolution_applies_correctly(mock_validate, mock_isfile, mock_gmsh):
 @patch("src.gmsh_runner.gmsh")
 @patch("os.path.isfile", return_value=True)
 @patch("src.gmsh_runner.validate_step_has_volumes")
-@patch("builtins.open")
+@patch("builtins.open", new_callable=mock_open, read_data='{"model_properties": {"flow_region": "internal"}}')
 def test_internal_flow_region_bounding_box(mock_open, mock_validate, mock_isfile, mock_gmsh):
-    # Simulate flow_data.json with "internal"
-    mock_open.return_value.__enter__.return_value.read.return_value = '''
-    {
-        "model_properties": {
-            "flow_region": "internal"
-        }
-    }
-    '''
-
-    # Simulate physical groups with internal tags
     mock_gmsh.model.getPhysicalGroups.return_value = [(2, 21), (2, 22), (2, 23)]
     mock_gmsh.model.getPhysicalName.side_effect = lambda dim, tag: {
         21: "inlet", 22: "outlet", 23: "internal"
     }[tag]
-
-    # Simulate bounding boxes for each surface
     mock_gmsh.model.getBoundingBox.side_effect = lambda dim, tag: {
         21: (0, 0, 0, 1, 1, 1),
         22: (1, 1, 1, 2, 2, 2),
@@ -92,7 +80,9 @@ def test_internal_flow_region_bounding_box(mock_open, mock_validate, mock_isfile
 
     assert result["min_x"] == 0
     assert result["max_x"] == 3
-    assert result["nx"] == 6  # (3 - 0) / 0.5
+    assert result["nx"] == 6
+    assert result["ny"] == 6
+    assert result["nz"] == 6
 
 # 🧪 Flow region: external fallback
 @patch("src.gmsh_runner.gmsh")
