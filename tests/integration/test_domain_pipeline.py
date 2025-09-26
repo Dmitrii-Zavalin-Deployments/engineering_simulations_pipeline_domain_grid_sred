@@ -172,6 +172,83 @@ def test_run_pipeline_execution(tmp_path):
     assert computed_ny > 0, "Computed ny must be positive"
     assert computed_nz > 0, "Computed nz must be positive"
 
+# 🧪 System Test — Flow Region: Internal
+@pytest.mark.skipif(not STEP_PATH.exists(), reason="Required STEP file missing for system test.")
+def test_internal_flow_region_applied(tmp_path):
+    flow_data_path = STEP_PATH.parent / "flow_data.json"
+    flow_data = {
+        "model_properties": {
+            "flow_region": "internal",
+            "default_resolution": 0.02
+        }
+    }
+    with open(flow_data_path, "w") as f:
+        json.dump(flow_data, f)
+
+    env = os.environ.copy()
+    env["IO_DIRECTORY"] = str(STEP_PATH.parent)
+    env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata_internal.json")
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
+
+    result = subprocess.run(
+        ["python", "-m", "src.run_pipeline"],
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print("STDERR:", result.stderr)
+
+    assert result.returncode == 0
+    assert "✅ Metadata written" in result.stdout
+
+    output_file = Path(env["OUTPUT_PATH"])
+    assert output_file.exists(), "Pipeline output file missing"
+
+    with open(output_file) as f:
+        metadata = json.load(f)
+
+    assert "domain_definition" in metadata
+    domain = metadata["domain_definition"]
+    assert domain["max_x"] - domain["min_x"] <= 3.0, "Bounding box too large — internal region not applied"
+
+# 🧪 System Test — Flow Region Fallback
+@pytest.mark.skipif(not STEP_PATH.exists(), reason="Required STEP file missing for system test.")
+def test_flow_region_fallback_to_external(tmp_path):
+    flow_data_path = STEP_PATH.parent / "flow_data.json"
+    if flow_data_path.exists():
+        flow_data_path.unlink()
+
+    env = os.environ.copy()
+    env["IO_DIRECTORY"] = str(STEP_PATH.parent)
+    env["OUTPUT_PATH"] = str(tmp_path / "domain_metadata_fallback.json")
+    env["PYTHONPATH"] = str(Path(__file__).resolve().parents[2])
+
+    resolution = 0.02
+
+        result = subprocess.run(
+        ["python", "-m", "src.run_pipeline", "--resolution", str(resolution)],
+        env=env,
+        capture_output=True,
+        text=True
+    )
+
+    if result.returncode != 0:
+        print("STDERR:", result.stderr)
+
+    assert result.returncode == 0
+    assert "✅ Metadata written" in result.stdout
+
+    output_file = Path(env["OUTPUT_PATH"])
+    assert output_file.exists(), "Pipeline output file missing"
+
+    with open(output_file) as f:
+        metadata = json.load(f)
+
+    assert "domain_definition" in metadata
+    domain = metadata["domain_definition"]
+    assert domain["max_x"] - domain["min_x"] > 0, "Fallback bounding box invalid"
 
 
 
