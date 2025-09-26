@@ -79,13 +79,25 @@ def extract_bounding_box_with_gmsh(step_path, resolution=None, flow_region=None)
         validate_step_has_volumes(step_path)
         gmsh.open(str(step_path))
 
+        # 🧪 Debug: List all surface entities
+        surface_entities = gmsh.model.getEntities(dim=2)
+        print(f"🧩 Found {len(surface_entities)} surface entities (dim=2): {surface_entities}")
+
+        # 🧪 Debug: List all physical surface groups
+        physical_groups = gmsh.model.getPhysicalGroups(dim=2)
+        print(f"🔍 Found {len(physical_groups)} physical surface groups (dim=2): {physical_groups}")
+
+        for dim, tag in physical_groups:
+            name = gmsh.model.getPhysicalName(dim, tag)
+            print(f"🧾 Physical Group — dim: {dim}, tag: {tag}, name: '{name}'")
+
         if flow_region == "internal":
-            # 🧩 Filter internal surfaces by physical tags
-            physical_groups = gmsh.model.getPhysicalGroups(dim=2)
             internal_tags = [
                 (dim, tag) for dim, tag in physical_groups
                 if gmsh.model.getPhysicalName(dim, tag).lower() in {"inlet", "outlet", "internal"}
             ]
+            print(f"🧠 Matched internal surface tags: {internal_tags}")
+
             if not internal_tags:
                 raise ValueError(
                     "Flow region set to 'internal', but no physical surfaces named 'inlet', 'outlet', or 'internal' were found.\n"
@@ -93,7 +105,6 @@ def extract_bounding_box_with_gmsh(step_path, resolution=None, flow_region=None)
                 )
             min_x, min_y, min_z, max_x, max_y, max_z = extract_internal_bounding_box(internal_tags)
         else:
-            # 🧩 Use full volume bounding box
             volumes = gmsh.model.getEntities(3)
             entity_tag = volumes[0][1]
             min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(3, entity_tag)
