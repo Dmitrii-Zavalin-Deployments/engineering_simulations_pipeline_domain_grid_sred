@@ -36,7 +36,7 @@ def enrich_metadata_pipeline(nx, ny, nz, bounding_volume, config_flag=True):
         logger.warning("Zero resolution detected — skipping metadata enrichment.")
         return {}
 
-    index = load_pipeline_index()
+    load_pipeline_index()
     domain_size = compute_domain_size(nx, ny, nz)
     spacing_hint = compute_spacing_hint(domain_size, nx, ny, nz)
     resolution_density = compute_resolution_density(domain_size, bounding_volume)
