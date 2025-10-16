@@ -13,31 +13,49 @@ SCHEMA_PATH = "schemas/domain_schema.json"
 def compute_resolution(min_val, max_val, lc):
     return max(1, math.floor((max_val - min_val) / lc))
 
-def extract_domain_definition(step_path, lc=None, nx=None, ny=None, nz=None):
+def round2(val):
+    return float(f"{val:.2f}")
+
+def extract_domain_definition(step_path, lc=None, nx=None, ny=None, nz=None, debug=False):
+    if debug: print("[DEBUG] Initializing Gmsh...")
     gmsh.initialize()
     gmsh.open(step_path)
     gmsh.model.occ.synchronize()
+    if debug: print("[DEBUG] STEP file loaded and synchronized.")
 
-    # Use full model bounding box
     min_x, min_y, min_z, max_x, max_y, max_z = gmsh.model.getBoundingBox(-1, -1)
+    if debug:
+        print(f"[DEBUG] Raw bounding box:")
+        print(f"        min_x={min_x}, max_x={max_x}")
+        print(f"        min_y={min_y}, max_y={max_y}")
+        print(f"        min_z={min_z}, max_z={max_z}")
 
     if lc:
         nx = compute_resolution(min_x, max_x, lc)
         ny = compute_resolution(min_y, max_y, lc)
         nz = compute_resolution(min_z, max_z, lc)
+        if debug:
+            print(f"[DEBUG] Computed resolution from lc={lc}: nx={nx}, ny={ny}, nz={nz}")
     elif not (nx and ny and nz):
         raise ValueError("Either --lc or all of --nx, --ny, --nz must be provided.")
 
     gmsh.finalize()
+    if debug: print("[DEBUG] Gmsh finalized.")
 
-    return {
+    domain = {
         "domain_definition": {
-            "min_x": min_x, "max_x": max_x,
-            "min_y": min_y, "max_y": max_y,
-            "min_z": min_z, "max_z": max_z,
+            "min_x": round2(min_x), "max_x": round2(max_x),
+            "min_y": round2(min_y), "max_y": round2(max_y),
+            "min_z": round2(min_z), "max_z": round2(max_z),
             "nx": nx, "ny": ny, "nz": nz
         }
     }
+
+    if debug:
+        print("[DEBUG] Final rounded domain definition:")
+        print(json.dumps(domain, indent=2))
+
+    return domain
 
 def load_schema(schema_path):
     if not os.path.isfile(schema_path):
@@ -54,7 +72,7 @@ def main():
     parser.add_argument("--nz", type=int, help="Grid resolution in z-direction")
     parser.add_argument("--schema", type=str, default=SCHEMA_PATH, help="Path to JSON schema")
     parser.add_argument("--output", type=str, help="Path to write domain JSON")
-    parser.add_argument("--debug", action="store_true", help="Print domain JSON to stdout")
+    parser.add_argument("--debug", action="store_true", help="Print debug information")
 
     args = parser.parse_args()
 
@@ -68,15 +86,13 @@ def main():
             lc=args.lc,
             nx=args.nx,
             ny=args.ny,
-            nz=args.nz
+            nz=args.nz,
+            debug=args.debug
         )
 
         schema = load_schema(args.schema)
         validate(instance=domain_json, schema=schema)
         print("[INFO] JSON schema validation passed.")
-
-        if args.debug:
-            print(json.dumps(domain_json, indent=2))
 
         if args.output:
             with open(args.output, "w") as f:
