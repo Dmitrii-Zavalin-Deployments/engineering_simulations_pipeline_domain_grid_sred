@@ -91,11 +91,9 @@ jobs:
       - name: 🏃 Run Integration Test (test_cube_no_slip)
         run: |
           python3 src/gmsh_runner.py \
-            --step tests/test_models/test_cube.step \
-            --lc 0.5 \
-            --flow_region internal \
-            --no_slip true \
-            --output tests/test_models/test_cube_cli_output_no_slip.json
+          --step tests/test_models/test_cube.step \
+          --lc 0.5 \
+          --output tests/test_models/test_cube_cli_output_no_slip.json
 
           python3 tests/helpers/compare_json.py \
             tests/test_models/test_cube_output_no_slip.json \
