@@ -45,7 +45,7 @@ jobs:
             git commit -m "🧹 Auto-clean: removed unused imports and variables"
             git push || echo "No changes to push"
           )
-  
+
   process_step_for_coordinates:
     needs: code_quality_check
     runs-on: ubuntu-latest
@@ -205,7 +205,7 @@ jobs:
           src/upload_to_dropbox.sh
 
       - name: 📝 Log trigger & push
-        if: always()
+        if: always() # Run even if previous steps failed to ensure log and error reports are committed
         env:
           GIT_USER_NAME: ${{ secrets.GIT_USER_NAME }}
           GIT_USER_EMAIL: ${{ secrets.GIT_USER_EMAIL }}
@@ -214,10 +214,18 @@ jobs:
           git config --global user.name "${GIT_USER_NAME}"
           git config --global user.email "${GIT_USER_EMAIL}"
 
+          # Commit error reports and trigger log
+          if [ -d "tests/integration_tests_errors" ]; then
+            find tests/integration_tests_errors -type f -print0 | while IFS= read -r -d $'\0' file; do
+              echo -e "\n--- Commit Details: Run ${{ github.run_id }} / Attempt ${{ github.run_attempt }} ---" >> "$file"
+            done
+            git add --force tests/integration_tests_errors
+            echo "⚠️ Added error reports for commit."
+          fi
+
           git add trigger.txt
-          git commit -m "Log STEP processor trigger by ${{ github.actor }} via ${{ github.event_name }}" || echo "No new log to commit"
+          git commit -m "Log STEP processor trigger by ${{ github.actor }} via ${{ github.event_name }}" || echo "No new log or errors to commit"
+
+          # Pull and rebase before pushing to avoid rejection
           git pull --rebase origin main || echo "⚠️ Rebase failed — check for conflicts"
           git push origin main || echo "❌ Push failed — remote may have diverged"
-
-
-
