@@ -1,0 +1,23 @@
+❌ INTEGRATION TEST FAILED: Output mismatch for test_cube_output_no_slip.json
+
+--- JSON UNIFIED DIFF (Expected vs Generated) ---
+--- test_cube_output_no_slip.json+++ test_cube_cli_output_no_slip.json@@ -1,11 +1,11 @@ {
+   "domain_definition": {
+-    "max_x": 2.0,
+-    "max_y": 1.0,
+-    "max_z": 1.0,
+-    "min_x": 0,
+-    "min_y": -1.0,
+-    "min_z": -1.0,
++    "max_x": 2.0000001,
++    "max_y": 1.0000001,
++    "max_z": 1.0000001,
++    "min_x": -1e-07,
++    "min_y": -1.0000001,
++    "min_z": -1.0000001,
+     "nx": 4,
+     "ny": 4,
+     "nz": 4
+-------------------------------------------------
+
+--- Commit Details: Run 18574079962 / Attempt 1 ---
