@@ -107,8 +107,6 @@ jobs:
           python3 src/gmsh_runner.py \
             --step tests/test_models/cube_with_hole.step \
             --lc 0.5 \
-            --flow_region internal \
-            --no_slip true \
             --output tests/test_models/cube_with_hole_cli_output_no_slip.json
 
           python3 tests/helpers/compare_json.py \
@@ -123,8 +121,6 @@ jobs:
           python3 src/gmsh_runner.py \
             --step tests/test_models/test_cube.step \
             --lc 0.5 \
-            --flow_region internal \
-            --no_slip false \
             --output tests/test_models/test_cube_cli_output_slip.json
 
           python3 tests/helpers/compare_json.py \
