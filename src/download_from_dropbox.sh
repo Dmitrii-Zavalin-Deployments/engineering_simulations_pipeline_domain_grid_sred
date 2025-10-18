@@ -22,4 +22,9 @@ else
     exit 1
 fi
 
+# Ensure script ends cleanly
+exit 0
+
+
+
 
