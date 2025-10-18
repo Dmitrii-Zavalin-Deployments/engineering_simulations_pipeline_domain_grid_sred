@@ -186,6 +186,7 @@ jobs:
             echo "❌ No STEP file found. Cannot proceed."
             exit 1
           elif [ "$COUNT" -gt 1 ]; then
+            echo "⚠️ Multiple STEP files found. Normalizing..."
             STEP_FILE=$(echo "$STEP_FILES" | head -n 1)
             mv "$STEP_FILE" data/testing-input-output/input.step
             echo "✅ Normalized STEP file to input.step."
@@ -197,6 +198,7 @@ jobs:
             else
               echo "ℹ️ STEP file is already named input.step. No renaming needed."
             fi
+          fi
 
       # ----------------------------------------------------------------------
       # Domain Extraction from STEP
