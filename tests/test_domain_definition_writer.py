@@ -27,9 +27,14 @@ def test_missing_keys(missing_key):
         validate_domain_bounds(domain)
     assert f"Missing domain bounds for axis" in str(exc.value)
 
-# ❌ Non-numeric values
-@pytest.mark.parametrize("bad_value", ["abc", None, {}, []])
-def test_non_numeric_bounds(bad_value):
+# ❌ Non-numeric values and missing detection
+@pytest.mark.parametrize("bad_value,expected_message", [
+    ("abc", "Non-numeric bounds for axis 'x'"),
+    (None, "Missing domain bounds for axis 'x'"),
+    ({}, "Non-numeric bounds for axis 'x'"),
+    ([], "Non-numeric bounds for axis 'x'")
+])
+def test_non_numeric_bounds(bad_value, expected_message):
     domain = {
         "min_x": bad_value, "max_x": 1.0,
         "min_y": -1.0, "max_y": 1.0,
@@ -37,7 +42,7 @@ def test_non_numeric_bounds(bad_value):
     }
     with pytest.raises(DomainValidationError) as exc:
         validate_domain_bounds(domain)
-    assert "Non-numeric bounds for axis 'x'" in str(exc.value)
+    assert expected_message in str(exc.value)
 
 # ❌ Logical inconsistency: max < min
 def test_max_less_than_min():
