@@ -1,4 +1,5 @@
-"domain_definition": {
+{
+  "domain_definition": {
     "max_x": 2.0,
     "max_y": 1.0,
     "max_z": 1.0,
@@ -8,9 +9,8 @@
     "nx": 4,
     "ny": 4,
     "nz": 4
-   }
+  }
 }
-
 
 
 
