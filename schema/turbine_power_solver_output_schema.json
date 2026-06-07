@@ -1,0 +1,213 @@
+{
+  "$id": "turbine_power_solver_output.schema.json",
+  "title": "Turbine Power Solver Output",
+  "type": "object",
+  "additionalProperties": false,
+
+  "properties": {
+
+    "inputs": {
+      "type": "object",
+      "description": "Metadata about the Flow Analysis Engine output and turbine configuration used for this power computation.",
+      "additionalProperties": false,
+      "properties": {
+
+        "flow_analysis_file": {
+          "type": "string",
+          "description": "Path to Flow Analysis Engine output JSON."
+        },
+
+        "environment_file": {
+          "type": "string",
+          "description": "Path to environment JSON containing fluid density, viscosity, and domain configuration."
+        },
+
+        "turbine_config_file": {
+          "type": "string",
+          "description": "Path to turbine configuration JSON (geometry, mechanical parameters, operational constraints)."
+        }
+      },
+      "required": ["flow_analysis_file", "turbine_config_file"]
+    },
+
+    "config": {
+      "type": "object",
+      "description": "Configuration for power, torque, efficiency, degradation, and scaling models.",
+      "additionalProperties": false,
+      "properties": {
+
+        "power_model_type": {
+          "type": "string",
+          "description": "Model used for power extraction (e.g., 'CFD-derived', 'BEM', 'lookup-table')."
+        },
+
+        "torque_model_type": {
+          "type": "string",
+          "description": "Model used to compute torque from hydrodynamic loads."
+        },
+
+        "efficiency_model": {
+          "type": "string",
+          "description": "Efficiency model (e.g., generator efficiency curve, drivetrain losses)."
+        },
+
+        "degradation_model": {
+          "type": "string",
+          "description": "Model for long-term performance degradation."
+        },
+
+        "scaling_law_model": {
+          "type": "string",
+          "description": "Scaling law model (e.g., Reynolds scaling, diameter scaling)."
+        },
+
+        "array_interaction_model": {
+          "type": "string",
+          "description": "Model for multi-unit wake interactions (optional)."
+        }
+      },
+      "required": ["power_model_type"]
+    },
+
+    "results": {
+      "type": "object",
+      "description": "Computed turbine performance metrics, curves, and long-term projections.",
+      "additionalProperties": false,
+
+      "properties": {
+
+        "operating_point": {
+          "type": "object",
+          "description": "Instantaneous turbine operating point derived from flow conditions.",
+          "properties": {
+            "flow_speed": { "type": "number", "description": "Representative inflow speed at rotor plane." },
+            "rotational_speed": { "type": "number", "description": "Rotor speed (rad/s or RPM)." },
+            "torque": { "type": "number", "description": "Instantaneous torque on the shaft." },
+            "power": { "type": "number", "description": "Instantaneous mechanical power output." },
+            "efficiency": { "type": "number", "description": "Instantaneous turbine efficiency (0–1)." }
+          },
+          "required": ["flow_speed", "torque", "power", "efficiency"]
+        },
+
+        "power_curves": {
+          "type": "object",
+          "description": "Power and torque curves as functions of flow speed and rotational speed.",
+          "properties": {
+
+            "power_vs_flow": {
+              "type": "array",
+              "description": "Power as a function of inflow speed.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "flow_speed": { "type": "number" },
+                  "power": { "type": "number" },
+                  "efficiency": { "type": "number" }
+                },
+                "required": ["flow_speed", "power"]
+              }
+            },
+
+            "power_vs_speed": {
+              "type": "array",
+              "description": "Power as a function of rotational speed.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "rotational_speed": { "type": "number" },
+                  "power": { "type": "number" },
+                  "torque": { "type": "number" }
+                },
+                "required": ["rotational_speed", "power"]
+              }
+            }
+          }
+        },
+
+        "energy_yield": {
+          "type": "object",
+          "description": "Energy production metrics over specified time horizons.",
+          "properties": {
+            "annual_energy_production": {
+              "type": "number",
+              "description": "Expected annual energy production (e.g., MWh/year)."
+            },
+            "capacity_factor": {
+              "type": "number",
+              "description": "Capacity factor (0–1)."
+            },
+            "time_horizon_hours": {
+              "type": "number",
+              "description": "Time horizon used for yield estimation."
+            }
+          }
+        },
+
+        "degradation": {
+          "type": "object",
+          "description": "Long-term performance degradation estimates.",
+          "properties": {
+            "degradation_curve": {
+              "type": "array",
+              "description": "Relative power vs. time (years).",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "time_years": { "type": "number" },
+                  "relative_power": { "type": "number", "description": "Fraction of initial power (0–1)." }
+                },
+                "required": ["time_years", "relative_power"]
+              }
+            },
+            "end_of_life_power_fraction": {
+              "type": "number",
+              "description": "Relative power at end-of-life horizon."
+            }
+          }
+        },
+
+        "scaling_laws": {
+          "type": "object",
+          "description": "Scaling relationships for different turbine sizes or flow conditions.",
+          "properties": {
+            "power_scaling_exponent": {
+              "type": "number",
+              "description": "Exponent relating power to characteristic scale (e.g., diameter^n)."
+            },
+            "reference_rating": {
+              "type": "number",
+              "description": "Reference turbine rating used for scaling."
+            }
+          }
+        },
+
+        "multi_unit_performance": {
+          "type": "object",
+          "description": "Performance of arrays or farms of turbines.",
+          "properties": {
+            "unit_count": {
+              "type": "integer",
+              "description": "Number of turbines in the array."
+            },
+            "array_power_curve": {
+              "type": "array",
+              "description": "Total array power vs. flow speed.",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "flow_speed": { "type": "number" },
+                  "total_power": { "type": "number" }
+                },
+                "required": ["flow_speed", "total_power"]
+              }
+            }
+          }
+        }
+      },
+
+      "required": ["operating_point", "power_curves", "energy_yield"]
+    }
+  },
+
+  "required": ["inputs", "config", "results"]
+}
