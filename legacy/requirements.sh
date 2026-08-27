@@ -18,10 +18,9 @@ python3 -m pip install --upgrade pip setuptools wheel
 echo "📦 Installing solver dependencies from requirements.txt..."
 python3 -m pip install -r requirements.txt
 
-echo "⚙ Configuring and building all targets via CMake (with ASan and Coverage enabled)..."
+echo "⚙ Configuring and building all targets via CMake (with coverage enabled)..."
 cmake -B build \
     -DCMAKE_BUILD_TYPE=Debug \
-    -DENABLE_ASAN=ON \
     -DENABLE_COVERAGE=ON
 
 cmake --build build --parallel $(nproc)

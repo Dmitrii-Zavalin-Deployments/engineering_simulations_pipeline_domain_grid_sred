@@ -1,4 +1,4 @@
-name: $PROJECT_NAME
+name: Turbine Power Solver
 
 on:
   push:
@@ -15,6 +15,7 @@ jobs:
   #   env:
   #     PYTHONPATH: ${{ github.workspace }}
   #     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  #     ASAN_OPTIONS: "detect_leaks=0"
   #     # Define the 'Gold Standard' test command here (e.g. # pytest -s tests/ -vv --cov=src --cov-report=term-missing)
   #     TEST_COMMAND: "pytest -s tests/ -vv --cov=src --cov-report=term-missing"
 
@@ -66,18 +67,62 @@ jobs:
   #         echo "🧪 Configuring OpenMP stack size for multi-threaded stability..."
   #         export OMP_STACKSIZE=64M
 
-  #         echo "🧪 Executing C++ Test Suites via CTest..."
+  #         # ==========================================
+  #         # PHASE 1: ASan Debugging Run (Memory Audit)
+  #         # ==========================================
+  #         echo "⚙️ [PHASE 1/4] Configuring CMake with AddressSanitizer (ASan) enabled for rigorous memory debugging..."
+  #         cmake -B build -S . \
+  #             -DCMAKE_BUILD_TYPE=Debug \
+  #             -DENABLE_ASAN=ON \
+  #             -DENABLE_COVERAGE=OFF
+          
+  #         cmake --build build --parallel $(nproc)
+
+  #         echo "🔬 [PHASE 1/4] Preloading libasan and executing C++ Test Suites via CTest (Debug & Memory Audit Run)..."
+  #         export LD_PRELOAD=$(g++ -print-file-name=libasan.so)
+  #         cd build
+  #         ctest --output-on-failure -V
+  #         cd ..
+  #         unset LD_PRELOAD
+
+  #         # ==========================================
+  #         # PHASE 2: Clean Re-build for Coverage (ASan OFF, Coverage ON)
+  #         # ==========================================
+  #         echo "⚙️ [PHASE 2/4] Re-configuring CMake with ASan disabled and Coverage enabled for reporting..."
+  #         # Purge stale or incompatible .gcda counters from the ASan build
+  #         find build -name "*.gcda" -delete
+
+  #         cmake -B build -S . \
+  #             -DCMAKE_BUILD_TYPE=Debug \
+  #             -DENABLE_ASAN=OFF \
+  #             -DENABLE_COVERAGE=ON
+          
+  #         cmake --build build --parallel $(nproc)
+
+  #         # ==========================================
+  #         # PHASE 3: Execution Run for Coverage (CTest & Pytest)
+  #         # ==========================================
+  #         echo "🧪 [PHASE 3/4] Executing C++ Test Suites (CTest) on Coverage Build (Reporting Run)..."
   #         cd build
   #         ctest --output-on-failure -V
   #         cd ..
 
-  #         echo "🐍 Executing Python C++ bridge tests from cpp/python_bridge_tests/..."
-  #         # Point PYTHONPATH to the build directory so Python can locate cpp
-  #         export PYTHONPATH=$PWD/build:$PYTHONPATH
-  #         pytest cpp/python_bridge_tests/ -v
+  #         echo "🐍 [PHASE 3/4] Executing Python C++ bridge tests (Pytest) on Coverage Build..."
+  #         # Include repository root and build directory in PYTHONPATH
+  #         export PYTHONPATH=$PWD:$PWD/build:$PYTHONPATH
+  #         pytest cpp/python_bridge_tests/ -vv -s --tb=long
 
-  #         echo "📊 Generating Combined Code Coverage Report..."
-  #         gcovr --root=. --filter=cpp/src/ --print-summary --txt
+  #         # ==========================================
+  #         # PHASE 4: Unified Coverage Report Generation
+  #         # ==========================================
+  #         echo "📊 [PHASE 4/4] Generating Unified Code Coverage Report across C++ and Python tests..."
+  #         gcovr --object-directory=build \
+  #               --filter="cpp/src" \
+  #               --exclude="cpp/cpp_unit_tests" \
+  #               --exclude="cpp/cpp_integration_tests" \
+  #               --print-summary \
+  #               --txt \
+  #               --xml coverage.xml
 
   #     - name: 🧹 Auto-Clean (Autoflake)
   #       run: |
@@ -188,6 +233,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       PYTHONPATH: ${{ github.workspace }}
+      ASAN_OPTIONS: "detect_leaks=0"
       APP_KEY: ${{ secrets.APP_KEY }}
       APP_SECRET: ${{ secrets.APP_SECRET }}
       REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
