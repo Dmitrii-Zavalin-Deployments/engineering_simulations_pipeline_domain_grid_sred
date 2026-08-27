@@ -179,7 +179,7 @@ jobs:
   #           echo "✅ All systems nominal. No anomalies detected in solver lifecycle."
   #           cat <<'EOF' > debug/forensic_audit_verification.sh
   #         #!/bin/bash
-  #         # Description: Automated forensic audit for Navier-Stokes solver failures.
+  #         # Description: Automated forensic audit for failures within this repository.
   #         # Status: Dormant (All systems nominal)
   #         exit 0
   #         EOF
@@ -461,7 +461,7 @@ jobs:
       #       echo "✅ All systems nominal. No anomalies detected in solver lifecycle."
       #       cat <<'EOF' > debug/forensic_audit_validation.sh
       #     #!/bin/bash
-      #     # Description: Automated forensic audit for Navier-Stokes solver failures.
+      #     # Description: Automated forensic audit for failures within this repository.
       #     # Status: Dormant (All systems nominal)
       #     exit 0
       #     EOF
